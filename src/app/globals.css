@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fffaf5;
+  --foreground: #2a1810;
+}
+
+html, body { background: var(--background); color: var(--foreground); }
+body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition active:scale-[0.98]; }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+  .btn-secondary { @apply btn bg-white text-brand-700 border border-brand-300 hover:bg-brand-50; }
+  .btn-ghost { @apply btn hover:bg-brand-100 text-brand-800; }
+  .card { @apply bg-white rounded-lg border border-brand-100 shadow-sm overflow-hidden; }
+  .input { @apply w-full rounded-md border border-brand-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400; }
+  .label { @apply block text-sm font-medium mb-1 text-brand-900; }
+  .container-x { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+}
+
+/* Hide scrollbar for category strip */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

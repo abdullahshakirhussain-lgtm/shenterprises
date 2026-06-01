@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  phone         String   @unique
+  fullName      String
+  email         String?
+  passwordHash  String
+  discountRate  Float    @default(0)   // % discount on every order; 0 = use global default
+  createdAt     DateTime @default(now())
+  orders        Order[]
+  reviews       Review[]
+
+  @@index([email])
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  imageUrl  String?
+  sortOrder Int       @default(0)
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  price       Float
+  salePrice   Float?
+  sku         String?   @unique
+  stock       Int       @default(0)
+  imageUrl    String?
+  images      String?   // JSON array
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  onOffer     Boolean   @default(false)
+  featured    Boolean   @default(false)
+  active      Boolean   @default(true)
+  metaTitle   String?
+  metaDesc    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orderItems  OrderItem[]
+  reviews     Review[]
+
+  @@index([categoryId])
+  @@index([onOffer])
+  @@index([featured])
+}
+
+model District {
+  id           Int    @id @default(autoincrement())
+  name         String @unique
+  deliveryFee  Float  @default(450)
+  cities       City[]
+}
+
+model City {
+  id          Int      @id @default(autoincrement())
+  name        String
+  districtId  Int
+  district    District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  deliveryFee Float?
+
+  @@unique([name, districtId])
+  @@index([districtId])
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  email     String?
+  phone     String
+  createdAt DateTime @default(now())
+  orders    Order[]
+
+  @@index([phone])
+  @@index([email])
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  orderNumber     String   @unique
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  userId          Int?
+  user            User?    @relation(fields: [userId], references: [id])
+  fullName        String
+  phone           String
+  email           String?
+  addressLine1    String
+  addressLine2    String?
+  districtName    String
+  cityName        String
+  notes           String?
+  subtotal        Float
+  accountDiscount Float    @default(0)
+  couponCode      String?
+  couponDiscount  Float    @default(0)
+  deliveryFee     Float
+  total           Float
+  paymentMethod   String   // "cod" | "bank"
+  bankSlipUrl     String?
+  status          String   @default("pending")
+  source          String?
+  sessionId       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  items           OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+  price     Float
+  quantity  Int
+
+  @@index([orderId])
+}
+
+model Coupon {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  type         String   // "percent" | "fixed"
+  value        Float    // % for percent, LKR for fixed
+  minSubtotal  Float    @default(0)
+  maxDiscount  Float?   // cap for percent coupons
+  usageLimit   Int?     // total uses across all customers
+  usedCount    Int      @default(0)
+  perUserLimit Int?     // max uses per user
+  expiresAt    DateTime?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([active])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  name      String   // display name (snapshot)
+  rating    Int      // 1..5
+  title     String?
+  body      String
+  approved  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([approved])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model AnalyticsSession {
+  id          String   @id
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  source      String?
+  referrer    String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  userAgent   String?
+  pageViews   Int      @default(0)
+  totalMs     Int      @default(0)
+  events      AnalyticsEvent[]
+}
+
+model AnalyticsEvent {
+  id        Int      @id @default(autoincrement())
+  sessionId String
+  session   AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  type      String
+  path      String?
+  productId Int?
+  quantity  Int?
+  value     Float?
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Cart {
+  id        String   @id
+  itemsJson String
+  total     Float    @default(0)
+  abandoned Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
