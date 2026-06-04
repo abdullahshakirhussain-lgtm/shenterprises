@@ -58,6 +58,12 @@ export default function ProductTopSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selColor]);
 
+  // Validation: every variant group that exists must have a selection
+  const needsColor = colorVariants.length > 0 && !selColor;
+  const needsSize = sizeVariants.length > 0 && !selSize;
+  const needsLength = lengthVariants.length > 0 && !selLength;
+  const ready = !needsColor && !needsSize && !needsLength;
+
   // ---- Dynamic price calculation ----
   // Option A: highest-priced selected variant wins. Variants without a price use product base.
   // Sale price logic: if any selected variant has a salePrice, the highest variant's effective price (sale ?? price) wins.
@@ -103,12 +109,6 @@ export default function ProductTopSection({
   const hasVariantPricing = variants.some(v => v.price != null || v.salePrice != null);
   const showFromPrice = hasVariantPricing && !ready;
   const fromPrice = minPossiblePrice();
-
-  // Validation: every variant group that exists must have a selection
-  const needsColor = colorVariants.length > 0 && !selColor;
-  const needsSize = sizeVariants.length > 0 && !selSize;
-  const needsLength = lengthVariants.length > 0 && !selLength;
-  const ready = !needsColor && !needsSize && !needsLength;
 
   // Dynamic title suffix
   const titleParts: string[] = [];
