@@ -20,7 +20,12 @@ const schema = z.object({
   paymentMethod: z.enum(["cod", "bank"]),
   bankSlipUrl: z.string().optional(),
   couponCode: z.string().optional(),
-  items: z.array(z.object({ productId: z.number(), quantity: z.number().min(1) })).min(1)
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number().min(1),
+    variantLabel: z.string().optional(),  // e.g. "Black, 1/2 inch, 144 yards"
+    variantIds: z.array(z.number()).optional(),  // selected variant IDs — used for server-side price lookup
+  })).min(1)
 });
 
 export async function POST(req: NextRequest) {
@@ -33,16 +38,33 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
 
     const ids = body.items.map((i) => i.productId);
-    const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true } });
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids }, active: true },
+      include: { variants: true },
+    });
     if (products.length !== ids.length) return NextResponse.json({ error: "Some products are unavailable" }, { status: 400 });
 
     let subtotal = 0;
     const items = body.items.map((it) => {
       const p = products.find((p) => p.id === it.productId)!;
-      const price = p.salePrice ?? p.price;
       if (p.stock < it.quantity) throw new Error(`Insufficient stock for ${p.name}`);
+
+      // Compute effective price using variant pricing rule: highest selected variant wins, else base.
+      const basePrice = p.salePrice ?? p.price;
+      let price = basePrice;
+      if (it.variantIds && it.variantIds.length > 0) {
+        const selected = p.variants.filter(v => it.variantIds!.includes(v.id));
+        const variantEffectives = selected
+          .map(v => (v.salePrice ?? v.price))
+          .filter((n): n is number => n != null);
+        if (variantEffectives.length > 0) {
+          price = Math.max(...variantEffectives);
+        }
+      }
+
       subtotal += price * it.quantity;
-      return { productId: p.id, name: p.name, price, quantity: it.quantity };
+      const snapshotName = it.variantLabel ? `${p.name} — ${it.variantLabel}` : p.name;
+      return { productId: p.id, name: snapshotName, price, quantity: it.quantity };
     });
 
     // Account discount (member)
@@ -53,17 +75,38 @@ export async function POST(req: NextRequest) {
       if (rate > 0) accountDiscount = Math.round(subtotal * (rate / 100) * 100) / 100;
     }
 
+    // New customer tier discount
+    let tierDiscount = 0;
+    if (user) {
+      const tiersRaw = await getSetting("new_customer_tiers");
+      if (tiersRaw) {
+        try {
+          const tiers: { order: number; percent: number }[] = JSON.parse(tiersRaw);
+          if (tiers.length > 0) {
+            const completedOrders = await prisma.order.count({
+              where: { userId: user.id, status: { not: "cancelled" } },
+            });
+            const thisOrderNumber = completedOrders + 1;
+            const tier = tiers.find((t) => t.order === thisOrderNumber);
+            if (tier && tier.percent > 0) {
+              tierDiscount = Math.round(subtotal * (tier.percent / 100) * 100) / 100;
+            }
+          }
+        } catch {}
+      }
+    }
+
     // Coupon
     let couponDiscount = 0;
     let couponCode: string | undefined;
     if (body.couponCode) {
-      const result = await applyCoupon(body.couponCode, subtotal - accountDiscount, user?.id);
+      const result = await applyCoupon(body.couponCode, subtotal - accountDiscount - tierDiscount, user?.id);
       if (!result.ok) return NextResponse.json({ error: result.reason || "Invalid coupon" }, { status: 400 });
       couponDiscount = result.discount;
       couponCode = result.code;
     }
 
-    const discountedSubtotal = Math.max(0, subtotal - accountDiscount - couponDiscount);
+    const discountedSubtotal = Math.max(0, subtotal - accountDiscount - tierDiscount - couponDiscount);
     const { fee } = await calculateDeliveryFee(body.districtName, body.cityName, discountedSubtotal);
     const total = discountedSubtotal + fee;
 
@@ -92,6 +135,7 @@ export async function POST(req: NextRequest) {
         notes: body.notes || null,
         subtotal,
         accountDiscount,
+        tierDiscount,
         couponCode: couponCode || null,
         couponDiscount,
         deliveryFee: fee,

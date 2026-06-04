@@ -23,8 +23,7 @@ export default async function AccountPage() {
       <aside className="card p-5 h-fit">
         <h2 className="font-semibold text-lg">{user.fullName}</h2>
         <div className="text-sm text-brand-700">{user.phone}</div>
-        {user.email && <div className="text-sm text-brand-700">{user.email}</div>}
-        {effective > 0 && (
+{effective > 0 && (
           <div className="mt-3 p-2 bg-brand-50 rounded border border-brand-200 text-sm">
             🎉 Member discount: <strong>{effective}%</strong> off every order
           </div>

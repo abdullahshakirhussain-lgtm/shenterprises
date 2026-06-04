@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import StatusForm from "./StatusForm";
+import WhatsAppButton from "./WhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,16 @@ export default async function OrderDetail({ params }: { params: { id: string } }
         <div className="card p-5">
           <h2 className="font-semibold mb-3">Status</h2>
           <StatusForm orderId={o.id} current={o.status} />
+        </div>
+        <div className="card p-5">
+          <h2 className="font-semibold mb-3">WhatsApp Customer</h2>
+          <WhatsAppButton
+            phone={o.phone}
+            customerName={o.fullName}
+            orderNumber={o.orderNumber}
+            total={o.total}
+            status={o.status}
+          />
         </div>
       </div>
     </div>

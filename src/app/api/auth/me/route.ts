@@ -12,7 +12,6 @@ export async function GET() {
       id: user.id,
       fullName: user.fullName,
       phone: user.phone,
-      email: user.email,
       discountRate: effectiveDiscount
     }
   });

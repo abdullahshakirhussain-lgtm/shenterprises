@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 export default async function OffersPage() {
   const items = await prisma.product.findMany({
     where: { active: true, onOffer: true },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { updatedAt: "desc" },
+    include: { variants: true }
   });
   return (
     <div className="container-x py-8">

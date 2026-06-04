@@ -15,7 +15,8 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
             { sku: { contains: q } }
           ]
         },
-        take: 60
+        take: 60,
+        include: { variants: true }
       })
     : [];
   return (

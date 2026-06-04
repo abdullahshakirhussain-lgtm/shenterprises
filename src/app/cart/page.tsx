@@ -17,24 +17,29 @@ export default function CartPage() {
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-3">
             {items.map((i) => (
-              <div key={i.productId} className="card p-3 flex gap-3 items-center">
+              <div key={i.key} className="card p-3 flex gap-3 items-center">
                 <div className="w-20 h-20 bg-brand-50 rounded shrink-0 overflow-hidden">
                   {i.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={i.imageUrl} alt={i.name} className="w-full h-full object-cover" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <Link href={`/product/${i.slug}`} className="font-medium hover:text-brand-700">{i.name}</Link>
+                <div className="flex-1 min-w-0">
+                  <Link href={`/product/${i.slug}`} className="font-medium hover:text-brand-700 line-clamp-2">{i.name}</Link>
+                  {i.variants && i.variants.length > 0 && (
+                    <div className="text-xs text-brand-600 mt-0.5">
+                      {i.variants.map(v => `${v.type === "color" ? "Color" : v.type === "size" ? "Size" : "Length"}: ${v.name}`).join(" · ")}
+                    </div>
+                  )}
                   <div className="text-sm text-brand-700">{formatLKR(i.price)} each</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.productId, i.quantity - 1)}>−</button>
+                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity - 1)}>−</button>
                   <span className="w-8 text-center">{i.quantity}</span>
-                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.productId, i.quantity + 1)}>+</button>
+                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity + 1)}>+</button>
                 </div>
                 <div className="w-24 text-right font-semibold">{formatLKR(i.price * i.quantity)}</div>
-                <button onClick={() => remove(i.productId)} className="text-red-600 px-2" aria-label="Remove">✕</button>
+                <button onClick={() => remove(i.key)} className="text-red-600 px-2" aria-label="Remove">✕</button>
               </div>
             ))}
             <button onClick={clear} className="text-sm text-brand-600 underline">Clear cart</button>

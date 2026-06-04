@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    // Analytics errors (often Supabase connection drops) should never bubble up to the user
+    // Return 200 OK silently so the client doesn't retry or log errors
+    return NextResponse.json({ ok: false }, { status: 200 });
   }
 }

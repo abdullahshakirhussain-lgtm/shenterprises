@@ -1,17 +1,25 @@
 import { prisma } from "@/lib/prisma";
-import { formatLKR } from "@/lib/utils";
 import Link from "next/link";
-import DeleteButton from "./DeleteButton";
+import BulkProductsTable from "./BulkProductsTable";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProducts({ searchParams }: { searchParams: { q?: string } }) {
+export default async function AdminProducts({ searchParams }: { searchParams: { q?: string; cat?: string } }) {
   const q = (searchParams.q || "").trim();
-  const products = await prisma.product.findMany({
-    where: q ? { OR: [{ name: { contains: q } }, { sku: { contains: q } }] } : undefined,
-    include: { category: true },
-    orderBy: { createdAt: "desc" }
-  });
+  const cat = (searchParams.cat || "").trim();
+
+  const where: any = {};
+  if (q) where.OR = [{ name: { contains: q } }, { sku: { contains: q } }];
+  if (cat) where.category = { slug: cat };
+
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
+  ]);
 
   return (
     <div className="container-x py-6">
@@ -22,31 +30,40 @@ export default async function AdminProducts({ searchParams }: { searchParams: { 
           <Link href="/admin/products/new" className="btn-primary">+ New product</Link>
         </div>
       </div>
-      <form className="mb-3"><input name="q" defaultValue={q} placeholder="Search…" className="input max-w-sm" /></form>
-      <div className="card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-brand-50">
-            <tr className="text-left">
-              <th className="p-2">Name</th><th className="p-2">Category</th><th className="p-2">SKU</th>
-              <th className="p-2">Price</th><th className="p-2">Stock</th><th className="p-2">Status</th><th className="p-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-t border-brand-100">
-                <td className="p-2"><Link href={`/admin/products/${p.id}/edit`} className="text-brand-700 underline">{p.name}</Link></td>
-                <td className="p-2">{p.category?.name || "—"}</td>
-                <td className="p-2">{p.sku || "—"}</td>
-                <td className="p-2">{p.salePrice ? <><span className="line-through text-brand-400 mr-1">{formatLKR(p.price)}</span>{formatLKR(p.salePrice)}</> : formatLKR(p.price)}</td>
-                <td className="p-2">{p.stock}</td>
-                <td className="p-2">{p.active ? "Active" : "Hidden"} {p.onOffer && "· Offer"} {p.featured && "· Featured"}</td>
-                <td className="p-2 text-right"><DeleteButton id={p.id} /></td>
-              </tr>
-            ))}
-            {products.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-brand-600">No products yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+
+      <form className="mb-4 flex gap-2 flex-wrap items-end">
+        <div>
+          <label className="label text-xs">Search</label>
+          <input name="q" defaultValue={q} placeholder="Name or SKU…" className="input w-64" />
+        </div>
+        <div>
+          <label className="label text-xs">Category</label>
+          <select name="cat" defaultValue={cat} className="input w-56">
+            <option value="">All categories</option>
+            {categories.map(c => <option key={c.id} value={c.slug}>{c.name}</option>)}
+          </select>
+        </div>
+        <button className="btn-secondary">Filter</button>
+        {(q || cat) && <Link href="/admin/products" className="text-sm text-brand-700 underline self-center">Clear</Link>}
+      </form>
+
+      <BulkProductsTable
+        products={products.map(p => ({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          sku: p.sku,
+          price: p.price,
+          salePrice: p.salePrice,
+          stock: p.stock,
+          active: p.active,
+          onOffer: p.onOffer,
+          featured: p.featured,
+          category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
+        }))}
+        categories={categories.map(c => ({ id: c.id, name: c.name, slug: c.slug }))}
+        currentCategorySlug={cat}
+      />
     </div>
   );
 }

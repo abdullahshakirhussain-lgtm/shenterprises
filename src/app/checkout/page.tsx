@@ -7,7 +7,7 @@ import Link from "next/link";
 
 type District = { id: number; name: string; deliveryFee: number; cities: { id: number; name: string }[] };
 type BankInfo = { bank_name?: string; bank_account_name?: string; bank_account_number?: string; bank_branch?: string };
-type Me = { id: number; fullName: string; phone: string; email: string | null; discountRate: number } | null;
+type Me = { id: number; fullName: string; phone: string; discountRate: number } | null;
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
 
   const [me, setMe] = useState<Me>(null);
+  const [accountBannerDismissed, setAccountBannerDismissed] = useState(false);
   const [form, setForm] = useState({ fullName: "", phone: "", email: "", addressLine1: "", addressLine2: "", notes: "" });
 
   // Coupon state
@@ -36,7 +37,7 @@ export default function CheckoutPage() {
     fetch("/api/settings/public").then((r) => r.json()).then(setBank).catch(() => {});
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       setMe(d.user);
-      if (d.user) setForm((f) => ({ ...f, fullName: d.user.fullName, phone: d.user.phone, email: d.user.email || "" }));
+      if (d.user) setForm((f) => ({ ...f, fullName: d.user.fullName, phone: d.user.phone }));
     });
     fetch("/api/analytics", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -114,7 +115,14 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form, districtName, cityName, paymentMethod, bankSlipUrl,
           couponCode: appliedCoupon?.code,
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            variantLabel: i.variants && i.variants.length > 0
+              ? i.variants.map(v => v.name).join(", ")
+              : undefined,
+            variantIds: i.variants?.map(v => v.id),
+          }))
         })
       });
       const data = await res.json();
@@ -137,9 +145,10 @@ export default function CheckoutPage() {
     <div className="container-x py-8">
       <h1 className="font-display text-3xl text-brand-900 mb-6">Checkout</h1>
 
-      {!me && (
-        <div className="card p-4 mb-4 bg-brand-50 border-brand-200 flex flex-wrap gap-2 items-center justify-between">
-          <span className="text-sm">💡 <Link href="/account/login?next=/checkout" className="underline text-brand-700">Log in</Link> or <Link href="/account/register?next=/checkout" className="underline text-brand-700">create an account</Link> to get your member discount.</span>
+      {!me && !accountBannerDismissed && (
+        <div className="card p-4 mb-4 bg-brand-50 border border-brand-200 flex flex-wrap gap-2 items-center justify-between">
+          <span className="text-sm">💡 <Link href="/account/login?next=/checkout" className="underline text-brand-700">Log in</Link> or <Link href="/account/register?next=/checkout" className="underline text-brand-700">create an account</Link> to get your member discount. <span className="text-brand-500">(Optional — you can checkout as guest)</span></span>
+          <button onClick={() => setAccountBannerDismissed(true)} className="text-brand-400 hover:text-brand-700 text-lg leading-none ml-2">✕</button>
         </div>
       )}
 
@@ -208,8 +217,13 @@ export default function CheckoutPage() {
           <h2 className="font-semibold text-lg mb-3">Order summary</h2>
           <div className="space-y-2 mb-3">
             {items.map((i) => (
-              <div key={i.productId} className="flex justify-between text-sm">
-                <span>{i.name} × {i.quantity}</span>
+              <div key={i.key} className="flex justify-between text-sm">
+                <span className="flex-1 pr-2">
+                  {i.name} × {i.quantity}
+                  {i.variants && i.variants.length > 0 && (
+                    <span className="block text-xs text-brand-500 mt-0.5">{i.variants.map(v => v.name).join(" · ")}</span>
+                  )}
+                </span>
                 <span>{formatLKR(i.price * i.quantity)}</span>
               </div>
             ))}

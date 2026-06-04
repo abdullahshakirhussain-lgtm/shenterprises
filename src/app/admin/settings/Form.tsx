@@ -38,6 +38,15 @@ export default function SettingsForm({ initial }: { initial: Record<string, stri
       </section>
 
       <section className="card p-5">
+        <h2 className="font-semibold mb-3">Top promo strip (home page)</h2>
+        <div>
+          <label className="label">Promo message — leave empty to hide</label>
+          <input className="input" value={s.promo_strip_text || ""} onChange={(e) => up("promo_strip_text", e.target.value)} placeholder='e.g. 40% off all threads — limited time!' />
+          <p className="text-xs text-brand-600 mt-1">Shown as a thin ribbon above the header. Clicking it links to /offers.</p>
+        </div>
+      </section>
+
+      <section className="card p-5">
         <h2 className="font-semibold mb-3">Member discount</h2>
         <div>
           <label className="label">Default discount for logged-in customers (%) — 0 to disable</label>

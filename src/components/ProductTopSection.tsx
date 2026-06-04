@@ -1,0 +1,300 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useCart, type CartVariant } from "./CartProvider";
+import { formatLKR } from "@/lib/utils";
+
+type Variant = { id: number; type: string; name: string; imageUrl: string | null; price?: number | null; salePrice?: number | null };
+
+export default function ProductTopSection({
+  product,
+  images,
+  variants,
+  unitLabel,
+  avgRating,
+  reviewCount,
+}: {
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    price: number;
+    salePrice: number | null;
+    sku: string | null;
+    imageUrl: string | null;
+    stock: number;
+  };
+  images: string[];           // gallery (main + additional)
+  variants: Variant[];
+  unitLabel: string | null;
+  avgRating: number;
+  reviewCount: number;
+}) {
+  const { add } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const colorVariants = variants.filter(v => v.type === "color");
+  const sizeVariants = variants.filter(v => v.type === "size");
+  const lengthVariants = variants.filter(v => v.type === "length");
+
+  const [selColor, setSelColor] = useState<Variant | null>(null);
+  const [selSize, setSelSize] = useState<Variant | null>(null);
+  const [selLength, setSelLength] = useState<Variant | null>(null);
+
+  // Active main image — swaps to selected color's crop when available
+  const [activeImage, setActiveImage] = useState<string | null>(images[0] || null);
+  const [fading, setFading] = useState(false);
+
+  // When color changes, swap the main image with a tiny crossfade.
+  useEffect(() => {
+    const next = selColor?.imageUrl || images[0] || null;
+    if (next === activeImage) return;
+    setFading(true);
+    const t = setTimeout(() => {
+      setActiveImage(next);
+      setFading(false);
+    }, 180);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selColor]);
+
+  // ---- Dynamic price calculation ----
+  // Option A: highest-priced selected variant wins. Variants without a price use product base.
+  // Sale price logic: if any selected variant has a salePrice, the highest variant's effective price (sale ?? price) wins.
+  function variantEffective(v: Variant | null): number | null {
+    if (!v) return null;
+    if (v.price == null && v.salePrice == null) return null;
+    return v.salePrice ?? v.price ?? null;
+  }
+  function variantRegular(v: Variant | null): number | null {
+    if (!v) return null;
+    if (v.price == null) return null;
+    return v.price;
+  }
+
+  const baseEffective = product.salePrice ?? product.price;
+  const baseRegular = product.price;
+
+  // The highest priced selected variant wins; if none have prices, fall back to base.
+  const selectedVariants = [selColor, selSize, selLength].filter(Boolean) as Variant[];
+  const variantPrices = selectedVariants.map(variantEffective).filter((n): n is number => n != null);
+  const variantRegulars = selectedVariants.map(variantRegular).filter((n): n is number => n != null);
+
+  const effective = variantPrices.length > 0 ? Math.max(...variantPrices) : baseEffective;
+  // For showing the strike-through, use regular price of the winning variant (or base)
+  const winningIdx = variantPrices.length > 0
+    ? variantPrices.indexOf(Math.max(...variantPrices))
+    : -1;
+  const winningVariant = winningIdx >= 0 ? selectedVariants.filter(v => variantEffective(v) != null)[winningIdx] : null;
+  const regular = winningVariant && winningVariant.price != null
+    ? winningVariant.price
+    : baseRegular;
+  const showStrikethrough = effective < regular;
+
+  // Min price across all variants (for "From Rs.X" display when no selection)
+  function minPossiblePrice(): number {
+    const allPrices: number[] = [baseEffective];
+    for (const v of variants) {
+      const e = variantEffective(v);
+      if (e != null) allPrices.push(e);
+    }
+    return Math.min(...allPrices);
+  }
+  const hasVariantPricing = variants.some(v => v.price != null || v.salePrice != null);
+  const showFromPrice = hasVariantPricing && !ready;
+  const fromPrice = minPossiblePrice();
+
+  // Validation: every variant group that exists must have a selection
+  const needsColor = colorVariants.length > 0 && !selColor;
+  const needsSize = sizeVariants.length > 0 && !selSize;
+  const needsLength = lengthVariants.length > 0 && !selLength;
+  const ready = !needsColor && !needsSize && !needsLength;
+
+  // Dynamic title suffix
+  const titleParts: string[] = [];
+  if (selSize) titleParts.push(selSize.name);
+  if (selLength) titleParts.push(selLength.name);
+  else if (unitLabel && lengthVariants.length === 0) titleParts.push(unitLabel);
+  if (selColor) titleParts.push(selColor.name);
+  const titleSuffix = titleParts.length ? ` — ${titleParts.join(", ")}` : "";
+
+  function addToCart() {
+    if (!ready || product.stock <= 0) return;
+    const sel: CartVariant[] = [];
+    if (selColor) sel.push({ id: selColor.id, type: "color", name: selColor.name });
+    if (selSize) sel.push({ id: selSize.id, type: "size", name: selSize.name });
+    if (selLength) sel.push({ id: selLength.id, type: "length", name: selLength.name });
+
+    const cartName = product.name + titleSuffix;
+
+    add({
+      productId: product.id,
+      name: cartName,
+      slug: product.slug,
+      price: effective,  // already reflects highest selected variant price
+      imageUrl: selColor?.imageUrl || product.imageUrl,
+      variants: sel.length ? sel : undefined,
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1200);
+  }
+
+  // Thumbnails: main image, additional images, and any color variant images
+  const thumbnails = Array.from(new Set([
+    ...images,
+    ...colorVariants.filter(v => v.imageUrl).map(v => v.imageUrl!),
+  ]));
+
+  return (
+    <div className="grid md:grid-cols-2 gap-8">
+      {/* Image gallery */}
+      <div>
+        <div className="aspect-square bg-brand-50 rounded-lg overflow-hidden relative">
+          {activeImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={activeImage}
+              alt={product.name + (selColor ? ` (${selColor.name})` : "")}
+              className={`w-full h-full object-cover transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}
+            />
+          ) : (
+            <div className="w-full h-full grid place-items-center text-brand-300 text-7xl">🧵</div>
+          )}
+          {selColor && selColor.imageUrl && (
+            <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+              Showing: <strong>{selColor.name}</strong>
+            </div>
+          )}
+        </div>
+        {thumbnails.length > 1 && (
+          <div className="mt-3 flex gap-2 flex-wrap">
+            {thumbnails.map((url, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveImage(url)}
+                className={`w-16 h-16 rounded overflow-hidden border-2 transition ${
+                  activeImage === url ? "border-brand-600" : "border-brand-200 hover:border-brand-400"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Info + selectors */}
+      <div>
+        <h1 className="font-display text-3xl text-brand-900">
+          {product.name}
+          {unitLabel && lengthVariants.length === 0 && !selSize && !selLength && (
+            <span className="text-brand-600 text-2xl"> — {unitLabel}</span>
+          )}
+          {titleSuffix && (
+            <span className="text-brand-600 text-2xl">{titleSuffix}</span>
+          )}
+        </h1>
+
+        {reviewCount > 0 && (
+          <div className="mt-1 text-sm">
+            <span className="text-amber-500">{"★".repeat(Math.round(avgRating))}</span>
+            <span className="text-brand-700"> {avgRating.toFixed(1)} ({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
+          </div>
+        )}
+        <div className="mt-3 flex items-baseline gap-3">
+          {showFromPrice ? (
+            <>
+              <span className="text-sm text-brand-600">From</span>
+              <span className="text-2xl font-semibold text-brand-700">{formatLKR(fromPrice)}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-semibold text-brand-700">{formatLKR(effective)}</span>
+              {showStrikethrough && <span className="line-through text-brand-400">{formatLKR(regular)}</span>}
+            </>
+          )}
+        </div>
+        {product.sku && <div className="mt-1 text-xs text-brand-600">SKU: {product.sku}</div>}
+        <div className={`mt-2 text-sm ${product.stock > 0 ? "text-green-700" : "text-red-700"}`}>
+          {product.stock > 0 ? `In stock (${product.stock})` : "Out of stock"}
+        </div>
+        {product.description && <p className="mt-4 text-brand-800 whitespace-pre-line">{product.description}</p>}
+
+        {/* Size selector */}
+        {sizeVariants.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-brand-900 block mb-1">Size</label>
+            <select
+              className="input max-w-xs"
+              value={selSize?.id ?? ""}
+              onChange={e => setSelSize(sizeVariants.find(v => v.id === parseInt(e.target.value)) || null)}
+            >
+              <option value="">Select size…</option>
+              {sizeVariants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Length selector */}
+        {lengthVariants.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-brand-900 block mb-1">Length</label>
+            <select
+              className="input max-w-xs"
+              value={selLength?.id ?? ""}
+              onChange={e => setSelLength(lengthVariants.find(v => v.id === parseInt(e.target.value)) || null)}
+            >
+              <option value="">Select length…</option>
+              {lengthVariants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Color swatches */}
+        {colorVariants.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-brand-900 block mb-1">
+              Color {selColor && <span className="text-brand-600 font-normal">— {selColor.name}</span>}
+            </label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {colorVariants.map(v => (
+                <button
+                  key={v.id}
+                  title={v.name}
+                  onClick={() => setSelColor(selColor?.id === v.id ? null : v)}
+                  className={`w-12 h-12 rounded overflow-hidden border-2 transition ${
+                    selColor?.id === v.id ? "border-brand-600 ring-2 ring-brand-400" : "border-brand-200 hover:border-brand-400"
+                  }`}
+                >
+                  {v.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs text-brand-700 p-1">{v.name}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 max-w-xs">
+          <button
+            disabled={!ready || product.stock <= 0}
+            onClick={addToCart}
+            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {added ? "✓ Added to cart" : !ready ? "Choose options" : product.stock <= 0 ? "Out of stock" : "Add to cart"}
+          </button>
+        </div>
+
+        <div className="mt-6 text-sm text-brand-700 space-y-1">
+          <div>✓ Cash on delivery available</div>
+          <div>✓ Bank deposit accepted</div>
+          <div>✓ Island-wide delivery</div>
+        </div>
+      </div>
+    </div>
+  );
+}

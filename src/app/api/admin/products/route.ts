@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
         salePrice: b.salePrice != null && b.salePrice !== "" ? parseFloat(b.salePrice) : null,
         sku: b.sku || null,
         stock: parseInt(b.stock) || 0,
+        unitQty: b.unitQty != null && b.unitQty !== "" ? parseInt(b.unitQty) : null,
+        unitType: b.unitType || null,
         imageUrl: b.imageUrl || null,
         categoryId: b.categoryId || null,
         onOffer: !!b.onOffer,

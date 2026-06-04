@@ -36,8 +36,8 @@ export function normalizePhone(input: string): string | null {
   const digits = input.replace(/\D/g, "");
   if (!digits) return null;
   let n = digits;
-  if (n.startsWith("0094")) n = n.slice(2);
-  if (n.startsWith("94")) n = n;
+  if (n.startsWith("0094")) n = "94" + n.slice(4);
+  else if (n.startsWith("94")) n = n;
   else if (n.startsWith("0")) n = "94" + n.slice(1);
   else if (n.length === 9) n = "94" + n;
   if (n.length !== 11 || !n.startsWith("94")) return null;

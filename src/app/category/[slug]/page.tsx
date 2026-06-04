@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const cat = await prisma.category.findUnique({
     where: { slug: params.slug },
-    include: { products: { where: { active: true }, orderBy: { createdAt: "desc" } } }
+    include: { products: { where: { active: true }, orderBy: { createdAt: "desc" }, include: { variants: true } } }
   });
   if (!cat) notFound();
 

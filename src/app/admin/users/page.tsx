@@ -15,7 +15,7 @@ export default async function AdminUsers() {
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-brand-50"><tr className="text-left">
-            <th className="p-2">Name</th><th className="p-2">Phone</th><th className="p-2">Email</th>
+            <th className="p-2">Name</th><th className="p-2">Phone</th>
             <th className="p-2">Orders</th><th className="p-2">Lifetime value</th><th className="p-2">Joined</th>
             <th className="p-2">Discount %</th>
           </tr></thead>
@@ -24,14 +24,13 @@ export default async function AdminUsers() {
               <tr key={u.id} className="border-t border-brand-100">
                 <td className="p-2">{u.fullName}</td>
                 <td className="p-2">{u.phone}</td>
-                <td className="p-2">{u.email || "—"}</td>
                 <td className="p-2">{u.orders.length}</td>
                 <td className="p-2">Rs. {u.orders.reduce((s, o) => s + o.total, 0).toLocaleString()}</td>
                 <td className="p-2">{new Date(u.createdAt).toLocaleDateString()}</td>
                 <td className="p-2"><UserDiscountForm userId={u.id} initial={u.discountRate} /></td>
               </tr>
             ))}
-            {users.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-brand-600">No registered users yet.</td></tr>}
+            {users.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-brand-600">No registered users yet.</td></tr>}
           </tbody>
         </table>
       </div>

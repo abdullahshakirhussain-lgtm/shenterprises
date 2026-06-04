@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    // Cart-snapshot is fire-and-forget — don't surface errors to the user
+    return NextResponse.json({ ok: false }, { status: 200 });
   }
 }

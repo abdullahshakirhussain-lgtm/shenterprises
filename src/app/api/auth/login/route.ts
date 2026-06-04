@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const ok = await bcrypt.compare(String(password), user.passwordHash);
     if (!ok) return NextResponse.json({ error: "Invalid phone or password" }, { status: 401 });
     const token = await signUserToken({ sub: String(user.id), phone: user.phone });
-    const res = NextResponse.json({ ok: true, user: { id: user.id, fullName: user.fullName, phone: user.phone, email: user.email } });
+    const res = NextResponse.json({ ok: true, user: { id: user.id, fullName: user.fullName, phone: user.phone } });
     res.cookies.set(USER_COOKIE, token, {
       httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
       path: "/", maxAge: 60 * 60 * 24 * 30
