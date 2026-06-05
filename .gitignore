@@ -6,7 +6,8 @@ build
 .env.local
 prisma/dev.db
 prisma/dev.db-journal
+# Keep bank deposit slips local — these are sensitive customer data
 public/uploads/slips/*
-public/uploads/products/*
 !public/uploads/slips/.gitkeep
-!public/uploads/products/.gitkeep
+# Product images are tracked so they ship with the deploy
+!public/uploads/products/
