@@ -16,9 +16,11 @@ export async function POST(req: NextRequest) {
     const file = form.get("file");
     const useAI = form.get("useAI") === "1";
     const customPrompt = (form.get("customPrompt") as string) || undefined;
-    if (!(file instanceof File)) return NextResponse.json({ error: "No file" }, { status: 400 });
+    if (!file || typeof file === "string" || typeof (file as any).text !== "function") {
+      return NextResponse.json({ error: "No file" }, { status: 400 });
+    }
 
-    const { rows } = parseCSV(await file.text());
+    const { rows } = parseCSV(await (file as any).text());
     const categories = await prisma.category.findMany();
     const catBySlug = new Map(categories.map((c) => [c.slug, c]));
     const catByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]));
