@@ -38,6 +38,23 @@ export default function SettingsForm({ initial }: { initial: Record<string, stri
       </section>
 
       <section className="card p-5">
+        <h2 className="font-semibold mb-3">Search synonyms</h2>
+        <div>
+          <label className="label">Misspellings & synonyms (JSON)</label>
+          <textarea
+            rows={5}
+            className="input font-mono text-sm"
+            value={s.search_synonyms || ""}
+            onChange={(e) => up("search_synonyms", e.target.value)}
+            placeholder={`{"thred":"thread","zip":"zipper","sissor":"scissors","botton":"button","nedle":"needle","ribbn":"ribbon"}`}
+          />
+          <p className="text-xs text-brand-600 mt-1">
+            Maps misspellings or alternate words to your product names. When a customer searches with a left-side word, the right-side word is searched too. Format: <code>&#123;"misspelling":"correct"&#125;</code>. Leave empty to disable.
+          </p>
+        </div>
+      </section>
+
+      <section className="card p-5">
         <h2 className="font-semibold mb-3">Top promo strip (home page)</h2>
         <div>
           <label className="label">Promo message — leave empty to hide</label>

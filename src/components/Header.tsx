@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SearchBox from "./SearchBox";
 
 export default function Header({ categories }: { categories: { name: string; slug: string }[] }) {
   const { count } = useCart();
@@ -39,12 +40,9 @@ export default function Header({ categories }: { categories: { name: string; slu
           <span className="font-serif font-semibold text-lg hidden sm:block text-ink">SH Enterprises</span>
         </a>
 
-        <form action="/search" className="hidden md:flex flex-1 max-w-xl items-center rounded-lg border border-brand-200 bg-white overflow-hidden">
-          <input name="q" value={q} onChange={e => setQ(e.target.value)}
-            placeholder={t("search_placeholder")}
-            className="flex-1 px-4 py-2.5 text-sm outline-none bg-transparent" />
-          <button className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-sm font-semibold transition-colors">{t("search")}</button>
-        </form>
+        <div className="hidden md:block flex-1 max-w-xl">
+          <SearchBox placeholder={t("search_placeholder")} submitLabel={t("search")} />
+        </div>
 
         <nav className="ml-auto flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
@@ -88,10 +86,7 @@ export default function Header({ categories }: { categories: { name: string; slu
 
       {open && (
         <div className="md:hidden border-t border-brand-100 bg-white p-3 space-y-3">
-          <form action="/search" className="flex">
-            <input name="q" placeholder={t("search_placeholder_short")} className="input rounded-r-none" />
-            <button className="btn-primary rounded-l-none">{t("search")}</button>
-          </form>
+          <SearchBox placeholder={t("search_placeholder_short")} submitLabel={t("search")} />
           <div className="flex flex-col gap-2 text-sm">
             <Link href="/shop" className="text-ink/80">Shop all</Link>
             <Link href="/offers" className="text-ink/80">{t("offers")}</Link>
