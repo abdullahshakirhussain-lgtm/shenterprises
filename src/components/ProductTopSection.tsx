@@ -1,9 +1,25 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useCart, type CartVariant } from "./CartProvider";
+import { useLanguage } from "./LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 
-type Variant = { id: number; type: string; name: string; imageUrl: string | null; price?: number | null; salePrice?: number | null };
+type Variant = {
+  id: number;
+  type: string;
+  name: string;
+  nameSi?: string | null;
+  nameTa?: string | null;
+  imageUrl: string | null;
+  price?: number | null;
+  salePrice?: number | null;
+};
+
+function variantDisplay(v: Variant, lang: string): string {
+  if (lang === "si" && v.nameSi) return v.nameSi;
+  if (lang === "ta" && v.nameTa) return v.nameTa;
+  return v.name;
+}
 
 export default function ProductTopSection({
   product,
@@ -31,7 +47,9 @@ export default function ProductTopSection({
   reviewCount: number;
 }) {
   const { add } = useCart();
+  const { lang, t } = useLanguage();
   const [added, setAdded] = useState(false);
+  const vd = (v: Variant) => variantDisplay(v, lang);
 
   const colorVariants = variants.filter(v => v.type === "color");
   const sizeVariants = variants.filter(v => v.type === "size");
@@ -112,18 +130,18 @@ export default function ProductTopSection({
 
   // Dynamic title suffix
   const titleParts: string[] = [];
-  if (selSize) titleParts.push(selSize.name);
-  if (selLength) titleParts.push(selLength.name);
+  if (selSize) titleParts.push(vd(selSize));
+  if (selLength) titleParts.push(vd(selLength));
   else if (unitLabel && lengthVariants.length === 0) titleParts.push(unitLabel);
-  if (selColor) titleParts.push(selColor.name);
+  if (selColor) titleParts.push(vd(selColor));
   const titleSuffix = titleParts.length ? ` — ${titleParts.join(", ")}` : "";
 
   function addToCart() {
     if (!ready || product.stock <= 0) return;
     const sel: CartVariant[] = [];
-    if (selColor) sel.push({ id: selColor.id, type: "color", name: selColor.name });
-    if (selSize) sel.push({ id: selSize.id, type: "size", name: selSize.name });
-    if (selLength) sel.push({ id: selLength.id, type: "length", name: selLength.name });
+    if (selColor) sel.push({ id: selColor.id, type: "color", name: vd(selColor) });
+    if (selSize) sel.push({ id: selSize.id, type: "size", name: vd(selSize) });
+    if (selLength) sel.push({ id: selLength.id, type: "length", name: vd(selLength) });
 
     const cartName = product.name + titleSuffix;
 
@@ -154,7 +172,7 @@ export default function ProductTopSection({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={activeImage}
-              alt={product.name + (selColor ? ` (${selColor.name})` : "")}
+              alt={product.name + (selColor ? ` (${vd(selColor)})` : "")}
               className={`w-full h-full object-cover transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}
             />
           ) : (
@@ -162,7 +180,7 @@ export default function ProductTopSection({
           )}
           {selColor && selColor.imageUrl && (
             <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
-              Showing: <strong>{selColor.name}</strong>
+              Showing: <strong>{vd(selColor)}</strong>
             </div>
           )}
         </div>
@@ -231,7 +249,7 @@ export default function ProductTopSection({
               onChange={e => setSelSize(sizeVariants.find(v => v.id === parseInt(e.target.value)) || null)}
             >
               <option value="">Select size…</option>
-              {sizeVariants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              {sizeVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
             </select>
           </div>
         )}
@@ -246,7 +264,7 @@ export default function ProductTopSection({
               onChange={e => setSelLength(lengthVariants.find(v => v.id === parseInt(e.target.value)) || null)}
             >
               <option value="">Select length…</option>
-              {lengthVariants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              {lengthVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
             </select>
           </div>
         )}
@@ -255,13 +273,13 @@ export default function ProductTopSection({
         {colorVariants.length > 0 && (
           <div className="mt-4">
             <label className="text-sm font-medium text-brand-900 block mb-1">
-              Color {selColor && <span className="text-brand-600 font-normal">— {selColor.name}</span>}
+              {t("color")} {selColor && <span className="text-brand-600 font-normal">— {vd(selColor)}</span>}
             </label>
             <div className="flex flex-wrap gap-2 mt-1">
               {colorVariants.map(v => (
                 <button
                   key={v.id}
-                  title={v.name}
+                  title={vd(v)}
                   onClick={() => setSelColor(selColor?.id === v.id ? null : v)}
                   className={`w-12 h-12 rounded overflow-hidden border-2 transition ${
                     selColor?.id === v.id ? "border-brand-600 ring-2 ring-brand-400" : "border-brand-200 hover:border-brand-400"
@@ -269,9 +287,9 @@ export default function ProductTopSection({
                 >
                   {v.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.imageUrl} alt={v.name} className="w-full h-full object-cover" />
+                    <img src={v.imageUrl} alt={vd(v)} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs text-brand-700 p-1">{v.name}</span>
+                    <span className="text-xs text-brand-700 p-1">{vd(v)}</span>
                   )}
                 </button>
               ))}

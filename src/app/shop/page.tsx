@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
+import { getT } from "@/lib/i18n-server";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const t = getT();
 
   function qs(updates: Partial<SP>) {
     const sp: any = { ...searchParams, ...updates };
@@ -53,46 +55,46 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-serif font-bold text-3xl text-ink mb-2">Shop all products</h1>
+      <h1 className="font-serif font-bold text-3xl text-ink mb-2">{t("shop_all")}</h1>
       <p className="text-muted text-sm mb-6">
-        {total} {total === 1 ? "product" : "products"}
-        {cat ? ` in ${categories.find(c => c.slug === cat)?.name || cat}` : ""}
-        {q ? ` matching "${q}"` : ""}
+        {total} {total === 1 ? t("product") : t("products")}
+        {cat ? ` — ${categories.find(c => c.slug === cat)?.name || cat}` : ""}
+        {q ? ` — "${q}"` : ""}
       </p>
 
       <div className="grid lg:grid-cols-[260px_1fr] gap-6">
         <aside className="card p-5 h-fit lg:sticky lg:top-24 space-y-5">
           <form action="/shop" method="GET" className="space-y-4">
             <div>
-              <label className="label">Search</label>
-              <input name="q" defaultValue={q} className="input" placeholder="Search…" />
+              <label className="label">{t("search")}</label>
+              <input name="q" defaultValue={q} className="input" placeholder={t("search_placeholder_short")} />
             </div>
             <div>
-              <label className="label">Category</label>
+              <label className="label">{t("category_label")}</label>
               <select name="cat" defaultValue={cat} className="input">
-                <option value="">All categories</option>
+                <option value="">{t("all_categories")}</option>
                 {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Sort by</label>
+              <label className="label">{t("sort_by")}</label>
               <select name="sort" defaultValue={sort} className="input">
-                <option value="newest">Newest first</option>
-                <option value="price-asc">Price: low to high</option>
-                <option value="price-desc">Price: high to low</option>
-                <option value="name">Name (A–Z)</option>
+                <option value="newest">{t("newest_first")}</option>
+                <option value="price-asc">{t("price_low_high")}</option>
+                <option value="price-desc">{t("price_high_low")}</option>
+                <option value="name">{t("name_az")}</option>
               </select>
             </div>
             <div>
-              <label className="label">Price range (LKR)</label>
+              <label className="label">{t("price_range")}</label>
               <div className="flex gap-2">
-                <input name="min" type="number" min="0" defaultValue={searchParams.min || ""} placeholder="Min" className="input" />
-                <input name="max" type="number" min="0" defaultValue={searchParams.max || ""} placeholder="Max" className="input" />
+                <input name="min" type="number" min="0" defaultValue={searchParams.min || ""} placeholder={t("min_price")} className="input" />
+                <input name="max" type="number" min="0" defaultValue={searchParams.max || ""} placeholder={t("max_price")} className="input" />
               </div>
             </div>
-            <button className="btn-primary w-full">Apply filters</button>
+            <button className="btn-primary w-full">{t("apply_filters")}</button>
             {(q || cat || sort !== "newest" || searchParams.min || searchParams.max) && (
-              <Link href="/shop" className="block text-center text-sm text-brand-700 underline">Clear all</Link>
+              <Link href="/shop" className="block text-center text-sm text-brand-700 underline">{t("clear_all")}</Link>
             )}
           </form>
         </aside>
@@ -100,8 +102,8 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
         <div>
           {products.length === 0 ? (
             <div className="card p-10 text-center">
-              <p className="text-brand-700 mb-3">No products match these filters.</p>
-              <Link href="/shop" className="btn-secondary">Clear filters</Link>
+              <p className="text-brand-700 mb-3">{t("no_products_match")}</p>
+              <Link href="/shop" className="btn-secondary">{t("clear_filters")}</Link>
             </div>
           ) : (
             <>
@@ -111,13 +113,13 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
               {totalPages > 1 && (
                 <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
                   {page > 1 && (
-                    <Link href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">← Prev</Link>
+                    <Link href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">{t("prev")}</Link>
                   )}
                   <span className="text-sm text-brand-700 px-3">
-                    Page <strong>{page}</strong> of {totalPages}
+                    {t("page_of")} <strong>{page}</strong> {t("of")} {totalPages}
                   </span>
                   {page < totalPages && (
-                    <Link href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">Next →</Link>
+                    <Link href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">{t("next")}</Link>
                   )}
                 </div>
               )}

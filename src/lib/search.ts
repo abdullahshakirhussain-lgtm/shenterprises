@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { getSetting } from "./settings";
+import { translateQueryToEnglish } from "./translate";
 
 export type SearchProduct = {
   id: number;
@@ -48,7 +49,11 @@ async function getSynonyms(): Promise<Record<string, string>> {
  * 4. If no results and query >= 4 chars → fuzzy fallback via pg_trgm (if enabled)
  */
 export async function smartSearch(q: string, limit = 60): Promise<SearchProduct[]> {
-  const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+  // Multilingual: if the query contains non-ASCII characters (Sinhala/Tamil/etc.),
+  // translate it to English first so it matches the English product DB.
+  const englishQuery = await translateQueryToEnglish(q);
+
+  const tokens = englishQuery.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
 
   const synonyms = await getSynonyms();

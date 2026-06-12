@@ -5,6 +5,7 @@ import ProductTopSection from "@/components/ProductTopSection";
 import ProductCard from "@/components/ProductCard";
 import RelatedHeading from "@/components/RelatedHeading";
 import ReviewSection from "@/components/ReviewSection";
+import { getT } from "@/lib/i18n-server";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -75,7 +76,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     <div className="container-x py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav className="text-sm text-brand-700 mb-4">
-        <Link href="/">Home</Link> /{" "}
+        <Link href="/">{getT()("breadcrumb_home")}</Link> /{" "}
         {p.category && (<><Link href={`/category/${p.category.slug}`}>{p.category.name}</Link> / </>)}
         <span>{p.name}</span>
       </nav>
@@ -93,7 +94,16 @@ export default async function ProductPage({ params }: { params: { slug: string }
           stock: p.stock,
         }}
         images={images}
-        variants={p.variants.map(v => ({ id: v.id, type: v.type, name: v.name, imageUrl: v.imageUrl }))}
+        variants={p.variants.map(v => ({
+          id: v.id,
+          type: v.type,
+          name: v.name,
+          nameSi: (v as any).nameSi ?? null,
+          nameTa: (v as any).nameTa ?? null,
+          imageUrl: v.imageUrl,
+          price: (v as any).price ?? null,
+          salePrice: (v as any).salePrice ?? null,
+        }))}
         unitLabel={unitLabel}
         avgRating={avg}
         reviewCount={p.reviews.length}

@@ -1,5 +1,6 @@
 "use client";
 import { useCart } from "@/components/CartProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ type Me = { id: number; fullName: string; phone: string; discountRate: number } 
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
+  const { t } = useLanguage();
   const router = useRouter();
   const [districts, setDistricts] = useState<District[]>([]);
   const [districtName, setDistrictName] = useState("");
@@ -135,19 +137,19 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="container-x py-16 text-center">
-        <p className="text-brand-700 mb-4">Your cart is empty.</p>
-        <Link href="/" className="btn-primary">Continue shopping</Link>
+        <p className="text-brand-700 mb-4">{t("cart_empty")}</p>
+        <Link href="/" className="btn-primary">{t("continue_shopping")}</Link>
       </div>
     );
   }
 
   return (
     <div className="container-x py-8">
-      <h1 className="font-display text-3xl text-brand-900 mb-6">Checkout</h1>
+      <h1 className="font-display text-3xl text-brand-900 mb-6">{t("checkout")}</h1>
 
       {!me && !accountBannerDismissed && (
         <div className="card p-4 mb-4 bg-brand-50 border border-brand-200 flex flex-wrap gap-2 items-center justify-between">
-          <span className="text-sm">💡 <Link href="/account/login?next=/checkout" className="underline text-brand-700">Log in</Link> or <Link href="/account/register?next=/checkout" className="underline text-brand-700">create an account</Link> to get your member discount. <span className="text-brand-500">(Optional — you can checkout as guest)</span></span>
+          <span className="text-sm">💡 <Link href="/account/login?next=/checkout" className="underline text-brand-700">{t("log_in")}</Link> · <Link href="/account/register?next=/checkout" className="underline text-brand-700">{t("create_account")}</Link> <span className="text-brand-500">{t("optional_guest")}</span></span>
           <button onClick={() => setAccountBannerDismissed(true)} className="text-brand-400 hover:text-brand-700 text-lg leading-none ml-2">✕</button>
         </div>
       )}
@@ -155,54 +157,54 @@ export default function CheckoutPage() {
       <form onSubmit={placeOrder} className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="card p-5">
-            <h2 className="font-semibold text-lg mb-4">Contact & delivery</h2>
+            <h2 className="font-semibold text-lg mb-4">{t("contact_delivery")}</h2>
             <div className="grid sm:grid-cols-2 gap-3">
-              <div><label className="label">Full name *</label><input required className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></div>
-              <div><label className="label">Phone *</label><input required className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label className="label">Address line 1 *</label><input required className="input" value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label className="label">Address line 2</label><input className="input" value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></div>
+              <div><label className="label">{t("full_name")} *</label><input required className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></div>
+              <div><label className="label">{t("phone")} *</label><input required className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="label">{t("email")}</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="label">{t("address_line1")} *</label><input required className="input" value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="label">{t("address_line2")}</label><input className="input" value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></div>
               <div>
-                <label className="label">District *</label>
+                <label className="label">{t("district")} *</label>
                 <select required className="input" value={districtName} onChange={(e) => { setDistrictName(e.target.value); setCityName(""); }}>
-                  <option value="">Select district</option>
+                  <option value="">{t("select_district")}</option>
                   {districts.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">City *</label>
+                <label className="label">{t("city")} *</label>
                 <select required className="input" value={cityName} onChange={(e) => setCityName(e.target.value)} disabled={!districtName}>
-                  <option value="">Select city</option>
+                  <option value="">{t("select_city")}</option>
                   {cities.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-2"><label className="label">Order notes</label><textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="label">{t("order_notes")}</label><textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
             </div>
           </section>
 
           <section className="card p-5">
-            <h2 className="font-semibold text-lg mb-4">Payment method</h2>
+            <h2 className="font-semibold text-lg mb-4">{t("payment_method")}</h2>
             <div className="space-y-2">
               <label className={`flex items-center gap-3 p-3 border rounded cursor-pointer ${paymentMethod === "cod" ? "border-brand-500 bg-brand-50" : "border-brand-200"}`}>
                 <input type="radio" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} />
                 <div>
-                  <div className="font-medium">Cash on Delivery</div>
-                  <div className="text-sm text-brand-700">Pay in cash when your order arrives.</div>
+                  <div className="font-medium">{t("cash_on_delivery")}</div>
+                  <div className="text-sm text-brand-700">{t("cod_desc")}</div>
                 </div>
               </label>
               <label className={`flex items-start gap-3 p-3 border rounded cursor-pointer ${paymentMethod === "bank" ? "border-brand-500 bg-brand-50" : "border-brand-200"}`}>
                 <input type="radio" checked={paymentMethod === "bank"} onChange={() => setPaymentMethod("bank")} className="mt-1" />
                 <div className="flex-1">
-                  <div className="font-medium">Bank Deposit / Transfer</div>
-                  <div className="text-sm text-brand-700">Deposit/transfer the total to our account and upload the slip below.</div>
+                  <div className="font-medium">{t("bank_deposit")}</div>
+                  <div className="text-sm text-brand-700">{t("bank_desc")}</div>
                   {paymentMethod === "bank" && (
                     <div className="mt-3 text-sm bg-white border border-brand-200 rounded p-3 space-y-1">
-                      <div><strong>Bank:</strong> {bank.bank_name || "—"}</div>
-                      <div><strong>Account name:</strong> {bank.bank_account_name || "—"}</div>
-                      <div><strong>Account #:</strong> {bank.bank_account_number || "—"}</div>
-                      <div><strong>Branch:</strong> {bank.bank_branch || "—"}</div>
+                      <div><strong>{t("payment")}:</strong> {bank.bank_name || "—"}</div>
+                      <div>{bank.bank_account_name || "—"}</div>
+                      <div>{bank.bank_account_number || "—"}</div>
+                      <div>{bank.bank_branch || "—"}</div>
                       <div className="mt-2">
-                        <label className="label">Upload deposit slip *</label>
+                        <label className="label">{t("upload_slip")} *</label>
                         <input type="file" accept="image/*,application/pdf" onChange={(e) => setSlipFile(e.target.files?.[0] || null)} className="input" />
                       </div>
                     </div>
@@ -214,7 +216,7 @@ export default function CheckoutPage() {
         </div>
 
         <aside className="card p-5 h-fit lg:sticky lg:top-24">
-          <h2 className="font-semibold text-lg mb-3">Order summary</h2>
+          <h2 className="font-semibold text-lg mb-3">{t("order_summary")}</h2>
           <div className="space-y-2 mb-3">
             {items.map((i) => (
               <div key={i.key} className="flex justify-between text-sm">
@@ -229,10 +231,10 @@ export default function CheckoutPage() {
             ))}
           </div>
           <hr className="my-3" />
-          <div className="flex justify-between text-sm"><span>Subtotal</span><span>{formatLKR(subtotal)}</span></div>
+          <div className="flex justify-between text-sm"><span>{t("subtotal")}</span><span>{formatLKR(subtotal)}</span></div>
           {accountDiscount > 0 && (
             <div className="flex justify-between text-sm text-green-700">
-              <span>Member discount ({me?.discountRate}%)</span>
+              <span>{t("member_discount")} ({me?.discountRate}%)</span>
               <span>−{formatLKR(accountDiscount)}</span>
             </div>
           )}
@@ -240,15 +242,15 @@ export default function CheckoutPage() {
           <div className="mt-3">
             {appliedCoupon ? (
               <div className="flex items-center justify-between text-sm bg-green-50 border border-green-200 rounded p-2">
-                <span>Coupon <strong>{appliedCoupon.code}</strong> applied (−{formatLKR(appliedCoupon.discount)})</span>
-                <button type="button" onClick={removeCoupon} className="text-red-600 text-xs">Remove</button>
+                <span>{t("coupon_applied")} <strong>{appliedCoupon.code}</strong> (−{formatLKR(appliedCoupon.discount)})</span>
+                <button type="button" onClick={removeCoupon} className="text-red-600 text-xs">{t("remove")}</button>
               </div>
             ) : (
               <div>
-                <label className="label">Coupon code</label>
+                <label className="label">{t("coupon_code")}</label>
                 <div className="flex gap-2">
-                  <input className="input" placeholder="Enter code" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())} />
-                  <button type="button" onClick={() => applyCouponCode(couponInput)} className="btn-secondary">Apply</button>
+                  <input className="input" placeholder={t("enter_code")} value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())} />
+                  <button type="button" onClick={() => applyCouponCode(couponInput)} className="btn-secondary">{t("apply")}</button>
                 </div>
                 {couponMsg && <p className={`text-xs mt-1 ${couponMsg.startsWith("✓") ? "text-green-700" : "text-red-700"}`}>{couponMsg}</p>}
               </div>
@@ -256,14 +258,14 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex justify-between text-sm mt-3">
-            <span>Delivery</span>
-            <span>{feeLoading ? "…" : fee == null ? "Select district & city" : fee === 0 ? "FREE" : formatLKR(fee)}</span>
+            <span>{t("delivery")}</span>
+            <span>{feeLoading ? "…" : fee == null ? t("select_area") : fee === 0 ? t("free") : formatLKR(fee)}</span>
           </div>
           <hr className="my-3" />
-          <div className="flex justify-between text-lg font-semibold"><span>Total</span><span>{formatLKR(total)}</span></div>
+          <div className="flex justify-between text-lg font-semibold"><span>{t("total")}</span><span>{formatLKR(total)}</span></div>
           {error && <div className="mt-3 text-sm text-red-700 bg-red-50 p-2 rounded">{error}</div>}
           <button disabled={submitting || fee == null} className="btn-primary w-full mt-4 disabled:opacity-50">
-            {submitting ? "Placing order…" : "Place order"}
+            {submitting ? t("placing_order") : t("place_order")}
           </button>
         </aside>
       </form>

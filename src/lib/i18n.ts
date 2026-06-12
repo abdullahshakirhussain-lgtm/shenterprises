@@ -149,6 +149,39 @@ export const translations = {
     contact: "Contact",
     all_rights: "All rights reserved.",
     track_my_order: "Track my order",
+
+    // Shop & filters
+    shop_all: "Shop all products",
+    products: "products",
+    product: "product",
+    filter_by: "Filter by",
+    category_label: "Category",
+    sort_by: "Sort by",
+    newest_first: "Newest first",
+    price_low_high: "Price: low to high",
+    price_high_low: "Price: high to low",
+    name_az: "Name (A–Z)",
+    price_range: "Price range (LKR)",
+    min_price: "Min",
+    max_price: "Max",
+    apply_filters: "Apply filters",
+    clear_all: "Clear all",
+    all_categories: "All categories",
+    no_products_match: "No products match these filters.",
+    clear_filters: "Clear filters",
+    prev: "← Prev",
+    next: "Next →",
+    page_of: "Page",
+    of: "of",
+
+    // Search
+    search_no_results: "No products matched. Try fewer or different keywords.",
+    search_results_for: "Results for",
+    search_found: "found",
+    see_all_results: "See all results for",
+
+    // Breadcrumb
+    breadcrumb_home: "Home",
   },
 
   si: {
@@ -288,6 +321,36 @@ export const translations = {
     contact: "සම්බන්ධ වන්න",
     all_rights: "සියලු හිමිකම් ඇවිරිණි.",
     track_my_order: "මගේ ඇණවුම සොයන්න",
+
+    shop_all: "සියලුම නිෂ්පාදන සාප්පු සවාරිය",
+    products: "නිෂ්පාදන",
+    product: "නිෂ්පාදනය",
+    filter_by: "පෙරහන",
+    category_label: "ප්‍රවර්ගය",
+    sort_by: "අනුපිළිවෙළ",
+    newest_first: "අලුත්ම පළමුව",
+    price_low_high: "මිල: අඩුවෙන් වැඩිට",
+    price_high_low: "මිල: වැඩියෙන් අඩුට",
+    name_az: "නම (A–Z)",
+    price_range: "මිල පරාසය (LKR)",
+    min_price: "අවම",
+    max_price: "උපරිම",
+    apply_filters: "පෙරහන් යොදන්න",
+    clear_all: "සියල්ල හිස් කරන්න",
+    all_categories: "සියලුම ප්‍රවර්ග",
+    no_products_match: "කිසිදු නිෂ්පාදනයක් නොගැලපේ.",
+    clear_filters: "පෙරහන් හිස් කරන්න",
+    prev: "← පෙර",
+    next: "ඊළඟ →",
+    page_of: "පිටුව",
+    of: "/",
+
+    search_no_results: "කිසිදු නිෂ්පාදනයක් නොගැලපේ. වෙනත් වචන උත්සාහ කරන්න.",
+    search_results_for: "ප්‍රතිඵල",
+    search_found: "හමු විය",
+    see_all_results: "සියලුම ප්‍රතිඵල බලන්න",
+
+    breadcrumb_home: "මුල් පිටුව",
   },
 
   ta: {
@@ -427,6 +490,36 @@ export const translations = {
     contact: "தொடர்பு",
     all_rights: "அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
     track_my_order: "என் ஆர்டரை கண்காணி",
+
+    shop_all: "அனைத்து தயாரிப்புகளையும் ஷாப்",
+    products: "தயாரிப்புகள்",
+    product: "தயாரிப்பு",
+    filter_by: "வடிகட்டு",
+    category_label: "வகை",
+    sort_by: "வரிசை",
+    newest_first: "புதியது முதலில்",
+    price_low_high: "விலை: குறைவில் இருந்து அதிகம்",
+    price_high_low: "விலை: அதிகம் இருந்து குறைவு",
+    name_az: "பெயர் (A–Z)",
+    price_range: "விலை வரம்பு (LKR)",
+    min_price: "குறைந்தபட்சம்",
+    max_price: "அதிகபட்சம்",
+    apply_filters: "வடிகட்டிகளைப் பயன்படுத்து",
+    clear_all: "அனைத்தையும் அழி",
+    all_categories: "அனைத்து வகைகளும்",
+    no_products_match: "எந்த தயாரிப்பும் பொருந்தவில்லை.",
+    clear_filters: "வடிகட்டிகளை அழி",
+    prev: "← முந்தைய",
+    next: "அடுத்தது →",
+    page_of: "பக்கம்",
+    of: "/",
+
+    search_no_results: "எந்த தயாரிப்பும் பொருந்தவில்லை. வேறு சொற்களை முயற்சிக்கவும்.",
+    search_results_for: "முடிவுகள்",
+    search_found: "கண்டறியப்பட்டது",
+    see_all_results: "அனைத்து முடிவுகளையும் காண்",
+
+    breadcrumb_home: "முகப்பு",
   }
 } satisfies Record<Lang, Record<string, string>>;
 

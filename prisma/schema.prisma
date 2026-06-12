@@ -163,9 +163,11 @@ model ProductVariant {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   type      String  // "color" | "size" | "length"
   name      String
+  nameSi    String? // Sinhala translation (auto-generated)
+  nameTa    String? // Tamil translation (auto-generated)
   imageUrl  String?
-  price     Float?  // optional — falls back to product.price
-  salePrice Float?  // optional — falls back to product.salePrice
+  price     Float?
+  salePrice Float?
   sortOrder Int     @default(0)
 
   @@index([productId])

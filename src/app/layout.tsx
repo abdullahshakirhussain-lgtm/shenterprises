@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { CartProvider } from "@/components/CartProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { getServerLang } from "@/lib/i18n-server";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
@@ -55,10 +56,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     safeSettings(["site_phone", "site_email", "site_address"])
   ]);
 
+  const lang = getServerLang();
+
   return (
-    <html lang="en" className={`${lora.variable} ${mulish.variable}`}>
+    <html lang={lang} className={`${lora.variable} ${mulish.variable}`}>
       <body>
-        <LanguageProvider>
+        <LanguageProvider initialLang={lang}>
         <CartProvider>
           <Header categories={categories.map((c) => ({ name: c.name, slug: c.slug }))} />
           <Suspense fallback={null}>
