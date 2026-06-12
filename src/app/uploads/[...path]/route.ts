@@ -9,8 +9,19 @@ import path from "path";
 import { uploadsDir } from "@/lib/paths";
 
 const MIME: Record<string, string> = {
-  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
-  ".webp": "image/webp", ".gif": "image/gif", ".pdf": "application/pdf"
+  ".jpg":  "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png":  "image/png",
+  ".webp": "image/webp",
+  ".gif":  "image/gif",
+  ".avif": "image/avif",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
+  ".svg":  "image/svg+xml",
+  ".bmp":  "image/bmp",
+  ".tiff": "image/tiff",
+  ".ico":  "image/x-icon",
+  ".pdf":  "application/pdf",
 };
 
 export async function GET(_req: NextRequest, { params }: { params: { path: string[] } }) {
