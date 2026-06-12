@@ -8,10 +8,18 @@ type Product = {
   id?: number; name: string; slug?: string; description?: string | null;
   price: number; salePrice?: number | null; sku?: string | null; stock: number;
   unitQty?: number | null; unitType?: string | null;
-  imageUrl?: string | null; categoryId?: number | null;
+  imageUrl?: string | null;
+  images?: string | string[] | null;  // server stores JSON string; client uses array
+  categoryId?: number | null;
   onOffer: boolean; featured: boolean; active: boolean;
   metaTitle?: string | null; metaDesc?: string | null;
 };
+
+function parseImages(v: string | string[] | null | undefined): string[] {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (!v) return [];
+  try { const parsed = JSON.parse(v); return Array.isArray(parsed) ? parsed.filter(Boolean) : []; } catch { return []; }
+}
 
 const UNIT_TYPES = [
   { value: "", label: "— None —" },
@@ -30,6 +38,8 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
     ...(initial as any)
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [extraImages, setExtraImages] = useState<string[]>(parseImages(initial?.images));
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorImage, setEditorImage] = useState<string>("");
   const [error, setError] = useState("");
@@ -107,19 +117,48 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
 
   function up<K extends keyof Product>(k: K, v: Product[K]) { setP({ ...p, [k]: v }); }
 
+  function onExtraFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const list = e.target.files ? Array.from(e.target.files) : [];
+    setExtraFiles(prev => [...prev, ...list]);
+    e.target.value = ""; // allow re-selecting same file
+  }
+  function removeExisting(idx: number) {
+    setExtraImages(prev => prev.filter((_, i) => i !== idx));
+  }
+  function removePending(idx: number) {
+    setExtraFiles(prev => prev.filter((_, i) => i !== idx));
+  }
+  function promoteToMain(url: string) {
+    // Swap selected extra image with current main
+    if (p.imageUrl) setExtraImages(prev => [p.imageUrl as string, ...prev.filter(u => u !== url)]);
+    else setExtraImages(prev => prev.filter(u => u !== url));
+    up("imageUrl", url);
+  }
+
+  async function uploadOne(file: File): Promise<string> {
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || "Image upload failed");
+    return j.url as string;
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setError(""); setSavedMsg("");
     try {
       let imageUrl = p.imageUrl || null;
       if (imageFile) {
-        const fd = new FormData(); fd.append("file", imageFile);
-        const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
-        const j = await up.json();
-        if (!up.ok) throw new Error(j.error || "Image upload failed");
-        imageUrl = j.url;
+        imageUrl = await uploadOne(imageFile);
       }
-      const payload = { ...p, imageUrl };
+      // Upload any newly-staged extra images
+      const newExtraUrls: string[] = [];
+      for (const f of extraFiles) {
+        newExtraUrls.push(await uploadOne(f));
+      }
+      const allExtras = [...extraImages, ...newExtraUrls];
+
+      const payload = { ...p, imageUrl, images: JSON.stringify(allExtras) };
       const url = p.id ? `/api/admin/products/${p.id}` : "/api/admin/products";
       const res = await fetch(url, { method: p.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -130,6 +169,8 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
       if (p.id) {
         setP({ ...p, imageUrl });
         setImageFile(null);
+        setExtraImages(allExtras);
+        setExtraFiles([]);
         setSavedMsg("✓ Saved");
         setTimeout(() => setSavedMsg(""), 2000);
         router.refresh();
@@ -215,6 +256,46 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
           <label className="flex items-center gap-2"><input type="checkbox" checked={p.onOffer} onChange={(e) => up("onOffer", e.target.checked)} /> On offer</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={p.featured} onChange={(e) => up("featured", e.target.checked)} /> Featured on home</label>
         </div>
+      </div>
+
+      {/* Additional gallery images */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="label mb-0">Additional images (gallery)</label>
+          <label className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200 cursor-pointer">
+            + Add images
+            <input type="file" accept="image/*" multiple onChange={onExtraFilesChange} className="hidden" />
+          </label>
+        </div>
+        <p className="text-xs text-brand-500 mb-2">Customers see these as thumbnails below the main image on the product page. Click ★ to promote one as the main image.</p>
+
+        {(extraImages.length > 0 || extraFiles.length > 0) ? (
+          <div className="flex flex-wrap gap-2">
+            {extraImages.map((url, i) => (
+              <div key={`saved-${i}`} className="relative group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-20 h-20 object-cover rounded border border-brand-200" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                  <button type="button" onClick={() => promoteToMain(url)} title="Make main image"
+                    className="bg-yellow-400 text-yellow-900 text-xs px-1.5 py-0.5 rounded font-bold">★</button>
+                  <button type="button" onClick={() => removeExisting(i)} title="Remove"
+                    className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">✕</button>
+                </div>
+              </div>
+            ))}
+            {extraFiles.map((f, i) => (
+              <div key={`pending-${i}`} className="relative group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={URL.createObjectURL(f)} alt="" className="w-20 h-20 object-cover rounded border-2 border-dashed border-yellow-400" />
+                <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-[9px] font-bold px-1 rounded">NEW</div>
+                <button type="button" onClick={() => removePending(i)} title="Remove"
+                  className="absolute bottom-1 right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold opacity-0 group-hover:opacity-100">✕</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs italic text-brand-400">No additional images yet.</p>
+        )}
       </div>
 
       <details className="border border-brand-100 rounded p-3">

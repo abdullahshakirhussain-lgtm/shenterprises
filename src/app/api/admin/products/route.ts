@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
         unitQty: b.unitQty != null && b.unitQty !== "" ? parseInt(b.unitQty) : null,
         unitType: b.unitType || null,
         imageUrl: b.imageUrl || null,
+        images: typeof b.images === "string" ? b.images : (Array.isArray(b.images) ? JSON.stringify(b.images) : null),
         categoryId: b.categoryId || null,
         onOffer: !!b.onOffer,
         featured: !!b.featured,
