@@ -1,17 +1,19 @@
 "use client";
 import { useCart } from "@/components/CartProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import Link from "next/link";
 
 export default function CartPage() {
   const { items, subtotal, setQty, remove, clear } = useCart();
+  const { t } = useLanguage();
   return (
     <div className="container-x py-8">
-      <h1 className="font-display text-3xl text-brand-900 mb-6">Your cart</h1>
+      <h1 className="font-display text-3xl text-brand-900 mb-6">{t("your_cart")}</h1>
       {items.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-brand-700 mb-4">Your cart is empty.</p>
-          <Link href="/" className="btn-primary">Continue shopping</Link>
+          <p className="text-brand-700 mb-4">{t("cart_empty")}</p>
+          <Link href="/" className="btn-primary">{t("continue_shopping")}</Link>
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
@@ -28,10 +30,10 @@ export default function CartPage() {
                   <Link href={`/product/${i.slug}`} className="font-medium hover:text-brand-700 line-clamp-2">{i.name}</Link>
                   {i.variants && i.variants.length > 0 && (
                     <div className="text-xs text-brand-600 mt-0.5">
-                      {i.variants.map(v => `${v.type === "color" ? "Color" : v.type === "size" ? "Size" : "Length"}: ${v.name}`).join(" · ")}
+                      {i.variants.map(v => `${v.type === "color" ? t("color") : v.type === "size" ? t("size") : t("length")}: ${v.name}`).join(" · ")}
                     </div>
                   )}
-                  <div className="text-sm text-brand-700">{formatLKR(i.price)} each</div>
+                  <div className="text-sm text-brand-700">{formatLKR(i.price)}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity - 1)}>−</button>
@@ -39,16 +41,15 @@ export default function CartPage() {
                   <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity + 1)}>+</button>
                 </div>
                 <div className="w-24 text-right font-semibold">{formatLKR(i.price * i.quantity)}</div>
-                <button onClick={() => remove(i.key)} className="text-red-600 px-2" aria-label="Remove">✕</button>
+                <button onClick={() => remove(i.key)} className="text-red-600 px-2" aria-label={t("remove")}>✕</button>
               </div>
             ))}
-            <button onClick={clear} className="text-sm text-brand-600 underline">Clear cart</button>
+            <button onClick={clear} className="text-sm text-brand-600 underline">{t("clear_cart")}</button>
           </div>
           <div className="card p-4 h-fit">
-            <h2 className="font-semibold text-lg mb-3">Order summary</h2>
-            <div className="flex justify-between mb-2"><span>Subtotal</span><span>{formatLKR(subtotal)}</span></div>
-            <div className="text-xs text-brand-600 mb-4">Delivery calculated at checkout based on district.</div>
-            <Link href="/checkout" className="btn-primary w-full">Checkout</Link>
+            <h2 className="font-semibold text-lg mb-3">{t("order_summary")}</h2>
+            <div className="flex justify-between mb-2"><span>{t("subtotal")}</span><span>{formatLKR(subtotal)}</span></div>
+            <Link href="/checkout" className="btn-primary w-full">{t("proceed_to_checkout")}</Link>
           </div>
         </div>
       )}

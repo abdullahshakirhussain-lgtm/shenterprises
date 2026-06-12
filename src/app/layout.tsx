@@ -63,7 +63,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <LanguageProvider initialLang={lang}>
         <CartProvider>
-          <Header categories={categories.map((c) => ({ name: c.name, slug: c.slug }))} />
+          <Header categories={categories.map((c: any) => ({
+            name: c.name,
+            nameSi: c.nameSi ?? null,
+            nameTa: c.nameTa ?? null,
+            slug: c.slug
+          }))} />
           <Suspense fallback={null}>
             <AnalyticsTracker />
           </Suspense>

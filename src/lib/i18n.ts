@@ -23,6 +23,7 @@ export const translations = {
     on_sale: "Sale",
     color: "Color",
     size: "Size",
+    length: "Length",
     sku: "SKU",
     related_products: "You may also like",
 
@@ -204,6 +205,7 @@ export const translations = {
     on_sale: "දිනා",
     color: "වර්ණය",
     size: "ප්‍රමාණය",
+    length: "දිග",
     sku: "SKU",
     related_products: "ඔබට ද කැමති විය හැකිය",
 
@@ -373,6 +375,7 @@ export const translations = {
     on_sale: "தள்ளுபடி",
     color: "நிறம்",
     size: "அளவு",
+    length: "நீளம்",
     sku: "SKU",
     related_products: "இவையும் உங்களுக்கு பிடிக்கும்",
 

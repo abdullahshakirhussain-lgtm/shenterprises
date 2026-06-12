@@ -7,9 +7,15 @@ import { useLanguage } from "./LanguageProvider";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SearchBox from "./SearchBox";
 
-export default function Header({ categories }: { categories: { name: string; slug: string }[] }) {
+type CategoryNav = { name: string; nameSi?: string | null; nameTa?: string | null; slug: string };
+
+export default function Header({ categories }: { categories: CategoryNav[] }) {
   const { count } = useCart();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const catName = (c: CategoryNav) =>
+    lang === "si" && c.nameSi ? c.nameSi :
+    lang === "ta" && c.nameTa ? c.nameTa :
+    c.name;
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isAdmin = pathname?.startsWith("/admin");
@@ -77,7 +83,7 @@ export default function Header({ categories }: { categories: { name: string; slu
             {categories.map(c => (
               <Link key={c.slug} href={`/category/${c.slug}`}
                 className="shrink-0 text-sm px-3 py-1.5 rounded-full bg-white border border-brand-200 text-brand-800 hover:bg-brand-100 transition-colors">
-                {c.name}
+                {catName(c)}
               </Link>
             ))}
           </div>

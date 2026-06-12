@@ -35,6 +35,53 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
   const [error, setError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [genBusy, setGenBusy] = useState<"" | "desc" | "seo">("");
+
+  async function generateAI(action: "description" | "seo") {
+    setGenBusy(action === "description" ? "desc" : "seo");
+    setError("");
+    try {
+      // Make sure an image is uploaded first so AI can use it
+      let imageUrl = p.imageUrl || null;
+      if (imageFile) {
+        const fd = new FormData(); fd.append("file", imageFile);
+        const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
+        const j = await up.json();
+        if (!up.ok) throw new Error(j.error || "Image upload failed");
+        imageUrl = j.url;
+        setImageFile(null);
+        setP(prev => ({ ...prev, imageUrl: imageUrl as string }));
+      }
+
+      const catName = categories.find(c => c.id === p.categoryId)?.name;
+      const res = await fetch("/api/admin/ai/generate-copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          productId: p.id,
+          name: p.name,
+          description: p.description,
+          categoryName: catName,
+          unitQty: p.unitQty,
+          unitType: p.unitType,
+          imageUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (action === "description") {
+        setP(prev => ({ ...prev, description: data.description }));
+      } else {
+        setP(prev => ({ ...prev, metaTitle: data.metaTitle, metaDesc: data.metaDesc }));
+      }
+    } catch (e: any) {
+      setError("AI generation failed: " + e.message);
+    } finally {
+      setGenBusy("");
+    }
+  }
 
   async function openEditor() {
     if (imageFile) {
@@ -134,8 +181,16 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
       </div>
 
       <div>
-        <label className="label">Description</label>
-        <textarea rows={4} className="input" value={p.description ?? ""} onChange={(e) => up("description", e.target.value)} />
+        <div className="flex items-center justify-between mb-1">
+          <label className="label mb-0">Description</label>
+          <button type="button" onClick={() => generateAI("description")} disabled={genBusy !== "" || !p.name}
+            className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200 disabled:opacity-50">
+            {genBusy === "desc" ? "Generating…" : "✨ Generate with AI"}
+          </button>
+        </div>
+        <textarea rows={4} className="input" value={p.description ?? ""} onChange={(e) => up("description", e.target.value)}
+          placeholder={genBusy === "desc" ? "GPT-4o is writing a description…" : "Describe the product, or click ✨ Generate with AI"} />
+        <p className="text-xs text-brand-500 mt-1">AI uses the product name, category, variants, and image to draft a description you can edit before saving.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
@@ -165,8 +220,18 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
       <details className="border border-brand-100 rounded p-3">
         <summary className="font-medium cursor-pointer">SEO (optional)</summary>
         <div className="mt-3 space-y-3">
-          <div><label className="label">Meta title</label><input className="input" value={p.metaTitle ?? ""} onChange={(e) => up("metaTitle", e.target.value)} /></div>
-          <div><label className="label">Meta description</label><textarea rows={2} className="input" value={p.metaDesc ?? ""} onChange={(e) => up("metaDesc", e.target.value)} /></div>
+          <button type="button" onClick={() => generateAI("seo")} disabled={genBusy !== "" || !p.name}
+            className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200 disabled:opacity-50">
+            {genBusy === "seo" ? "Generating…" : "✨ Generate meta title + description with AI"}
+          </button>
+          <div>
+            <label className="label">Meta title <span className="text-xs text-brand-500">({(p.metaTitle || "").length}/60)</span></label>
+            <input className="input" maxLength={60} value={p.metaTitle ?? ""} onChange={(e) => up("metaTitle", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Meta description <span className="text-xs text-brand-500">({(p.metaDesc || "").length}/155)</span></label>
+            <textarea rows={2} maxLength={155} className="input" value={p.metaDesc ?? ""} onChange={(e) => up("metaDesc", e.target.value)} />
+          </div>
         </div>
       </details>
 
