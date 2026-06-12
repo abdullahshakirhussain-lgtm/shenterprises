@@ -59,6 +59,7 @@ export default async function AdminProducts({ searchParams }: { searchParams: { 
           active: p.active,
           onOffer: p.onOffer,
           featured: p.featured,
+          imageUrl: p.imageUrl,
           category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
         }))}
         categories={categories.map(c => ({ id: c.id, name: c.name, slug: c.slug }))}

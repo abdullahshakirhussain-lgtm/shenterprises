@@ -15,6 +15,7 @@ type Product = {
   active: boolean;
   onOffer: boolean;
   featured: boolean;
+  imageUrl: string | null;
   category: { id: number; name: string; slug: string } | null;
 };
 
@@ -456,7 +457,16 @@ export default function BulkProductsTable({ products, categories, currentCategor
             {products.map(p => (
               <tr key={p.id} className={`border-t border-brand-100 ${selected.has(p.id) ? "bg-yellow-50" : ""}`}>
                 <td className="p-2"><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
-                <td className="p-2"><Link href={`/admin/products/${p.id}/edit`} className="text-brand-700 underline">{p.name}</Link></td>
+                <td className="p-2">
+                  <div className="flex items-center gap-2">
+                    {p.imageUrl ? (
+                      <span title="Has image" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">✓</span>
+                    ) : (
+                      <span title="No image" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">!</span>
+                    )}
+                    <Link href={`/admin/products/${p.id}/edit`} className="text-brand-700 underline">{p.name}</Link>
+                  </div>
+                </td>
                 <td className="p-2">{p.category?.name || "—"}</td>
                 <td className="p-2">{p.sku || "—"}</td>
                 <td className="p-2">{p.salePrice
