@@ -120,8 +120,15 @@ export default function VariantsPanel({
     }
   }
 
-  // Mouse events for manual box drawing
-  function getRelativePos(e: React.MouseEvent) {
+  // ----- Interactive box editing (move + resize) -----
+  // interaction = null when idle, otherwise describes what the user is doing
+  type Interaction =
+    | { kind: "draw" }                                          // drawing a new box
+    | { kind: "move"; idx: number; offsetX: number; offsetY: number; orig: CropBox }
+    | { kind: "resize"; idx: number; handle: "nw" | "ne" | "sw" | "se"; orig: CropBox };
+  const [interaction, setInteraction] = useState<Interaction | null>(null);
+
+  function getRelativePos(e: React.MouseEvent | MouseEvent) {
     const rect = containerRef.current!.getBoundingClientRect();
     return {
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -129,35 +136,101 @@ export default function VariantsPanel({
     };
   }
 
+  // Start dragging the box body to move it
+  function onBoxMouseDown(e: React.MouseEvent, idx: number) {
+    e.stopPropagation();
+    e.preventDefault();
+    const pos = getRelativePos(e);
+    const box = boxes[idx];
+    setInteraction({
+      kind: "move",
+      idx,
+      offsetX: pos.x - box.x,
+      offsetY: pos.y - box.y,
+      orig: { ...box },
+    });
+  }
+
+  // Start dragging a corner handle to resize
+  function onHandleMouseDown(e: React.MouseEvent, idx: number, handle: "nw" | "ne" | "sw" | "se") {
+    e.stopPropagation();
+    e.preventDefault();
+    setInteraction({ kind: "resize", idx, handle, orig: { ...boxes[idx] } });
+  }
+
+  // Background mousedown — start drawing a new box
   function onMouseDown(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest(".box-handle")) return;
     const pos = getRelativePos(e);
     setDragging(true);
     setDragStart(pos);
     setDragBox(null);
+    setInteraction({ kind: "draw" });
   }
+
+  function clamp(n: number, lo = 0, hi = 100) { return Math.max(lo, Math.min(hi, n)); }
 
   function onMouseMove(e: React.MouseEvent) {
-    if (!dragging) return;
+    if (!interaction) return;
     const pos = getRelativePos(e);
-    setDragBox({
-      x: Math.min(dragStart.x, pos.x),
-      y: Math.min(dragStart.y, pos.y),
-      w: Math.abs(pos.x - dragStart.x),
-      h: Math.abs(pos.y - dragStart.y),
-    });
+
+    if (interaction.kind === "draw" && dragging) {
+      setDragBox({
+        x: Math.min(dragStart.x, pos.x),
+        y: Math.min(dragStart.y, pos.y),
+        w: Math.abs(pos.x - dragStart.x),
+        h: Math.abs(pos.y - dragStart.y),
+      });
+      return;
+    }
+
+    if (interaction.kind === "move") {
+      const { idx, offsetX, offsetY, orig } = interaction;
+      const newX = clamp(pos.x - offsetX, 0, 100 - orig.width);
+      const newY = clamp(pos.y - offsetY, 0, 100 - orig.height);
+      setBoxes(bs => bs.map((b, i) => i === idx ? { ...b, x: newX, y: newY } : b));
+      return;
+    }
+
+    if (interaction.kind === "resize") {
+      const { idx, handle, orig } = interaction;
+      let { x, y, width, height } = orig;
+      const right = orig.x + orig.width;
+      const bottom = orig.y + orig.height;
+      const MIN = 2;
+      if (handle === "se") {
+        width = clamp(pos.x - x, MIN, 100 - x);
+        height = clamp(pos.y - y, MIN, 100 - y);
+      } else if (handle === "ne") {
+        width = clamp(pos.x - x, MIN, 100 - x);
+        y = clamp(pos.y, 0, bottom - MIN);
+        height = bottom - y;
+      } else if (handle === "sw") {
+        x = clamp(pos.x, 0, right - MIN);
+        width = right - x;
+        height = clamp(pos.y - y, MIN, 100 - y);
+      } else if (handle === "nw") {
+        x = clamp(pos.x, 0, right - MIN);
+        y = clamp(pos.y, 0, bottom - MIN);
+        width = right - x;
+        height = bottom - y;
+      }
+      setBoxes(bs => bs.map((b, i) => i === idx ? { ...b, x, y, width, height } : b));
+    }
   }
 
-  function onMouseUp(e: React.MouseEvent) {
-    if (!dragging || !dragBox) { setDragging(false); return; }
-    if (dragBox.w > 3 && dragBox.h > 3) {
-      const name = prompt("Color name for this crop?", "");
-      if (name) {
-        setBoxes(b => [...b, { x: dragBox.x, y: dragBox.y, width: dragBox.w, height: dragBox.h, name, confirmed: false }]);
+  function onMouseUp(_e: React.MouseEvent) {
+    if (interaction?.kind === "draw" && dragging && dragBox) {
+      if (dragBox.w > 3 && dragBox.h > 3) {
+        const name = prompt("Color name for this crop?", "");
+        if (name) {
+          setBoxes(b => [...b, { x: dragBox.x, y: dragBox.y, width: dragBox.w, height: dragBox.h, name, confirmed: false }]);
+        }
       }
     }
     setDragging(false);
     setDragBox(null);
+    setInteraction(null);
   }
 
   function updateBoxName(i: number, name: string) {
@@ -349,19 +422,42 @@ export default function VariantsPanel({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img ref={imgRef} src={cropImage} alt="crop source" className="w-full block pointer-events-none" draggable={false} />
 
-                  {/* Detected / drawn boxes */}
+                  {/* Detected / drawn boxes — draggable to move, corner handles to resize */}
                   {boxes.map((box, i) => (
-                    <div key={i} className="box-handle absolute border-2 border-yellow-400 bg-yellow-400/10"
-                      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.width}%`, height: `${box.height}%` }}>
-                      <div className="absolute -top-6 left-0 flex items-center gap-1 bg-yellow-400 px-1 rounded text-xs text-yellow-900 whitespace-nowrap">
+                    <div
+                      key={i}
+                      className="box-handle absolute border-2 border-yellow-400 bg-yellow-400/10 cursor-move"
+                      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.width}%`, height: `${box.height}%` }}
+                      onMouseDown={(e) => onBoxMouseDown(e, i)}
+                    >
+                      {/* Name label — bar on top */}
+                      <div
+                        className="absolute -top-6 left-0 flex items-center gap-1 bg-yellow-400 px-1 rounded text-xs text-yellow-900 whitespace-nowrap"
+                        onMouseDown={e => e.stopPropagation()}
+                      >
                         <input
                           value={box.name}
                           onChange={e => updateBoxName(i, e.target.value)}
-                          className="bg-transparent outline-none w-24 font-medium"
+                          className="bg-transparent outline-none w-24 font-medium cursor-text"
                           onClick={e => e.stopPropagation()}
                         />
                         <button onClick={() => removeBox(i)} className="text-red-700 font-bold ml-1">✕</button>
                       </div>
+                      {/* Resize handles — four corners */}
+                      {(["nw", "ne", "sw", "se"] as const).map(h => (
+                        <div
+                          key={h}
+                          className="absolute w-3 h-3 bg-yellow-400 border border-yellow-700 rounded-sm"
+                          style={{
+                            left: h.includes("w") ? "-6px" : "auto",
+                            right: h.includes("e") ? "-6px" : "auto",
+                            top:   h.includes("n") ? "-6px" : "auto",
+                            bottom:h.includes("s") ? "-6px" : "auto",
+                            cursor: (h === "nw" || h === "se") ? "nwse-resize" : "nesw-resize",
+                          }}
+                          onMouseDown={(e) => onHandleMouseDown(e, i, h)}
+                        />
+                      ))}
                     </div>
                   ))}
 
