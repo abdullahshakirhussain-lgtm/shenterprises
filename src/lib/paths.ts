@@ -14,3 +14,18 @@ export function uploadsDir(): string {
 export function uploadsSubdir(sub: "products" | "slips"): string {
   return path.join(uploadsDir(), sub);
 }
+
+/**
+ * Map a public URL like "/uploads/products/foo.jpg" (or http://host/uploads/...)
+ * to the actual on-disk path. Handles both local dev and Railway volume.
+ */
+export function resolveUploadPath(publicUrl: string): string {
+  let urlPath = publicUrl;
+  try {
+    // Handle absolute URLs by extracting just the pathname
+    if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname;
+  } catch {}
+  // Strip leading slash and "uploads/" prefix — uploadsDir() already points at the uploads root
+  const relative = urlPath.replace(/^\/+/, "").replace(/^uploads\/?/, "");
+  return path.join(uploadsDir(), relative);
+}

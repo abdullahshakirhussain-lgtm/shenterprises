@@ -4,6 +4,7 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import { uploadsSubdir, resolveUploadPath } from "@/lib/paths";
 
 /**
  * Crops an image (optional) and/or removes its background.
@@ -20,13 +21,15 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Load source image
     let imageBuffer: Buffer;
-    if (imageUrl.startsWith("http")) {
+    const isLocalUpload = imageUrl.startsWith("/uploads/")
+      || (imageUrl.startsWith("http") && imageUrl.includes("/uploads/"));
+    if (isLocalUpload) {
+      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
+    } else if (imageUrl.startsWith("http")) {
       const res = await fetch(imageUrl);
       imageBuffer = Buffer.from(await res.arrayBuffer());
     } else {
-      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public");
-      const filePath = path.join(uploadDir, imageUrl.replace(/^\//, ""));
-      imageBuffer = fs.readFileSync(filePath);
+      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
     }
 
     // 2. Crop if requested
@@ -69,25 +72,19 @@ export async function POST(req: NextRequest) {
       }
 
       imageBuffer = Buffer.from(await res.arrayBuffer());
-      outputExt = "png"; // PNG for transparency
+      outputExt = "png";
     } else {
-      // Re-encode the crop as JPEG (smaller)
       imageBuffer = await sharp(imageBuffer).jpeg({ quality: 92 }).toBuffer();
     }
 
-    // 4. Save output
-    const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads", "products");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    // 4. Save output — always into the products subdir
+    const outDir = uploadsSubdir("products");
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
     const filename = `edited-${Date.now()}-${randomUUID().slice(0, 8)}.${outputExt}`;
-    const outPath = path.join(uploadDir, filename);
-    fs.writeFileSync(outPath, imageBuffer);
+    fs.writeFileSync(path.join(outDir, filename), imageBuffer);
 
-    // Determine public URL
-    const subdir = uploadDir.endsWith("products") ? "/uploads/products" : "/uploads";
-    const publicUrl = `${subdir}/${filename}`;
-
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json({ url: `/uploads/products/${filename}` });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

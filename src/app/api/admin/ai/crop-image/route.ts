@@ -4,6 +4,7 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import { uploadsDir, resolveUploadPath } from "@/lib/paths";
 
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
@@ -15,16 +16,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Fetch or read the source image
     let imageBuffer: Buffer;
-    if (imageUrl.startsWith("http")) {
+    // Decide if this is a remote URL or our local upload
+    const isLocalUpload = imageUrl.startsWith("/uploads/")
+      || (imageUrl.startsWith("http") && imageUrl.includes("/uploads/"));
+    if (isLocalUpload) {
+      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
+    } else if (imageUrl.startsWith("http")) {
       const res = await fetch(imageUrl);
       imageBuffer = Buffer.from(await res.arrayBuffer());
     } else {
-      // Local file path (e.g. /uploads/...)
-      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public");
-      const filePath = path.join(uploadDir, imageUrl.replace(/^\//, ""));
-      imageBuffer = fs.readFileSync(filePath);
+      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
     }
 
     const img = sharp(imageBuffer);
@@ -32,7 +34,6 @@ export async function POST(req: NextRequest) {
     const imgW = meta.width || 800;
     const imgH = meta.height || 800;
 
-    // Convert percentage-based crop to pixels
     const left = Math.round((x / 100) * imgW);
     const top = Math.round((y / 100) * imgH);
     const cropW = Math.round((width / 100) * imgW);
@@ -43,16 +44,13 @@ export async function POST(req: NextRequest) {
       .jpeg({ quality: 90 })
       .toBuffer();
 
-    // Save cropped image
-    const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    const outDir = uploadsDir();
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
     const filename = `variant-${randomUUID()}.jpg`;
-    const outPath = path.join(uploadDir, filename);
-    fs.writeFileSync(outPath, cropped);
+    fs.writeFileSync(path.join(outDir, filename), cropped);
 
-    const publicUrl = `/uploads/${filename}`;
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json({ url: `/uploads/${filename}` });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

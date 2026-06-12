@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import path from "path";
 import fs from "fs";
+import { resolveUploadPath } from "@/lib/paths";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -135,8 +136,7 @@ async function imageToDataUrl(imageUrl: string): Promise<string> {
     urlPath = imageUrl;
   }
   if (urlPath.startsWith("/uploads/")) {
-    const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public");
-    const filePath = path.join(uploadDir, urlPath);
+    const filePath = resolveUploadPath(urlPath);
     const buf = fs.readFileSync(filePath);
     const ext = path.extname(filePath).slice(1).toLowerCase() || "jpeg";
     const mime = ext === "jpg" ? "jpeg" : ext;
