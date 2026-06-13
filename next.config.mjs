@@ -14,16 +14,8 @@ const nextConfig = {
       static: 300,
     },
   },
-  // Strong HTTP caching for uploaded files — they're immutable once written
-  async headers() {
-    return [
-      {
-        source: "/uploads/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
-    ];
-  },
+  // Note: per-file Cache-Control headers are set inside the /uploads/[...path]
+  // route handler so 404s aren't cached as immutable (which previously caused
+  // failed image loads to stick across reloads).
 };
 export default nextConfig;
