@@ -1,4 +1,6 @@
 import path from "path";
+import fs from "fs/promises";
+import { r2KeyFromUrl, downloadFromR2 } from "./r2";
 
 /**
  * Where uploaded files live on disk.
@@ -22,10 +24,34 @@ export function uploadsSubdir(sub: "products" | "slips"): string {
 export function resolveUploadPath(publicUrl: string): string {
   let urlPath = publicUrl;
   try {
-    // Handle absolute URLs by extracting just the pathname
     if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname;
   } catch {}
-  // Strip leading slash and "uploads/" prefix — uploadsDir() already points at the uploads root
   const relative = urlPath.replace(/^\/+/, "").replace(/^uploads\/?/, "");
   return path.join(uploadsDir(), relative);
+}
+
+/**
+ * Universal image fetcher: handles R2 URLs, local /uploads/ URLs, and remote HTTP URLs.
+ * Used by AI / image-editing routes to read the source image regardless of where it lives.
+ */
+export async function readImageBuffer(imageUrl: string): Promise<Buffer> {
+  // 1. R2 URL — read straight from the bucket via S3 API
+  const r2Key = r2KeyFromUrl(imageUrl);
+  if (r2Key) return await downloadFromR2(r2Key);
+
+  // 2. Local /uploads/... path — read from disk
+  let urlPath = imageUrl;
+  try { if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname; } catch {}
+  if (urlPath.startsWith("/uploads/")) {
+    return await fs.readFile(resolveUploadPath(urlPath));
+  }
+
+  // 3. External HTTP(S) URL — fetch it
+  if (imageUrl.startsWith("http")) {
+    const res = await fetch(imageUrl);
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  // 4. Fallback: try local
+  return await fs.readFile(resolveUploadPath(imageUrl));
 }

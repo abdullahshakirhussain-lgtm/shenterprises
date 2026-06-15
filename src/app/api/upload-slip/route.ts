@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { uploadsSubdir } from "@/lib/paths";
+import { isR2Configured, uploadToR2 } from "@/lib/r2";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,9 +21,15 @@ export async function POST(req: NextRequest) {
     const filename: string = (file as any).name ?? "slip.bin";
     const ext = filename.split(".").pop()?.toLowerCase() || "bin";
     const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
+    const buf = Buffer.from(await (file as any).arrayBuffer());
+
+    if (isR2Configured()) {
+      const url = await uploadToR2(`slips/${name}`, buf, type);
+      return NextResponse.json({ url });
+    }
+
     const dir = uploadsSubdir("slips");
     await mkdir(dir, { recursive: true });
-    const buf = Buffer.from(await (file as any).arrayBuffer());
     await writeFile(path.join(dir, name), buf);
     return NextResponse.json({ url: `/uploads/slips/${name}` });
   } catch (e: any) {

@@ -3,8 +3,7 @@ import { getCurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import path from "path";
-import fs from "fs";
-import { resolveUploadPath } from "@/lib/paths";
+import { readImageBuffer } from "@/lib/paths";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -128,22 +127,10 @@ Respond ONLY with JSON: {"metaTitle":"...","metaDesc":"..."}`
 
 async function imageToDataUrl(imageUrl: string): Promise<string> {
   if (imageUrl.startsWith("data:")) return imageUrl;
-  let urlPath: string;
-  try {
-    const u = new URL(imageUrl);
-    urlPath = u.pathname;
-  } catch {
-    urlPath = imageUrl;
-  }
-  if (urlPath.startsWith("/uploads/")) {
-    const filePath = resolveUploadPath(urlPath);
-    const buf = fs.readFileSync(filePath);
-    const ext = path.extname(filePath).slice(1).toLowerCase() || "jpeg";
-    const mime = ext === "jpg" ? "jpeg" : ext;
-    return `data:image/${mime};base64,${buf.toString("base64")}`;
-  }
-  const res = await fetch(imageUrl);
-  const buf = Buffer.from(await res.arrayBuffer());
-  const contentType = res.headers.get("content-type") || "image/jpeg";
-  return `data:${contentType};base64,${buf.toString("base64")}`;
+  const buf = await readImageBuffer(imageUrl);
+  let urlPath = imageUrl;
+  try { if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname; } catch {}
+  const ext = path.extname(urlPath).slice(1).toLowerCase() || "jpeg";
+  const mime = ext === "jpg" ? "jpeg" : ext;
+  return `data:image/${mime};base64,${buf.toString("base64")}`;
 }

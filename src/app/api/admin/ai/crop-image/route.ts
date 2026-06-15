@@ -4,7 +4,8 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { uploadsDir, resolveUploadPath } from "@/lib/paths";
+import { uploadsDir, readImageBuffer } from "@/lib/paths";
+import { isR2Configured, uploadToR2 } from "@/lib/r2";
 
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
@@ -16,18 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    let imageBuffer: Buffer;
-    // Decide if this is a remote URL or our local upload
-    const isLocalUpload = imageUrl.startsWith("/uploads/")
-      || (imageUrl.startsWith("http") && imageUrl.includes("/uploads/"));
-    if (isLocalUpload) {
-      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
-    } else if (imageUrl.startsWith("http")) {
-      const res = await fetch(imageUrl);
-      imageBuffer = Buffer.from(await res.arrayBuffer());
-    } else {
-      imageBuffer = fs.readFileSync(resolveUploadPath(imageUrl));
-    }
+    const imageBuffer = await readImageBuffer(imageUrl);
 
     const img = sharp(imageBuffer);
     const meta = await img.metadata();
@@ -35,7 +25,7 @@ export async function POST(req: NextRequest) {
     const imgH = meta.height || 800;
 
     const left = Math.round((x / 100) * imgW);
-    const top = Math.round((y / 100) * imgH);
+    const top  = Math.round((y / 100) * imgH);
     const cropW = Math.round((width / 100) * imgW);
     const cropH = Math.round((height / 100) * imgH);
 
@@ -44,12 +34,16 @@ export async function POST(req: NextRequest) {
       .jpeg({ quality: 90 })
       .toBuffer();
 
+    const filename = `variant-${randomUUID()}.jpg`;
+
+    if (isR2Configured()) {
+      const url = await uploadToR2(`products/${filename}`, cropped, "image/jpeg");
+      return NextResponse.json({ url });
+    }
+
     const outDir = uploadsDir();
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-
-    const filename = `variant-${randomUUID()}.jpg`;
     fs.writeFileSync(path.join(outDir, filename), cropped);
-
     return NextResponse.json({ url: `/uploads/${filename}` });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
