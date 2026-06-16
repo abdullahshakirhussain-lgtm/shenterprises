@@ -19,6 +19,8 @@ export default function MissingImagesUI() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"products" | "variants">("products");
   const [uploading, setUploading] = useState<string>("");
+  const [migrating, setMigrating] = useState(false);
+  const [migrationReport, setMigrationReport] = useState<any>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -76,6 +78,22 @@ export default function MissingImagesUI() {
     } finally { setUploading(""); }
   }
 
+  async function runMigration() {
+    if (!confirm("Scan the Railway volume for any surviving images and migrate them to R2? Safe to run multiple times.")) return;
+    setMigrating(true); setMigrationReport(null);
+    try {
+      const res = await fetch("/api/admin/migrate-to-r2", { method: "POST" });
+      const j = await res.json();
+      setMigrationReport(j);
+      // Refresh the missing list afterwards
+      await load();
+    } catch (e: any) {
+      alert("Migration failed: " + e.message);
+    } finally {
+      setMigrating(false);
+    }
+  }
+
   if (loading) return <div className="text-brand-600">Scanning all images…</div>;
   if (!data) return <div className="text-red-600">Failed to load.</div>;
 
@@ -90,6 +108,39 @@ export default function MissingImagesUI() {
           <div className="text-xs text-brand-600 uppercase">Variants</div>
           <div className="text-2xl font-bold text-red-600">{data.variantsMissing} <span className="text-base text-brand-500 font-normal">/ {data.variantsTotal} missing</span></div>
         </div>
+      </div>
+
+      {/* One-shot migration tool */}
+      <div className="card p-4 mb-6 bg-brand-50/40 border-brand-200">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="text-sm text-brand-800">
+            <strong>Migrate Railway volume → R2.</strong> Scans the Railway disk for any surviving image files, uploads them to R2, and updates the database to point to the new R2 URLs. Safe to run multiple times — files already in R2 are simply re-uploaded (idempotent).
+          </div>
+          <button onClick={runMigration} disabled={migrating}
+            className={`shrink-0 px-4 py-2 rounded font-medium text-sm ${migrating ? "bg-brand-300 text-white" : "bg-brand-700 text-white hover:bg-brand-800"}`}>
+            {migrating ? "Migrating… (up to 5 min)" : "▶ Scan & migrate to R2"}
+          </button>
+        </div>
+        {migrationReport && (
+          <div className="mt-3 text-sm bg-white border border-brand-200 rounded p-3 space-y-1">
+            <div>📁 Files found on volume: <strong>{migrationReport.filesFound}</strong></div>
+            <div>📤 Uploaded to R2: <strong className="text-green-700">{migrationReport.filesUploaded}</strong></div>
+            {migrationReport.filesSkipped > 0 && <div>⚠️ Skipped: <strong className="text-yellow-700">{migrationReport.filesSkipped}</strong></div>}
+            <div>🔄 Products updated: <strong>{migrationReport.productsUpdated}</strong></div>
+            <div>🔄 Variants updated: <strong>{migrationReport.variantsUpdated}</strong></div>
+            <div>🔄 Banners updated: <strong>{migrationReport.bannersUpdated}</strong></div>
+            {migrationReport.errors?.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-red-600">{migrationReport.errors.length} errors</summary>
+                <ul className="mt-1 text-xs font-mono">
+                  {migrationReport.errors.slice(0, 10).map((e: any, i: number) => (
+                    <li key={i}>{e.file}: {e.error}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 border-b border-brand-200 mb-4">
