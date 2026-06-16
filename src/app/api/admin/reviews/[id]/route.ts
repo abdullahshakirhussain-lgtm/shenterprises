@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const b = await req.json();
-    const updated = await prisma.review.update({ where: { id: parseInt(params.id) }, data: { approved: !!b.approved } });
+    const data: any = {};
+    if (b.approved !== undefined) data.approved = !!b.approved;
+    const updated = await prisma.review.update({ where: { id: parseInt(params.id) }, data });
     return NextResponse.json(updated);
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
 }

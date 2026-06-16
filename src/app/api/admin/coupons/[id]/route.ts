@@ -4,19 +4,18 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const b = await req.json();
-    const updated = await prisma.coupon.update({
-      where: { id: parseInt(params.id) },
-      data: {
-        type: b.type === "fixed" ? "fixed" : "percent",
-        value: parseFloat(b.value) || 0,
-        minSubtotal: parseFloat(b.minSubtotal) || 0,
-        maxDiscount: b.maxDiscount != null && b.maxDiscount !== "" ? parseFloat(b.maxDiscount) : null,
-        usageLimit: b.usageLimit != null && b.usageLimit !== "" ? parseInt(b.usageLimit) : null,
-        perUserLimit: b.perUserLimit != null && b.perUserLimit !== "" ? parseInt(b.perUserLimit) : null,
-        expiresAt: b.expiresAt ? new Date(b.expiresAt) : null,
-        active: !!b.active
-      }
-    });
+    // True partial update — only touch fields explicitly present in the body.
+    const data: any = {};
+    if (b.type !== undefined)         data.type = b.type === "fixed" ? "fixed" : "percent";
+    if (b.value !== undefined)        data.value = parseFloat(b.value) || 0;
+    if (b.minSubtotal !== undefined)  data.minSubtotal = parseFloat(b.minSubtotal) || 0;
+    if (b.maxDiscount !== undefined)  data.maxDiscount = b.maxDiscount == null || b.maxDiscount === "" ? null : parseFloat(b.maxDiscount);
+    if (b.usageLimit !== undefined)   data.usageLimit = b.usageLimit == null || b.usageLimit === "" ? null : parseInt(b.usageLimit);
+    if (b.perUserLimit !== undefined) data.perUserLimit = b.perUserLimit == null || b.perUserLimit === "" ? null : parseInt(b.perUserLimit);
+    if (b.expiresAt !== undefined)    data.expiresAt = b.expiresAt ? new Date(b.expiresAt) : null;
+    if (b.active !== undefined)       data.active = !!b.active;
+
+    const updated = await prisma.coupon.update({ where: { id: parseInt(params.id) }, data });
     return NextResponse.json(updated);
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
 }
