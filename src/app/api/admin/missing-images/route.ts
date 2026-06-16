@@ -2,20 +2,46 @@ import { NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/auth";
 import { uploadsDir } from "@/lib/paths";
 import { prisma } from "@/lib/prisma";
+import { isR2Configured, r2KeyFromUrl } from "@/lib/r2";
 import fs from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
-
-async function fileExists(diskPath: string): Promise<boolean> {
-  try { await fs.access(diskPath); return true; } catch { return false; }
-}
 
 function urlToDiskPath(url: string): string {
   let urlPath = url;
   try { if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname; } catch {}
   const relative = urlPath.replace(/^\/+/, "").replace(/^uploads\/?/, "");
   return path.join(uploadsDir(), relative);
+}
+
+/**
+ * Decide whether an image URL "exists" — i.e. should NOT appear in the missing list.
+ *  - R2 URLs: assume present (we control uploads; R2 is durable, files don't vanish)
+ *  - Local /uploads/* URLs: check disk
+ *  - External http(s) URLs (not ours): assume present (we don't manage them)
+ */
+async function imageExists(url: string): Promise<boolean> {
+  if (!url) return false;
+
+  // R2 — trust the URL
+  if (isR2Configured() && r2KeyFromUrl(url) !== null) {
+    return true;
+  }
+
+  // Local uploads — check disk
+  const isLocalUpload = url.startsWith("/uploads/")
+    || (url.startsWith("http") && (() => {
+      try { return new URL(url).pathname.startsWith("/uploads/"); }
+      catch { return false; }
+    })());
+  if (isLocalUpload) {
+    try { await fs.access(urlToDiskPath(url)); return true; }
+    catch { return false; }
+  }
+
+  // External URL we don't own — assume present
+  return true;
 }
 
 export async function GET() {
@@ -33,7 +59,7 @@ export async function GET() {
   });
   const missingProducts: any[] = [];
   for (const p of products) {
-    if (p.imageUrl && !await fileExists(urlToDiskPath(p.imageUrl))) {
+    if (p.imageUrl && !await imageExists(p.imageUrl)) {
       missingProducts.push({
         id: p.id,
         name: p.name,
@@ -55,7 +81,7 @@ export async function GET() {
   });
   const missingVariants: any[] = [];
   for (const v of variants) {
-    if (v.imageUrl && !await fileExists(urlToDiskPath(v.imageUrl))) {
+    if (v.imageUrl && !await imageExists(v.imageUrl)) {
       missingVariants.push({
         id: v.id,
         name: v.name,

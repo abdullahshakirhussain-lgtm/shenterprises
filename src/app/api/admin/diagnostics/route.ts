@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/auth";
 import { uploadsDir } from "@/lib/paths";
 import { prisma } from "@/lib/prisma";
+import { isR2Configured, r2KeyFromUrl } from "@/lib/r2";
 import fs from "fs/promises";
 import path from "path";
 import { statfs } from "fs";
@@ -69,7 +70,9 @@ export async function GET() {
     const missing: { id: number; name: string; imageUrl: string }[] = [];
     for (const p of products) {
       if (!p.imageUrl) continue;
-      // Map URL → disk path
+      // R2 URL? Trust it exists (R2 is durable, we control uploads)
+      if (isR2Configured() && r2KeyFromUrl(p.imageUrl) !== null) { presentCount++; continue; }
+      // Local: check disk
       let urlPath = p.imageUrl;
       try { if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname; } catch {}
       const relative = urlPath.replace(/^\/+/, "").replace(/^uploads\/?/, "");
@@ -99,6 +102,7 @@ export async function GET() {
     const missing: any[] = [];
     for (const v of variants) {
       if (!v.imageUrl) continue;
+      if (isR2Configured() && r2KeyFromUrl(v.imageUrl) !== null) { presentCount++; continue; }
       let urlPath = v.imageUrl;
       try { if (urlPath.startsWith("http")) urlPath = new URL(urlPath).pathname; } catch {}
       const relative = urlPath.replace(/^\/+/, "").replace(/^uploads\/?/, "");
