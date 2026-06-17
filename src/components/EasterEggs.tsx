@@ -46,21 +46,42 @@ export default function EasterEggs() {
       }
     }
 
-    /* ---------- scroll reveal ---------- */
-    const revealEls = $$<HTMLElement>(".reveal, .stitch-underline");
-    function showAll() { revealEls.forEach(el => el.classList.add("in")); }
+    /* ---------- scroll reveal ----------
+       Content is visible by default. We tag elements with .reveal-init to start
+       hidden, observe them, then add .in to fade them in. If the observer fails
+       or new elements appear (via client-side navigation), they stay visible. */
     let io: IntersectionObserver | null = null;
-    if ("IntersectionObserver" in window && revealEls.length) {
+    function setupReveals() {
+      const els = $$<HTMLElement>(".reveal, .stitch-underline");
+      els.forEach(el => {
+        if (el.classList.contains("in") || el.classList.contains("reveal-init")) return;
+        // Mark as initially hidden, then observe
+        el.classList.add("reveal-init");
+        if (io) io.observe(el);
+        else el.classList.add("in"); // fallback: just show
+      });
+    }
+    function showAll() {
+      $$<HTMLElement>(".reveal-init, .reveal, .stitch-underline").forEach(el => el.classList.add("in"));
+    }
+    if ("IntersectionObserver" in window) {
       io = new IntersectionObserver((entries) => {
         entries.forEach(e => {
           if (e.isIntersecting) { (e.target as HTMLElement).classList.add("in"); io!.unobserve(e.target); }
         });
       }, { threshold: 0.12 });
-      revealEls.forEach(el => io!.observe(el));
-      const failsafe = () => setTimeout(() => { if (!document.querySelector(".reveal.in")) showAll(); }, 1200);
+      setupReveals();
+      // Failsafe — if nothing has been revealed shortly after load, show everything
+      const failsafe = () => setTimeout(() => {
+        if (!document.querySelector(".reveal.in, .stitch-underline.in")) showAll();
+      }, 1200);
       if (document.readyState === "complete") failsafe();
       else window.addEventListener("load", failsafe);
-    } else if (revealEls.length) {
+      // Re-scan after client-side navigation (new pages add new .reveal nodes)
+      const rescanInterval = setInterval(setupReveals, 800);
+      // @ts-ignore – attach so cleanup below can clear it
+      (window as any).__shRescanInterval = rescanInterval;
+    } else {
       showAll();
     }
 
@@ -225,6 +246,8 @@ export default function EasterEggs() {
     resetIdle();
 
     return () => {
+      // @ts-ignore
+      if ((window as any).__shRescanInterval) { clearInterval((window as any).__shRescanInterval); delete (window as any).__shRescanInterval; }
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("sh:logo", onLogo as EventListener);
       events.forEach(ev => window.removeEventListener(ev, resetIdle));
