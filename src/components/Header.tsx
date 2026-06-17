@@ -49,6 +49,9 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         <div className="hidden md:block flex-1 max-w-xl">
           <SearchBox placeholder={t("search_placeholder")} submitLabel={t("search")} />
         </div>
+        <div className="md:hidden flex-1 max-w-sm">
+          <SearchBox placeholder={t("search_placeholder_short")} submitLabel={t("search")} />
+        </div>
 
         <nav className="ml-auto flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
@@ -92,7 +95,6 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
 
       {open && (
         <div className="md:hidden border-t border-brand-100 bg-white p-3 space-y-3">
-          <SearchBox placeholder={t("search_placeholder_short")} submitLabel={t("search")} />
           <div className="flex flex-col gap-2 text-sm">
             <Link href="/shop" className="text-ink/80">Shop all</Link>
             <Link href="/offers" className="text-ink/80">{t("offers")}</Link>

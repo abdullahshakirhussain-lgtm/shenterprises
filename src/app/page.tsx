@@ -20,13 +20,23 @@ const CATEGORY_META: Record<string, { emoji: string; bg: string; anim: string }>
   "tools-accessories": { emoji: "🧰", bg: "#E9F1EC", anim: "cat-wiggle" },
 };
 
+// Resilient fetchers — if Supabase blips, the home page still renders with empty sections
+// instead of crashing the whole page.
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); }
+  catch (e) {
+    console.warn("[home] data fetch failed, using fallback:", (e as any)?.message);
+    return fallback;
+  }
+}
+
 export default async function HomePage() {
   const [banners, categories, offers, allActiveIds, promoText] = await Promise.all([
-    prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
-    prisma.product.findMany({ where: { active: true, onOffer: true }, take: 4, orderBy: { updatedAt: "desc" }, include: { variants: true } }),
-    prisma.product.findMany({ where: { active: true }, select: { id: true } }),
-    getSetting("promo_strip_text"),
+    safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
+    safe(() => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }), [] as any[]),
+    safe(() => prisma.product.findMany({ where: { active: true, onOffer: true }, take: 4, orderBy: { updatedAt: "desc" }, include: { variants: true } }), [] as any[]),
+    safe(() => prisma.product.findMany({ where: { active: true }, select: { id: true } }), [] as { id: number }[]),
+    safe(() => getSetting("promo_strip_text"), null),
   ]);
 
   // Truly random 4 products for "Discover more" — re-shuffled on each load
@@ -34,7 +44,7 @@ export default async function HomePage() {
     ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 4).map(p => p.id)
     : [];
   const shopAllPreview = sampleIds.length
-    ? await prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } })
+    ? await safe(() => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } }), [] as any[])
     : [];
 
   return (
