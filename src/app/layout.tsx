@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import EasterEggs from "@/components/EasterEggs";
 import NavigationOverlay from "@/components/NavigationOverlay";
+import ScrollToTop from "@/components/ScrollToTop";
 import { Suspense } from "react";
 
 const lora = Lora({ subsets: ["latin"], weight: ["500","600","700"], display: "swap", variable: "--font-lora" });
@@ -77,6 +78,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <EasterEggs />
           <Suspense fallback={null}>
             <NavigationOverlay />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ScrollToTop />
           </Suspense>
         </CartProvider>
         </LanguageProvider>

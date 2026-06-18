@@ -15,16 +15,10 @@ export type SearchProduct = {
   unitType: string | null;
 };
 
-/**
- * Expand a token using the admin-managed synonyms map.
- * Format in Settings: {"thred":"thread","zip":"zipper","sissor":"scissor"}
- */
 function expandToken(token: string, synonyms: Record<string, string>): string[] {
   const out = new Set<string>([token]);
   const lc = token.toLowerCase();
-  // Direct lookup: "thred" → "thread"
   if (synonyms[lc]) out.add(synonyms[lc]);
-  // Reverse lookup: searching "thread" should also include all synonyms that map TO "thread"
   for (const [misspelling, canonical] of Object.entries(synonyms)) {
     if (canonical.toLowerCase() === lc) out.add(misspelling);
   }
@@ -42,15 +36,65 @@ async function getSynonyms(): Promise<Record<string, string>> {
 }
 
 /**
- * Smart product search.
- * 1. Tokenize the query, lowercase
- * 2. Expand each token via synonyms map
- * 3. AND across tokens, OR within token-variants
- * 4. If no results and query >= 4 chars → fuzzy fallback via pg_trgm (if enabled)
+ * Score how well a product matches the query tokens.
+ * Higher = more relevant. The location of the match is what matters most:
+ * a "thread" in the product NAME outranks "thread" mentioned in some description.
+ */
+function scoreProduct(
+  product: {
+    name: string; description: string | null; sku: string | null; stock: number;
+    featured: boolean; onOffer: boolean;
+    category: { name: string } | null;
+  },
+  tokenVariants: string[][]
+): number {
+  let score = 0;
+  const nameLc = product.name.toLowerCase();
+  const descLc = (product.description || "").toLowerCase();
+  const skuLc = (product.sku || "").toLowerCase();
+  const catLc = (product.category?.name || "").toLowerCase();
+
+  for (const variants of tokenVariants) {
+    // For this token group, pick the highest-scoring location across its synonyms
+    let bestForToken = 0;
+    for (const v of variants) {
+      const vLc = v.toLowerCase();
+      if (!vLc) continue;
+      let tokenScore = 0;
+      if (nameLc === vLc) tokenScore = Math.max(tokenScore, 100);
+      else if (nameLc.startsWith(vLc + " ") || nameLc.startsWith(vLc + "-")) tokenScore = Math.max(tokenScore, 80);
+      else if (new RegExp(`\\b${escapeRegex(vLc)}\\b`).test(nameLc)) tokenScore = Math.max(tokenScore, 65);
+      else if (nameLc.includes(vLc)) tokenScore = Math.max(tokenScore, 50);
+      else if (catLc === vLc) tokenScore = Math.max(tokenScore, 40);
+      else if (catLc.includes(vLc)) tokenScore = Math.max(tokenScore, 35);
+      else if (skuLc.includes(vLc)) tokenScore = Math.max(tokenScore, 25);
+      else if (descLc.includes(vLc)) tokenScore = Math.max(tokenScore, 10);
+      bestForToken = Math.max(bestForToken, tokenScore);
+    }
+    // Sum across token groups so multi-word queries with strong matches dominate
+    score += bestForToken;
+  }
+
+  // Small bonuses — never enough to flip relevance, just break ties
+  if (product.featured) score += 5;
+  if (product.onOffer) score += 3;
+  if (product.stock > 0) score += 1;
+  if (product.stock <= 0) score -= 2;
+
+  return score;
+}
+
+function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+/**
+ * Smart product search with relevance scoring.
+ *  1. Translate non-English → English
+ *  2. Expand synonyms
+ *  3. SQL: cast a wide net (any token in name/desc/sku/category)
+ *  4. JS: score every match by WHERE the hit happened
+ *  5. Sort by score; fall back to fuzzy if zero hits
  */
 export async function smartSearch(q: string, limit = 60): Promise<SearchProduct[]> {
-  // Multilingual: if the query contains non-ASCII characters (Sinhala/Tamil/etc.),
-  // translate it to English first so it matches the English product DB.
   const englishQuery = await translateQueryToEnglish(q);
 
   const tokens = englishQuery.toLowerCase().split(/\s+/).filter(Boolean);
@@ -59,7 +103,6 @@ export async function smartSearch(q: string, limit = 60): Promise<SearchProduct[
   const synonyms = await getSynonyms();
   const expandedTokens = tokens.map(t => expandToken(t, synonyms));
 
-  // Build AND of (OR of synonyms) where each variant matches name/desc/sku/category
   const where: any = {
     active: true,
     AND: expandedTokens.map(variants => ({
@@ -72,31 +115,36 @@ export async function smartSearch(q: string, limit = 60): Promise<SearchProduct[
     }))
   };
 
-  const exact = await prisma.product.findMany({
+  // Fetch a wider pool so scoring has enough to choose from
+  const candidates = await prisma.product.findMany({
     where,
-    take: limit,
-    orderBy: [
-      { featured: "desc" },
-      { onOffer: "desc" },
-      { stock: "desc" },
-    ],
-    select: searchSelect,
+    take: Math.max(limit * 3, 120),
+    select: {
+      id: true, name: true, slug: true, price: true, salePrice: true,
+      imageUrl: true, onOffer: true, stock: true, unitQty: true, unitType: true,
+      description: true, sku: true, featured: true,
+      category: { select: { name: true } },
+    },
   });
 
-  if (exact.length > 0 || q.length < 4) return exact;
+  // Score and sort by relevance
+  const scored = candidates
+    .map(p => ({ p, score: scoreProduct(p, expandedTokens) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score);
 
-  // Fuzzy fallback — only kicks in if exact found nothing and query is long enough
+  const result: SearchProduct[] = scored.slice(0, limit).map(({ p }) => ({
+    id: p.id, name: p.name, slug: p.slug, price: p.price, salePrice: p.salePrice,
+    imageUrl: p.imageUrl, onOffer: p.onOffer, stock: p.stock,
+    unitQty: p.unitQty, unitType: p.unitType,
+  }));
+
+  if (result.length > 0 || q.length < 4) return result;
+
+  // Fuzzy fallback when nothing matched at all
   return await fuzzySearch(q, limit);
 }
 
-/**
- * Fuzzy search using PostgreSQL pg_trgm.
- * If the extension isn't enabled, this throws and we silently return [].
- *
- * To enable on Supabase, run once in SQL Editor:
- *   CREATE EXTENSION IF NOT EXISTS pg_trgm;
- *   CREATE INDEX IF NOT EXISTS product_name_trgm_idx ON "Product" USING gin (name gin_trgm_ops);
- */
 async function fuzzySearch(q: string, limit: number): Promise<SearchProduct[]> {
   try {
     const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -117,8 +165,3 @@ async function fuzzySearch(q: string, limit: number): Promise<SearchProduct[]> {
     return [];
   }
 }
-
-const searchSelect = {
-  id: true, name: true, slug: true, price: true, salePrice: true,
-  imageUrl: true, onOffer: true, stock: true, unitQty: true, unitType: true,
-};
