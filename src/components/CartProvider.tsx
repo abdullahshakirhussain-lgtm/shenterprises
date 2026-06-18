@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-export type CartVariant = { type: "color" | "size" | "length"; name: string; id: number };
+export type CartVariant = { type: "color" | "size" | "length" | "pack"; name: string; id: number };
 
 export type CartItem = {
   key: string;            // unique line key = productId + sorted variant ids
