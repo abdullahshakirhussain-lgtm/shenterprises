@@ -49,16 +49,17 @@ export async function POST(req: NextRequest) {
       const p = products.find((p) => p.id === it.productId)!;
       if (p.stock < it.quantity) throw new Error(`Insufficient stock for ${p.name}`);
 
-      // Compute effective price using variant pricing rule: highest selected variant wins, else base.
+      // Compute effective price using the universal SUM rule:
+      // - Each priced variant contributes its effective amount.
+      // - Unpriced variants contribute 0.
+      // - If no priced variant selected, fall back to product base price.
       const basePrice = p.salePrice ?? p.price;
       let price = basePrice;
       if (it.variantIds && it.variantIds.length > 0) {
         const selected = p.variants.filter(v => it.variantIds!.includes(v.id));
-        const variantEffectives = selected
-          .map(v => (v.salePrice ?? v.price))
-          .filter((n): n is number => n != null);
-        if (variantEffectives.length > 0) {
-          price = Math.max(...variantEffectives);
+        const pricedSelected = selected.filter(v => v.price != null || v.salePrice != null);
+        if (pricedSelected.length > 0) {
+          price = pricedSelected.reduce((sum, v) => sum + (v.salePrice ?? v.price ?? 0), 0);
         }
       }
 

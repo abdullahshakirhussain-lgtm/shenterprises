@@ -54,10 +54,12 @@ export default function ProductTopSection({
   const colorVariants = variants.filter(v => v.type === "color");
   const sizeVariants = variants.filter(v => v.type === "size");
   const lengthVariants = variants.filter(v => v.type === "length");
+  const packVariants = variants.filter(v => v.type === "pack");
 
   const [selColor, setSelColor] = useState<Variant | null>(null);
   const [selSize, setSelSize] = useState<Variant | null>(null);
   const [selLength, setSelLength] = useState<Variant | null>(null);
+  const [selPack, setSelPack] = useState<Variant | null>(null);
 
   // Active main image — swaps to selected color's crop when available
   const [activeImage, setActiveImage] = useState<string | null>(images[0] || null);
@@ -80,11 +82,20 @@ export default function ProductTopSection({
   const needsColor = colorVariants.length > 0 && !selColor;
   const needsSize = sizeVariants.length > 0 && !selSize;
   const needsLength = lengthVariants.length > 0 && !selLength;
-  const ready = !needsColor && !needsSize && !needsLength;
+  const needsPack = packVariants.length > 0 && !selPack;
+  const ready = !needsColor && !needsSize && !needsLength && !needsPack;
 
-  // ---- Dynamic price calculation ----
-  // Option A: highest-priced selected variant wins. Variants without a price use product base.
-  // Sale price logic: if any selected variant has a salePrice, the highest variant's effective price (sale ?? price) wins.
+  // ---- Universal pricing rule ----
+  // For each selected variant:
+  //   - If it has a price (or salePrice) set → use that effective amount
+  //   - If not → contributes 0 (treated as "uses base")
+  //
+  // Final = (sum of priced variants' effective prices) OR base if none are priced.
+  // This works for all common patterns:
+  //   - Length-only pricing (elastic 36y/144y): only the length variant has a price → it wins
+  //   - Pack vs piece: only the pack variant has a price → that price shows
+  //   - Color pricing: only color has a price → color price shows
+  //   - Mixed (rare): prices sum naturally (e.g. premium color + bigger pack)
   function variantEffective(v: Variant | null): number | null {
     if (!v) return null;
     if (v.price == null && v.salePrice == null) return null;
@@ -99,23 +110,21 @@ export default function ProductTopSection({
   const baseEffective = product.salePrice ?? product.price;
   const baseRegular = product.price;
 
-  // The highest priced selected variant wins; if none have prices, fall back to base.
-  const selectedVariants = [selColor, selSize, selLength].filter(Boolean) as Variant[];
-  const variantPrices = selectedVariants.map(variantEffective).filter((n): n is number => n != null);
-  const variantRegulars = selectedVariants.map(variantRegular).filter((n): n is number => n != null);
+  const selectedVariants = [selColor, selSize, selLength, selPack].filter(Boolean) as Variant[];
+  const pricedSelected = selectedVariants.filter(v => v.price != null || v.salePrice != null);
 
-  const effective = variantPrices.length > 0 ? Math.max(...variantPrices) : baseEffective;
-  // For showing the strike-through, use regular price of the winning variant (or base)
-  const winningIdx = variantPrices.length > 0
-    ? variantPrices.indexOf(Math.max(...variantPrices))
-    : -1;
-  const winningVariant = winningIdx >= 0 ? selectedVariants.filter(v => variantEffective(v) != null)[winningIdx] : null;
-  const regular = winningVariant && winningVariant.price != null
-    ? winningVariant.price
+  const effective = pricedSelected.length > 0
+    ? pricedSelected.reduce((sum, v) => sum + (variantEffective(v) ?? 0), 0)
+    : baseEffective;
+
+  const regular = pricedSelected.length > 0
+    ? pricedSelected.reduce((sum, v) => sum + (variantRegular(v) ?? variantEffective(v) ?? 0), 0)
     : baseRegular;
+
   const showStrikethrough = effective < regular;
 
-  // Min price across all variants (for "From Rs.X" display when no selection)
+  // For "From Rs.X" — shown ONLY when no priced variant is selected yet.
+  // Once the customer picks any priced variant, we show the live calculated price.
   function minPossiblePrice(): number {
     const allPrices: number[] = [baseEffective];
     for (const v of variants) {
@@ -125,13 +134,14 @@ export default function ProductTopSection({
     return Math.min(...allPrices);
   }
   const hasVariantPricing = variants.some(v => v.price != null || v.salePrice != null);
-  const showFromPrice = hasVariantPricing && !ready;
+  const showFromPrice = hasVariantPricing && pricedSelected.length === 0;
   const fromPrice = minPossiblePrice();
 
   // Dynamic title suffix
   const titleParts: string[] = [];
   if (selSize) titleParts.push(vd(selSize));
   if (selLength) titleParts.push(vd(selLength));
+  if (selPack) titleParts.push(vd(selPack));
   else if (unitLabel && lengthVariants.length === 0) titleParts.push(unitLabel);
   if (selColor) titleParts.push(vd(selColor));
   const titleSuffix = titleParts.length ? ` — ${titleParts.join(", ")}` : "";
@@ -142,6 +152,7 @@ export default function ProductTopSection({
     if (selColor) sel.push({ id: selColor.id, type: "color", name: vd(selColor) });
     if (selSize) sel.push({ id: selSize.id, type: "size", name: vd(selSize) });
     if (selLength) sel.push({ id: selLength.id, type: "length", name: vd(selLength) });
+    if (selPack) sel.push({ id: selPack.id, type: "pack", name: vd(selPack) });
 
     const cartName = product.name + titleSuffix;
 
@@ -266,6 +277,22 @@ export default function ProductTopSection({
               <option value="">Select length…</option>
               {lengthVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
             </select>
+          </div>
+        )}
+
+        {/* Pack / Unit selector */}
+        {packVariants.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-brand-900 block mb-1">Pack size</label>
+            <select
+              className="input max-w-xs"
+              value={selPack?.id ?? ""}
+              onChange={e => setSelPack(packVariants.find(v => v.id === parseInt(e.target.value)) || null)}
+            >
+              <option value="">Choose pack…</option>
+              {packVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
+            </select>
+            <p className="text-xs text-brand-500 mt-1">Bigger packs usually have a better per-unit price.</p>
           </div>
         )}
 

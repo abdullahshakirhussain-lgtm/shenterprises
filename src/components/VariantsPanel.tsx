@@ -13,7 +13,7 @@ export default function VariantsPanel({
   imageUrl?: string | null;
 }) {
   const [variants, setVariants] = useState<Variant[]>(initialVariants);
-  const [tab, setTab] = useState<"colors" | "sizes" | "lengths">("colors");
+  const [tab, setTab] = useState<"colors" | "sizes" | "lengths" | "packs">("colors");
 
   // Color / crop state — defaults to the main product image
   const [cropImage, setCropImage] = useState<string>(imageUrl || "");
@@ -48,9 +48,18 @@ export default function VariantsPanel({
   const [newLengthUnit, setNewLengthUnit] = useState("yards");
   const [addingLength, setAddingLength] = useState(false);
 
+  // Pack state — name like "Single piece" or "Pack of 100"
+  const [newPackName, setNewPackName] = useState("");
+  const [addingPack, setAddingPack] = useState(false);
+
+  // Manual color state — name only (image optional, added later via VariantRow)
+  const [newColorName, setNewColorName] = useState("");
+  const [addingColor, setAddingColor] = useState(false);
+
   const colorVariants = variants.filter(v => v.type === "color");
   const sizeVariants = variants.filter(v => v.type === "size");
   const lengthVariants = variants.filter(v => v.type === "length");
+  const packVariants = variants.filter(v => v.type === "pack");
 
   // Upload crop source image
   async function uploadCropSource(file: File) {
@@ -303,6 +312,23 @@ export default function VariantsPanel({
     });
   }
 
+  async function updateVariantImage(id: number, file: File) {
+    // Upload the image
+    const fd = new FormData(); fd.append("file", file);
+    const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const j = await up.json();
+    if (!up.ok) { setMsg("Image upload failed: " + (j.error || "")); return; }
+    // Save URL to the variant
+    const res = await fetch("/api/admin/products/variants", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, imageUrl: j.url }),
+    });
+    if (res.ok) {
+      setVariants(v => v.map(x => x.id === id ? { ...x, imageUrl: j.url } : x));
+    }
+  }
+
   async function addSize() {
     if (!newSize.trim()) return;
     setAddingSize(true);
@@ -331,6 +357,32 @@ export default function VariantsPanel({
     setAddingLength(false);
   }
 
+  async function addPack() {
+    if (!newPackName.trim()) return;
+    setAddingPack(true);
+    const res = await fetch("/api/admin/products/variants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId, type: "pack", name: newPackName.trim(), sortOrder: packVariants.length })
+    });
+    const data = await res.json();
+    if (res.ok) { setVariants(v => [...v, data]); setNewPackName(""); }
+    setAddingPack(false);
+  }
+
+  async function addColorManual() {
+    if (!newColorName.trim()) return;
+    setAddingColor(true);
+    const res = await fetch("/api/admin/products/variants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId, type: "color", name: newColorName.trim(), sortOrder: colorVariants.length })
+    });
+    const data = await res.json();
+    if (res.ok) { setVariants(v => [...v, data]); setNewColorName(""); }
+    setAddingColor(false);
+  }
+
   return (
     <div className="card p-5 max-w-3xl">
       <h2 className="font-semibold text-lg text-brand-900 mb-1">Product Variants</h2>
@@ -347,6 +399,9 @@ export default function VariantsPanel({
         <button onClick={() => setTab("lengths" as any)} className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${tab === ("lengths" as any) ? "border-brand-600 text-brand-900" : "border-transparent text-brand-500"}`}>
           📐 Lengths ({lengthVariants.length})
         </button>
+        <button onClick={() => setTab("packs" as any)} className={`pb-2 px-1 text-sm font-medium border-b-2 transition ${tab === ("packs" as any) ? "border-brand-600 text-brand-900" : "border-transparent text-brand-500"}`}>
+          📦 Packs ({packVariants.length})
+        </button>
       </div>
 
       {tab === "colors" && (
@@ -355,14 +410,30 @@ export default function VariantsPanel({
           {colorVariants.length > 0 && (
             <div>
               <p className="text-sm font-medium text-brand-800 mb-2">Saved colors</p>
-              <p className="text-xs text-brand-500 mb-3">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
+              <p className="text-xs text-brand-500 mb-3">Set a price to override the base price when this color is picked. Click the image area to add or change the swatch image.</p>
               <div className="space-y-2">
                 {colorVariants.map(v => (
-                  <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} showImage />
+                  <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
                 ))}
               </div>
             </div>
           )}
+
+          {/* Quick manual add — no image required */}
+          <div className="border border-brand-200 rounded-lg p-4">
+            <p className="font-medium text-brand-800 mb-1">Add a color manually</p>
+            <p className="text-xs text-brand-600 mb-3">Just a name. You can add the swatch image later by clicking the image area on the saved row.</p>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <input className="input" placeholder='e.g. "Black", "Navy Blue", "Crimson"…'
+                  value={newColorName} onChange={e => setNewColorName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addColorManual())} />
+              </div>
+              <button onClick={addColorManual} disabled={addingColor || !newColorName.trim()} className="btn-primary">
+                {addingColor ? "Adding…" : "Add"}
+              </button>
+            </div>
+          </div>
 
           {/* AI Crop Tool */}
           <div className="border border-brand-200 rounded-lg p-4 space-y-3">
@@ -489,7 +560,7 @@ export default function VariantsPanel({
             <div className="space-y-2">
               <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
               {sizeVariants.map(v => (
-                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} />
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
               ))}
             </div>
           ) : (
@@ -517,7 +588,7 @@ export default function VariantsPanel({
             <div className="space-y-2">
               <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
               {lengthVariants.map(v => (
-                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} />
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
               ))}
             </div>
           ) : (
@@ -547,30 +618,82 @@ export default function VariantsPanel({
           <p className="text-xs text-brand-500">Use this for products sold in different lengths (e.g. 36 yards vs 144 yards of the same elastic). Customers will see a dropdown.</p>
         </div>
       )}
+
+      {tab === "packs" && (
+        <div className="space-y-4">
+          {packVariants.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-brand-500">Use this when the product can be bought as individual pieces OR as a pack. Each row has its own price.</p>
+              {packVariants.map(v => (
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-brand-500 italic">No pack options added yet.</p>
+          )}
+
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="label">Add pack option</label>
+              <input className="input" placeholder='e.g. "Single piece", "Pack of 100", "Box of 12"…'
+                value={newPackName} onChange={e => setNewPackName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addPack())} />
+            </div>
+            <button onClick={addPack} disabled={addingPack || !newPackName.trim()} className="btn-primary">
+              {addingPack ? "Adding…" : "Add"}
+            </button>
+          </div>
+          <p className="text-xs text-brand-500">Example: add <strong>&quot;Single piece&quot;</strong> at Rs. 20 and <strong>&quot;Pack of 100&quot;</strong> at Rs. 1,500. Customer picks which one and your cart line shows it clearly.</p>
+        </div>
+      )}
     </div>
   );
 }
 
 function VariantRow({
-  variant, onDelete, onPriceChange, showImage,
+  variant, onDelete, onPriceChange, onImageChange, showImage,
 }: {
   variant: Variant;
   onDelete: (id: number) => void;
   onPriceChange: (id: number, field: "price" | "salePrice", value: string) => void;
+  onImageChange?: (id: number, file: File) => void;
   showImage?: boolean;
 }) {
   const [price, setPrice] = useState<string>(variant.price != null ? String(variant.price) : "");
   const [salePrice, setSalePrice] = useState<string>(variant.salePrice != null ? String(variant.salePrice) : "");
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f || !onImageChange) return;
+    setUploading(true);
+    try { await onImageChange(variant.id, f); }
+    finally { setUploading(false); e.target.value = ""; }
+  }
 
   return (
     <div className="flex items-center gap-3 p-2 bg-white border border-brand-200 rounded">
       {showImage && (
-        variant.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={variant.imageUrl} alt={variant.name} className="w-12 h-12 object-cover rounded shrink-0" />
-        ) : (
-          <div className="w-12 h-12 bg-brand-100 rounded grid place-items-center text-sm text-brand-500 shrink-0">{variant.name[0]}</div>
-        )
+        <label
+          className="relative w-12 h-12 rounded shrink-0 overflow-hidden cursor-pointer group"
+          title={variant.imageUrl ? "Click to change image" : "Click to add image"}
+        >
+          {variant.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={variant.imageUrl} alt={variant.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-brand-100 grid place-items-center text-sm text-brand-500 border border-dashed border-brand-300">
+              {variant.name[0]?.toUpperCase() || "+"}
+            </div>
+          )}
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 grid place-items-center text-white text-[10px] transition-opacity">
+            {uploading ? "…" : (variant.imageUrl ? "Change" : "Add")}
+          </div>
+          {onImageChange && (
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
+          )}
+        </label>
       )}
       <div className="flex-1 text-sm font-medium text-brand-900 truncate">{variant.name}</div>
       <div className="flex items-center gap-2">
