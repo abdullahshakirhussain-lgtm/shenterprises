@@ -17,6 +17,7 @@ type Product = {
   featured: boolean;
   imageUrl: string | null;
   category: { id: number; name: string; slug: string } | null;
+  missing?: string[];
 };
 
 type Category = { id: number; name: string; slug: string };
@@ -454,17 +455,29 @@ export default function BulkProductsTable({ products, categories, currentCategor
             </tr>
           </thead>
           <tbody>
-            {products.map(p => (
-              <tr key={p.id} className={`border-t border-brand-100 ${selected.has(p.id) ? "bg-yellow-50" : ""}`}>
+            {products.map(p => {
+              const missing = p.missing || [];
+              const rowClass = selected.has(p.id)
+                ? "bg-yellow-50"
+                : missing.length > 0 ? "bg-amber-50/40" : "";
+              return (
+              <tr key={p.id} className={`border-t border-brand-100 ${rowClass}`}>
                 <td className="p-2"><input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
                 <td className="p-2">
                   <div className="flex items-center gap-2">
-                    {p.imageUrl ? (
-                      <span title="Has image" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">✓</span>
+                    {missing.length === 0 ? (
+                      <span title="Complete listing" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-700 text-xs font-bold shrink-0">✓</span>
                     ) : (
-                      <span title="No image" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">!</span>
+                      <span title={`Missing: ${missing.join(", ")}`} className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold shrink-0">!</span>
                     )}
-                    <Link href={`/admin/products/${p.id}/edit`} className="text-brand-700 underline">{p.name}</Link>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/admin/products/${p.id}/edit`} className="text-brand-700 underline">{p.name}</Link>
+                      {missing.length > 0 && (
+                        <div className="text-[10px] text-amber-700 mt-0.5">
+                          Missing: {missing.join(" · ")}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="p-2">{p.category?.name || "—"}</td>
@@ -491,7 +504,8 @@ export default function BulkProductsTable({ products, categories, currentCategor
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {products.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-brand-600">No products yet.</td></tr>}
           </tbody>
         </table>
