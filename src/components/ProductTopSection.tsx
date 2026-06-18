@@ -137,12 +137,16 @@ export default function ProductTopSection({
   const showFromPrice = hasVariantPricing && pricedSelected.length === 0;
   const fromPrice = minPossiblePrice();
 
-  // Dynamic title suffix
+  // Dynamic title suffix — order: size, length OR pack OR fallback unit, color
   const titleParts: string[] = [];
   if (selSize) titleParts.push(vd(selSize));
   if (selLength) titleParts.push(vd(selLength));
-  if (selPack) titleParts.push(vd(selPack));
-  else if (unitLabel && lengthVariants.length === 0) titleParts.push(unitLabel);
+  else if (selPack) titleParts.push(vd(selPack));
+  // Only fall back to unitLabel when there are NO pack/length variants at all
+  // (otherwise the customer is expected to pick one, and selPack/selLength fills this slot)
+  else if (unitLabel && lengthVariants.length === 0 && packVariants.length === 0) {
+    titleParts.push(unitLabel);
+  }
   if (selColor) titleParts.push(vd(selColor));
   const titleSuffix = titleParts.length ? ` — ${titleParts.join(", ")}` : "";
 
@@ -217,9 +221,6 @@ export default function ProductTopSection({
       <div>
         <h1 className="font-display text-3xl text-brand-900">
           {product.name}
-          {unitLabel && lengthVariants.length === 0 && !selSize && !selLength && (
-            <span className="text-brand-600 text-2xl"> — {unitLabel}</span>
-          )}
           {titleSuffix && (
             <span className="text-brand-600 text-2xl">{titleSuffix}</span>
           )}
