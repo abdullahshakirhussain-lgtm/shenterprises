@@ -15,7 +15,10 @@ export default async function AdminProducts({ searchParams }: { searchParams: { 
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { select: { price: true, salePrice: true } },
+      },
       orderBy: { createdAt: "desc" }
     }),
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -26,7 +29,12 @@ export default async function AdminProducts({ searchParams }: { searchParams: { 
     const m: string[] = [];
     if (!p.imageUrl) m.push("image");
     if (!p.description || !p.description.trim()) m.push("description");
-    if (!p.price || p.price <= 0) m.push("price");
+    // Price is considered "set" if the base price is > 0, OR if any variant has its own price
+    const hasBasePrice = !!p.price && p.price > 0;
+    const hasVariantPrice = (p.variants || []).some(v =>
+      (v.price != null && v.price > 0) || (v.salePrice != null && v.salePrice > 0)
+    );
+    if (!hasBasePrice && !hasVariantPrice) m.push("price");
     if (!p.categoryId) m.push("category");
     return m;
   }
