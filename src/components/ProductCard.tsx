@@ -19,18 +19,24 @@ type Product = {
 
 export default function ProductCard({ p }: { p: Product }) {
   const baseEffective = p.salePrice ?? p.price;
+  const validBase = baseEffective > 0 ? baseEffective : null;
   const variantPrices = (p.variants || [])
     .map(v => (v.salePrice ?? v.price))
-    .filter((n): n is number => n != null);
+    .filter((n): n is number => n != null && n > 0);
   const hasVariantPricing = variantPrices.length > 0;
-  const effective = hasVariantPricing ? Math.min(baseEffective, ...variantPrices) : baseEffective;
-  const showFrom = hasVariantPricing && variantPrices.some(p => p !== baseEffective);
+  const priceCandidates = [...(validBase != null ? [validBase] : []), ...variantPrices];
+  const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
+  // "From" when there are multiple distinct prices, OR base is missing but variants exist
+  const distinct = new Set(priceCandidates).size;
+  const showFrom = distinct > 1;
+  const noBaseNoVariants = priceCandidates.length === 0;
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
 
   const variants = p.variants || [];
   const sizes = variants.filter(v => v.type === "size");
   const lengths = variants.filter(v => v.type === "length");
   const colors = variants.filter(v => v.type === "color");
+  const packs = variants.filter(v => v.type === "pack");
 
   return (
     <div className="card group flex flex-col">
@@ -56,13 +62,16 @@ export default function ProductCard({ p }: { p: Product }) {
         </Link>
 
         {/* Variant pills */}
-        {(sizes.length > 0 || lengths.length > 0 || colors.length > 1) && (
+        {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
           <div className="text-xs space-y-0.5 -mt-0.5">
             {sizes.length > 0 && (
               <VariantPills label="Sizes" items={sizes.map(v => v.name)} />
             )}
             {lengths.length > 0 && (
               <VariantPills label="Lengths" items={lengths.map(v => v.name)} />
+            )}
+            {packs.length > 0 && (
+              <VariantPills label="Packs" items={packs.map(v => v.name)} />
             )}
             {colors.length > 1 && (
               <div className="text-brand-500">{colors.length} colors</div>
@@ -72,9 +81,17 @@ export default function ProductCard({ p }: { p: Product }) {
 
         <div className="mt-auto">
           <div className="flex items-baseline gap-2">
-            {showFrom && <span className="text-xs text-brand-600">From</span>}
-            <span className="font-semibold text-brand-700">{formatLKR(effective)}</span>
-            {!showFrom && p.salePrice && <span className="text-xs line-through text-brand-400">{formatLKR(p.price)}</span>}
+            {noBaseNoVariants ? (
+              <span className="text-xs text-brand-500">See options</span>
+            ) : (
+              <>
+                {showFrom && <span className="text-xs text-brand-600">From</span>}
+                <span className="font-semibold text-brand-700">{formatLKR(effective)}</span>
+                {!showFrom && validBase != null && p.salePrice && (
+                  <span className="text-xs line-through text-brand-400">{formatLKR(p.price)}</span>
+                )}
+              </>
+            )}
           </div>
           {p.stock <= 0 && <div className="text-xs text-red-600 mt-1">Out of stock</div>}
         </div>

@@ -8,6 +8,7 @@ type Suggestion = {
   name: string;
   slug: string;
   price: number;
+  fromPrice?: boolean;
   imageUrl: string | null;
   unitLabel: string | null;
 };
@@ -117,7 +118,11 @@ export default function SearchBox({
                   {r.name}
                   {r.unitLabel && <span className="text-muted"> — {r.unitLabel}</span>}
                 </div>
-                <div className="text-xs text-brand-700 font-semibold">{fmt(r.price)}</div>
+                <div className="text-xs text-brand-700 font-semibold">
+                  {r.price > 0
+                    ? (r.fromPrice ? `From ${fmt(r.price)}` : fmt(r.price))
+                    : <span className="text-brand-500 font-normal">Variants priced individually</span>}
+                </div>
               </div>
             </Link>
           ))}

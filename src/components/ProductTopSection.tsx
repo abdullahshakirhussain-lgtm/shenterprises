@@ -49,6 +49,7 @@ export default function ProductTopSection({
   const { add } = useCart();
   const { lang, t } = useLanguage();
   const [added, setAdded] = useState(false);
+  const [qty, setQty] = useState(1);
   const vd = (v: Variant) => variantDisplay(v, lang);
 
   const colorVariants = variants.filter(v => v.type === "color");
@@ -109,32 +110,38 @@ export default function ProductTopSection({
 
   const baseEffective = product.salePrice ?? product.price;
   const baseRegular = product.price;
+  // A base of 0 means "no base price set" — only variant pricing applies
+  const validBase = baseEffective > 0 ? baseEffective : null;
+  const validBaseRegular = baseRegular > 0 ? baseRegular : null;
 
   const selectedVariants = [selColor, selSize, selLength, selPack].filter(Boolean) as Variant[];
   const pricedSelected = selectedVariants.filter(v => v.price != null || v.salePrice != null);
 
   const effective = pricedSelected.length > 0
     ? pricedSelected.reduce((sum, v) => sum + (variantEffective(v) ?? 0), 0)
-    : baseEffective;
+    : (validBase ?? 0);
 
   const regular = pricedSelected.length > 0
     ? pricedSelected.reduce((sum, v) => sum + (variantRegular(v) ?? variantEffective(v) ?? 0), 0)
-    : baseRegular;
+    : (validBaseRegular ?? 0);
 
   const showStrikethrough = effective < regular;
 
   // For "From Rs.X" — shown ONLY when no priced variant is selected yet.
   // Once the customer picks any priced variant, we show the live calculated price.
+  // Skip base when it's 0 (treat as "no price set") so it doesn't drag the min to zero.
   function minPossiblePrice(): number {
-    const allPrices: number[] = [baseEffective];
+    const allPrices: number[] = [];
+    if (validBase != null) allPrices.push(validBase);
     for (const v of variants) {
       const e = variantEffective(v);
-      if (e != null) allPrices.push(e);
+      if (e != null && e > 0) allPrices.push(e);
     }
-    return Math.min(...allPrices);
+    return allPrices.length > 0 ? Math.min(...allPrices) : 0;
   }
   const hasVariantPricing = variants.some(v => v.price != null || v.salePrice != null);
-  const showFromPrice = hasVariantPricing && pricedSelected.length === 0;
+  // Show "From" when either: variants are priced and none picked yet, OR base is missing entirely
+  const showFromPrice = (hasVariantPricing || validBase == null) && pricedSelected.length === 0;
   const fromPrice = minPossiblePrice();
 
   // Dynamic title suffix — order: size, length OR pack OR fallback unit, color
@@ -167,9 +174,18 @@ export default function ProductTopSection({
       price: effective,  // already reflects highest selected variant price
       imageUrl: selColor?.imageUrl || product.imageUrl,
       variants: sel.length ? sel : undefined,
-    });
+    }, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
+  }
+
+  const maxQty = product.stock > 0 ? product.stock : 99;
+  function decQty() { setQty(q => Math.max(1, q - 1)); }
+  function incQty() { setQty(q => Math.min(maxQty, q + 1)); }
+  function onQtyInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const n = parseInt(e.target.value, 10);
+    if (isNaN(n)) { setQty(1); return; }
+    setQty(Math.max(1, Math.min(maxQty, n)));
   }
 
   // Thumbnails: main image, additional images, and any color variant images
@@ -325,13 +341,46 @@ export default function ProductTopSection({
           </div>
         )}
 
-        <div className="mt-6 max-w-xs">
+        <div className="mt-6 max-w-xs space-y-3">
+          {/* Quantity stepper */}
+          <div>
+            <label className="text-sm font-medium text-brand-900 block mb-1">Quantity</label>
+            <div className="inline-flex items-center rounded-lg border border-brand-200 bg-white overflow-hidden">
+              <button
+                type="button"
+                onClick={decQty}
+                disabled={qty <= 1 || product.stock <= 0}
+                className="w-10 h-10 text-lg font-bold text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                aria-label="Decrease quantity"
+              >−</button>
+              <input
+                type="number"
+                min="1"
+                max={maxQty}
+                value={qty}
+                onChange={onQtyInput}
+                disabled={product.stock <= 0}
+                className="w-14 h-10 text-center font-semibold text-brand-900 bg-transparent outline-none border-x border-brand-200 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                onClick={incQty}
+                disabled={qty >= maxQty || product.stock <= 0}
+                className="w-10 h-10 text-lg font-bold text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                aria-label="Increase quantity"
+              >+</button>
+            </div>
+            {product.stock > 0 && product.stock <= 10 && (
+              <p className="text-xs text-amber-700 mt-1">Only {product.stock} left in stock</p>
+            )}
+          </div>
+
           <button
             disabled={!ready || product.stock <= 0}
             onClick={addToCart}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {added ? "✓ Added to cart" : !ready ? "Choose options" : product.stock <= 0 ? "Out of stock" : "Add to cart"}
+            {added ? `✓ Added ${qty > 1 ? `${qty} ` : ""}to cart` : !ready ? "Choose options" : product.stock <= 0 ? "Out of stock" : `Add ${qty > 1 ? `${qty} ` : ""}to cart`}
           </button>
         </div>
 
