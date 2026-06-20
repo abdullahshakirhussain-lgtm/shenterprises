@@ -331,56 +331,84 @@ export default function VariantsPanel({
 
   async function addSize() {
     if (!newSize.trim()) return;
-    setAddingSize(true);
-    const res = await fetch("/api/admin/products/variants", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, type: "size", name: newSize.trim(), sortOrder: sizeVariants.length })
-    });
-    const data = await res.json();
-    if (res.ok) { setVariants(v => [...v, data]); setNewSize(""); }
-    setAddingSize(false);
+    setAddingSize(true); setMsg("");
+    try {
+      const res = await fetch("/api/admin/products/variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, type: "size", name: newSize.trim(), sortOrder: sizeVariants.length })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setVariants(v => [...v, data]); setNewSize("");
+      setMsg(`✓ Added size "${data.name}"`);
+    } catch (e: any) {
+      setMsg("Error adding size: " + e.message);
+    } finally {
+      setAddingSize(false);
+    }
   }
 
   async function addLength() {
     const qty = parseFloat(newLengthQty);
     if (!qty || !newLengthUnit) return;
-    setAddingLength(true);
+    setAddingLength(true); setMsg("");
     const name = `${qty} ${newLengthUnit}`;
-    const res = await fetch("/api/admin/products/variants", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, type: "length", name, sortOrder: lengthVariants.length })
-    });
-    const data = await res.json();
-    if (res.ok) { setVariants(v => [...v, data]); setNewLengthQty(""); }
-    setAddingLength(false);
+    try {
+      const res = await fetch("/api/admin/products/variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, type: "length", name, sortOrder: lengthVariants.length })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setVariants(v => [...v, data]); setNewLengthQty("");
+      setMsg(`✓ Added length "${data.name}"`);
+    } catch (e: any) {
+      setMsg("Error adding length: " + e.message);
+    } finally {
+      setAddingLength(false);
+    }
   }
 
   async function addPack() {
     if (!newPackName.trim()) return;
-    setAddingPack(true);
-    const res = await fetch("/api/admin/products/variants", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, type: "pack", name: newPackName.trim(), sortOrder: packVariants.length })
-    });
-    const data = await res.json();
-    if (res.ok) { setVariants(v => [...v, data]); setNewPackName(""); }
-    setAddingPack(false);
+    setAddingPack(true); setMsg("");
+    try {
+      const res = await fetch("/api/admin/products/variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, type: "pack", name: newPackName.trim(), sortOrder: packVariants.length })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setVariants(v => [...v, data]); setNewPackName("");
+      setMsg(`✓ Added pack "${data.name}"`);
+    } catch (e: any) {
+      setMsg("Error adding pack: " + e.message);
+    } finally {
+      setAddingPack(false);
+    }
   }
 
   async function addColorManual() {
     if (!newColorName.trim()) return;
-    setAddingColor(true);
-    const res = await fetch("/api/admin/products/variants", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, type: "color", name: newColorName.trim(), sortOrder: colorVariants.length })
-    });
-    const data = await res.json();
-    if (res.ok) { setVariants(v => [...v, data]); setNewColorName(""); }
-    setAddingColor(false);
+    setAddingColor(true); setMsg("");
+    try {
+      const res = await fetch("/api/admin/products/variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, type: "color", name: newColorName.trim(), sortOrder: colorVariants.length })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setVariants(v => [...v, data]); setNewColorName("");
+      setMsg(`✓ Added color "${data.name}"`);
+    } catch (e: any) {
+      setMsg("Error adding color: " + e.message);
+    } finally {
+      setAddingColor(false);
+    }
   }
 
   return (
@@ -417,6 +445,10 @@ export default function VariantsPanel({
                 ))}
               </div>
             </div>
+          )}
+
+          {msg && !boxes.length && (
+            <div className={`text-sm p-2 rounded ${msg.startsWith("✓") ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>{msg}</div>
           )}
 
           {/* Quick manual add — no image required */}
@@ -552,6 +584,10 @@ export default function VariantsPanel({
             )}
           </div>
         </div>
+      )}
+
+      {(tab === "sizes" || tab === "lengths" || tab === "packs") && msg && (
+        <div className={`text-sm p-2 rounded mb-3 ${msg.startsWith("✓") ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>{msg}</div>
       )}
 
       {tab === "sizes" && (

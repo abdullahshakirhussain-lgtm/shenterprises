@@ -20,26 +20,39 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { productId, type, name, imageUrl, sortOrder, price, salePrice } = await req.json();
-  if (!productId || !type || !name) return NextResponse.json({ error: "productId, type, name required" }, { status: 400 });
-  if (!["color", "size", "length"].includes(type)) return NextResponse.json({ error: "type must be color, size, or length" }, { status: 400 });
-  // Auto-translate the variant name to Sinhala and Tamil
-  const tr = await translateToSinhalaAndTamil(name);
+  try {
+    const { productId, type, name, imageUrl, sortOrder, price, salePrice } = await req.json();
+    if (!productId || !type || !name) return NextResponse.json({ error: "productId, type, name required" }, { status: 400 });
+    if (!["color", "size", "length", "pack"].includes(type)) return NextResponse.json({ error: "type must be color, size, length, or pack" }, { status: 400 });
 
-  const variant = await prisma.productVariant.create({
-    data: {
-      productId: parseInt(productId),
-      type,
-      name,
-      nameSi: tr?.si || null,
-      nameTa: tr?.ta || null,
-      imageUrl: imageUrl || null,
-      sortOrder: sortOrder || 0,
-      price: price != null && price !== "" ? parseFloat(price) : null,
-      salePrice: salePrice != null && salePrice !== "" ? parseFloat(salePrice) : null,
+    // Auto-translate the variant name — never let translation failure block variant creation
+    let tr: { si: string; ta: string } | null = null;
+    try { tr = await translateToSinhalaAndTamil(name); } catch (e: any) {
+      console.warn("[variants POST] translation failed (continuing):", e?.message);
     }
-  });
-  return NextResponse.json(variant);
+
+    const variant = await prisma.productVariant.create({
+      data: {
+        productId: parseInt(productId),
+        type,
+        name,
+        nameSi: tr?.si || null,
+        nameTa: tr?.ta || null,
+        imageUrl: imageUrl || null,
+        sortOrder: sortOrder || 0,
+        price: price != null && price !== "" ? parseFloat(price) : null,
+        salePrice: salePrice != null && salePrice !== "" ? parseFloat(salePrice) : null,
+      }
+    });
+    return NextResponse.json(variant);
+  } catch (e: any) {
+    console.error("[variants POST] failed:", e);
+    return NextResponse.json({
+      error: e?.message || "Failed to create variant",
+      code: e?.code,
+      meta: e?.meta,
+    }, { status: 500 });
+  }
 }
 
 // PATCH — update a variant's price (or other fields)
