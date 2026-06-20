@@ -86,6 +86,28 @@ export default async function HomePage() {
 
       <div className="cut reveal"><span>✂</span></div>
 
+      {/* AI Project Helper banner */}
+      <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+        <Link
+          href="/ai-helper"
+          className="tile block rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 border border-brand-200 shadow-sm overflow-hidden reveal hover:shadow-md transition-shadow"
+        >
+          <div className="px-6 sm:px-10 py-7 sm:py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-4">
+              <div className="grid place-items-center h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-white shadow-sm text-3xl sm:text-4xl shrink-0">✨</div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-600">AI Project Helper</p>
+                <h2 className="font-serif font-bold text-xl sm:text-2xl mt-1 text-brand-900">Tell us what you&apos;re making</h2>
+                <p className="text-brand-700 text-sm mt-1 max-w-md">Describe your project and we&apos;ll pick exactly the threads, buttons and trims you need.</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-xl bg-brand-700 text-white font-bold px-5 py-2.5 shrink-0 hover:bg-brand-800 transition-colors">
+              Try it →
+            </span>
+          </div>
+        </Link>
+      </section>
+
       {/* On Offer (hidden if no products on offer) */}
       {offers.length > 0 && (
         <>
@@ -203,6 +225,7 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
   const sizes = variants.filter((v: any) => v.type === "size");
   const lengths = variants.filter((v: any) => v.type === "length");
   const colors = variants.filter((v: any) => v.type === "color");
+  const packs = variants.filter((v: any) => v.type === "pack");
 
   return (
     <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-brand-300 shadow-sm overflow-hidden">
@@ -222,10 +245,11 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
           {p.name}
           {unitLabel && lengths.length === 0 && <span className="text-muted"> — {unitLabel}</span>}
         </h3>
-        {(sizes.length > 0 || lengths.length > 0 || colors.length > 1) && (
+        {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
           <div className="text-[11px] mt-1 space-y-0.5">
             {sizes.length > 0 && <PillRow label="Sizes" items={sizes.map((v: any) => v.name)} />}
             {lengths.length > 0 && <PillRow label="Lengths" items={lengths.map((v: any) => v.name)} />}
+            {packs.length > 0 && <PillRow label="Packs" items={packs.map((v: any) => v.name)} />}
             {colors.length > 1 && <div className="text-muted">{colors.length} colors</div>}
           </div>
         )}

@@ -57,6 +57,9 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
           <LanguageSwitcher compact />
           <Link href="/shop" className="hover:text-brand-600 hidden sm:block text-ink/80">Shop</Link>
           <Link href="/offers" className="hover:text-brand-600 hidden sm:block text-ink/80">{t("offers")}</Link>
+          <Link href="/ai-helper" className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-brand-600 to-brand-700 text-white text-xs font-bold hover:opacity-90 transition" title="AI project helper">
+            ✨ AI Helper
+          </Link>
           <Link href="/track" className="hover:text-brand-600 hidden md:block text-ink/80">{t("track_my_order")}</Link>
           {me ? (
             <Link href="/account" className="hover:text-brand-600 text-ink/80">{t("hi")}, {me.fullName.split(" ")[0]}</Link>
@@ -98,6 +101,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
           <div className="flex flex-col gap-2 text-sm">
             <Link href="/shop" className="text-ink/80">Shop all</Link>
             <Link href="/offers" className="text-ink/80">{t("offers")}</Link>
+            <Link href="/ai-helper" className="text-brand-700 font-bold">✨ AI Project Helper</Link>
             <Link href="/track" className="text-ink/80">{t("track_my_order")}</Link>
           </div>
         </div>
