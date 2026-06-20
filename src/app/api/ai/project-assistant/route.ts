@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const englishProject = await translateQueryToEnglish(projectText);
 
-  // Compact catalog summary — only fields the model needs to reason + match
+  // Compact catalog summary — include variants so the model can match on color/size/length
   const products = await prisma.product.findMany({
     where: { active: true },
     select: {
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       price: true, salePrice: true, imageUrl: true, stock: true,
       unitQty: true, unitType: true,
       category: { select: { name: true } },
+      variants: { select: { type: true, name: true } },
     },
     take: 250,
   });
@@ -52,33 +53,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ summary: "No products in catalog yet.", items: [] });
   }
 
-  // Pre-shrink descriptions so we don't blow the context window
-  const catalogForModel = products.map(p => ({
-    id: p.id,
-    name: p.name,
-    category: p.category?.name || "Uncategorized",
-    price: p.salePrice ?? p.price,
-    unit: p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null,
-    stock: p.stock,
-    desc: (p.description || "").slice(0, 140),
-  }));
+  // Only consider products with a real image — incomplete listings hallucinate badly
+  const eligible = products.filter(p => !!p.imageUrl);
+
+  // Pre-shrink descriptions and surface variant names by type so the model can see colors/sizes
+  const catalogForModel = eligible.map(p => {
+    const colors = p.variants.filter(v => v.type === "color").map(v => v.name);
+    const sizes  = p.variants.filter(v => v.type === "size").map(v => v.name);
+    const lengths = p.variants.filter(v => v.type === "length").map(v => v.name);
+    const packs  = p.variants.filter(v => v.type === "pack").map(v => v.name);
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category?.name || "Uncategorized",
+      price: p.salePrice ?? p.price,
+      unit: p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null,
+      stock: p.stock,
+      desc: (p.description || "").slice(0, 140),
+      ...(colors.length ? { colors } : {}),
+      ...(sizes.length ? { sizes } : {}),
+      ...(lengths.length ? { lengths } : {}),
+      ...(packs.length ? { packs } : {}),
+    };
+  });
 
   const systemPrompt = `You are a sewing & craft project advisor for SH Enterprises, a Sri Lankan craft and tailoring supply shop.
 
-Given a customer's project, recommend items ONLY from the catalog provided. Be realistic with quantities — a baby blanket needs ~2 spools of thread, not 20.
+Given a customer's project, recommend items ONLY from the catalog provided.
 
-Rules:
-- Suggest 3 to 8 items total
-- Use exact product IDs from the catalog
-- Quantities are integer units of the listing (e.g. "1" means one packet/spool/piece)
-- Skip items the customer doesn't need — quality over quantity
-- If you can't suggest anything sensible (e.g. catalog is unrelated to the project), return an empty items array with a friendly explanation
+CRITICAL RULES — failure to follow these makes the suggestion useless:
+1. Use exact product IDs from the catalog. Never invent products.
+2. Suggest 3 to 8 items total. Quality over quantity.
+3. Be realistic with quantities — a baby blanket needs ~2 spools of thread, not 20.
+4. NEVER claim a product has a color/size/material the catalog does not list. Check the "colors" / "sizes" / "lengths" arrays. If the customer asked for "red" but the product has no "red" listed in its colors array, do NOT suggest it. If the catalog has no products in the requested color, say so honestly in the summary rather than inventing one.
+5. The "reason" field must be factual based on catalog data. Stick to FUNCTION ("for stitching the seams", "to fasten the closure") not invented properties ("comes in red"). Mention color/size only if it is actually listed in the product's variants.
+6. If the catalog has no good matches, return an empty items array and explain why in the summary.
 
 Respond ONLY in JSON:
 {
-  "summary": "<2-sentence overview of what they'll need>",
+  "summary": "<2-sentence overview — honest about what's available>",
   "items": [
-    { "id": <product id>, "quantity": <int>, "reason": "<one short sentence on why>" }
+    { "id": <product id>, "quantity": <int>, "reason": "<one short factual sentence>" }
   ]
 }`;
 
