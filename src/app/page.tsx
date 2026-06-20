@@ -5,6 +5,7 @@ import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import CategoryIcon from "@/components/CategoryIcon";
+import { Spool, TapeMeasure, Button4Hole, ThreadLoop } from "@/components/CraftDecorations";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -67,8 +68,10 @@ export default async function HomePage() {
       <div className="cut reveal mt-4"><span>✂</span></div>
 
       {/* Categories — confident image-led grid, fewer columns on desktop */}
-      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16">
-        <div className="text-center mb-10 reveal">
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 relative">
+        {/* Decorative button — scattered top-left, very subtle */}
+        <Button4Hole className="absolute top-4 left-4 w-20 h-20 text-thread-maple-500 opacity-15 pointer-events-none rotate-[12deg] hidden md:block" />
+        <div className="relative text-center mb-10 reveal">
           <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-2">Browse</p>
           <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">
             <span className="stitched-dashed">Shop by category</span>
@@ -99,8 +102,10 @@ export default async function HomePage() {
       </section>
 
       {/* "Behind the spools" — story strip on warmer ivory background to break the rhythm */}
-      <section className="bg-ivory border-y border-saffron-200/40">
-        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
+      <section className="bg-ivory border-y border-saffron-200/40 relative overflow-hidden">
+        {/* Decorative spool sketch — bottom-right corner */}
+        <Spool className="absolute -bottom-6 -right-4 w-44 h-44 text-saffron-300 opacity-50 pointer-events-none hidden md:block" />
+        <div className="relative mx-auto max-w-6xl px-4 py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
           <div className="reveal">
             <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-3">Behind the spools</p>
             <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink leading-tight">
@@ -138,6 +143,8 @@ export default async function HomePage() {
         <Link href="/ai-helper"
           className="tile block rounded-3xl bg-gradient-to-br from-saffron-50 via-saffron-100 to-brand-100 border border-saffron-200 shadow-md overflow-hidden reveal relative">
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-saffron-300 blur-2xl opacity-50" />
+          {/* Decorative tape measure curling across the top edge */}
+          <TapeMeasure className="absolute -top-2 right-12 w-44 h-20 text-thread-teal-500 opacity-60 pointer-events-none rotate-[-8deg] hidden sm:block" />
           <div className="relative px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
             <div className="flex items-center gap-5">
               <div className="grid place-items-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white shadow-sm text-3xl sm:text-4xl shrink-0 border border-saffron-200">✨</div>

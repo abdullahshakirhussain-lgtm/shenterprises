@@ -22,12 +22,14 @@ html, body { background: var(--background); color: var(--foreground); }
 body {
   font-family: var(--font-mulish), 'Mulish', ui-sans-serif, system-ui, sans-serif;
   background-color: #FBF4EC;
-  /* Layered linen-paper texture — finer & more refined than the old stripes */
+  /* Woven-cotton background — SVG checker pattern that reads as fabric weave.
+     Two staggered grids at offset positions = warp & weft. Opacity is tuned to
+     show clearly on a quiet page without competing with content. */
   background-image:
-    radial-gradient(ellipse at 20% 10%, rgba(184,119,47,.05) 0, transparent 55%),
-    radial-gradient(ellipse at 80% 90%, rgba(45,42,38,.04) 0, transparent 55%),
-    repeating-linear-gradient(0deg,   rgba(45,42,38,.012) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg,  rgba(180,87,28,.012) 0 1px, transparent 1px 3px);
+    radial-gradient(ellipse at 18% 8%,  rgba(184,119,47,.055) 0, transparent 55%),
+    radial-gradient(ellipse at 82% 92%, rgba(45,42,38,.035) 0, transparent 55%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23B8772F' stroke-opacity='.10' stroke-width='1'><path d='M0 6 L24 6 M0 18 L24 18'/><path d='M6 0 L6 24 M18 0 L18 24'/></g><g fill='%232D2A26' fill-opacity='.06'><circle cx='6' cy='6' r='0.8'/><circle cx='18' cy='18' r='0.8'/><circle cx='6' cy='18' r='0.4'/><circle cx='18' cy='6' r='0.4'/></g></svg>");
+  background-attachment: fixed;
 }
 
 h1, h2, h3, .font-display, .font-serif {
@@ -131,15 +133,36 @@ h1, h2, h3, .font-display, .font-serif {
 }
 .stitch-underline path { stroke: rgb(var(--b500)); }
 
-/* ====== "Cut here" divider ====== */
+/* ====== Pinking-shears divider — replaces the old "cut" rule ======
+   Two stacked zigzag gradients create a sawtooth ribbon that reads as
+   the edge of fabric cut with pinking shears. */
 .cut {
-  position: relative; height: 1px; margin: 0 auto; max-width: 72rem;
-  background-image: linear-gradient(90deg, rgb(var(--b300)) 0 12px, transparent 12px 22px);
-  background-size: 22px 2px; background-repeat: repeat-x; opacity: .7;
+  position: relative;
+  margin: 0 auto;
+  max-width: 72rem;
+  height: 14px;
+  pointer-events: none;
+  background-color: transparent;
+  background-image:
+    linear-gradient(135deg, transparent 49%, rgba(184,119,47,.55) 49% 51%, transparent 51%),
+    linear-gradient(45deg,  transparent 49%, rgba(184,119,47,.55) 49% 51%, transparent 51%);
+  background-size: 14px 14px;
+  background-position: 0 0, 7px 0;
+  background-repeat: repeat-x;
+  opacity: .65;
 }
 .cut span {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  background: #FBF4EC; padding: 0 .5rem; font-size: 18px;
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  background: #FBF4EC;
+  padding: 0 .8rem;
+  font-size: 14px;
+  color: rgb(var(--b600));
+  font-family: var(--font-fraunces), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: .04em;
 }
 
 /* ====== Tape measure (logo egg) ====== */

@@ -18,9 +18,9 @@ export default function ErrorBoundary({
   return (
     <div className="container-x py-16 text-center">
       <div className="text-5xl mb-3">🧵</div>
-      <h2 className="font-display text-2xl text-brand-900 mb-2">Something went wrong</h2>
-      <p className="text-brand-700 mb-4">
-        The page couldn&apos;t load. This is usually temporary — try again.
+      <h2 className="font-display text-3xl text-ink mb-2">A thread came loose.</h2>
+      <p className="text-ink-mute mb-5 max-w-md mx-auto">
+        Something tangled while loading this page. Usually it&apos;s temporary — pull the thread again.
       </p>
       <div className="flex gap-2 justify-center">
         <button onClick={reset} className="btn-primary">Try again</button>

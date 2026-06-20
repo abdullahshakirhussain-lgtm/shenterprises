@@ -11,9 +11,13 @@ export default function CartPage() {
     <div className="container-x py-8">
       <h1 className="font-display text-3xl text-brand-900 mb-6">{t("your_cart")}</h1>
       {items.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="text-brand-700 mb-4">{t("cart_empty")}</p>
-          <Link href="/" className="btn-primary">{t("continue_shopping")}</Link>
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-saffron-200/60 shadow-md p-10 text-center stitched">
+          <div className="text-5xl mb-3">🧺</div>
+          <p className="font-display italic text-xl text-ink mb-2">{t("cart_empty")}</p>
+          <p className="text-ink-mute text-sm mb-5">Find threads, trims, and tools to bring your next make to life.</p>
+          <Link href="/shop" className="rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm font-bold px-5 py-2.5 transition-colors">
+            {t("continue_shopping")}
+          </Link>
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
@@ -30,7 +34,14 @@ export default function CartPage() {
                   <Link href={`/product/${i.slug}`} className="font-medium hover:text-brand-700 line-clamp-2">{i.name}</Link>
                   {i.variants && i.variants.length > 0 && (
                     <div className="text-xs text-brand-600 mt-0.5">
-                      {i.variants.map(v => `${v.type === "color" ? t("color") : v.type === "size" ? t("size") : t("length")}: ${v.name}`).join(" · ")}
+                      {i.variants.map(v => {
+                        const label =
+                          v.type === "color" ? t("color") :
+                          v.type === "size" ? t("size") :
+                          v.type === "length" ? t("length") :
+                          "Pack";
+                        return `${label}: ${v.name}`;
+                      }).join(" · ")}
                     </div>
                   )}
                   <div className="text-sm text-brand-700">{formatLKR(i.price)}</div>

@@ -40,7 +40,7 @@ export const translations = {
 
     // Cart
     your_cart: "Your cart",
-    cart_empty: "Your cart is empty.",
+    cart_empty: "Nothing in the basket yet — your stitches await.",
     continue_shopping: "Continue shopping",
     clear_cart: "Clear cart",
     subtotal: "Subtotal",
@@ -168,7 +168,7 @@ export const translations = {
     apply_filters: "Apply filters",
     clear_all: "Clear all",
     all_categories: "All categories",
-    no_products_match: "No products match these filters.",
+    no_products_match: "We couldn't thread together a match — try loosening the filters?",
     clear_filters: "Clear filters",
     prev: "← Prev",
     next: "Next →",

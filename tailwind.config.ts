@@ -40,6 +40,21 @@ const config: Config = {
         ivory: "#F4E9D6",
         cream: "#FBF4EC",
         muted: "#8A6F5E",
+        // Thread-themed accent flecks — used sparingly (badges, hover, specific moments)
+        "thread-teal": {
+          50:  "#E4ECEB",
+          100: "#C3D5D2",
+          500: "#3F6E6A",
+          600: "#2F5754",
+          700: "#244340",
+        },
+        "thread-maple": {
+          50:  "#F6E2DE",
+          100: "#EBC1B7",
+          500: "#9D3B2F",
+          600: "#7E2D24",
+          700: "#5C201A",
+        },
       },
       fontFamily: {
         sans: ["var(--font-mulish)", "Mulish", "ui-sans-serif", "system-ui", "sans-serif"],
