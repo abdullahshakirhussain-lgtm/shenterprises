@@ -133,17 +133,21 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
 
 function ShopProductCard({ p }: { p: any }) {
   const baseEffective = p.salePrice ?? p.price;
+  const validBase = baseEffective > 0 ? baseEffective : null;
   const variants = p.variants || [];
   const variantPrices = variants
     .map((v: any) => v.salePrice ?? v.price)
-    .filter((n: any): n is number => n != null);
-  const hasVariantPricing = variantPrices.length > 0;
-  const effective = hasVariantPricing ? Math.min(baseEffective, ...variantPrices) : baseEffective;
-  const showFrom = hasVariantPricing && variantPrices.some((pr: number) => pr !== baseEffective);
+    .filter((n: any): n is number => n != null && n > 0);
+  const priceCandidates = [...(validBase != null ? [validBase] : []), ...variantPrices];
+  const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
+  const distinct = new Set(priceCandidates).size;
+  const showFrom = distinct > 1;
+  const noBaseNoVariants = priceCandidates.length === 0;
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
   const sizes = variants.filter((v: any) => v.type === "size");
   const lengths = variants.filter((v: any) => v.type === "length");
   const colors = variants.filter((v: any) => v.type === "color");
+  const packs = variants.filter((v: any) => v.type === "pack");
 
   return (
     <Link href={`/product/${p.slug}`} className="tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-brand-300 shadow-sm overflow-hidden">
@@ -163,17 +167,26 @@ function ShopProductCard({ p }: { p: any }) {
           {p.name}
           {unitLabel && lengths.length === 0 && <span className="text-muted"> — {unitLabel}</span>}
         </h3>
-        {(sizes.length > 0 || lengths.length > 0 || colors.length > 1) && (
+        {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
           <div className="text-[11px] mt-1 space-y-0.5">
             {sizes.length > 0 && <ShopPills label="Sizes" items={sizes.map((v: any) => v.name)} />}
             {lengths.length > 0 && <ShopPills label="Lengths" items={lengths.map((v: any) => v.name)} />}
+            {packs.length > 0 && <ShopPills label="Packs" items={packs.map((v: any) => v.name)} />}
             {colors.length > 1 && <div className="text-muted">{colors.length} colors</div>}
           </div>
         )}
         <p className="mt-auto pt-2 flex items-baseline gap-2">
-          {showFrom && <span className="text-xs text-muted">From</span>}
-          <span className="font-serif font-bold text-brand-700 text-lg">{formatLKR(effective)}</span>
-          {!showFrom && p.salePrice && <span className="text-muted text-sm line-through">{formatLKR(p.price)}</span>}
+          {noBaseNoVariants ? (
+            <span className="text-sm text-muted">See options</span>
+          ) : (
+            <>
+              {showFrom && <span className="text-xs text-muted">From</span>}
+              <span className="font-serif font-bold text-brand-700 text-lg">{formatLKR(effective)}</span>
+              {!showFrom && validBase != null && p.salePrice && (
+                <span className="text-muted text-sm line-through">{formatLKR(p.price)}</span>
+              )}
+            </>
+          )}
         </p>
       </div>
     </Link>
