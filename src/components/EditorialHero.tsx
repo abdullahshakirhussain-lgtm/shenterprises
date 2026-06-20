@@ -14,10 +14,10 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
   const collage = products.slice(0, 3);
 
   return (
-    <section className="relative overflow-hidden">
-      {/* Decorative blobs behind the hero — sized down so they don't push horizontal overflow */}
-      <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 w-[260px] h-[260px] md:w-[420px] md:h-[420px] rounded-full bg-saffron-100 blur-3xl opacity-50" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-[280px] h-[280px] md:w-[480px] md:h-[480px] rounded-full bg-brand-100 blur-3xl opacity-60" />
+    <section className="relative overflow-hidden bg-saffron-50 border-b border-saffron-200/50">
+      {/* Decorative blobs behind the hero — sit inside the solid background to add depth */}
+      <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 w-[260px] h-[260px] md:w-[420px] md:h-[420px] rounded-full bg-saffron-200 blur-3xl opacity-60" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-[280px] h-[280px] md:w-[480px] md:h-[480px] rounded-full bg-brand-200 blur-3xl opacity-50" />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-8 pb-10 md:pt-16 md:pb-20 grid md:grid-cols-12 gap-8 items-center">
         {/* Left: type-led story */}
@@ -77,12 +77,48 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
           </ul>
         </div>
 
-        {/* Right: solid hero tile — single confident product showcase */}
-        <div className="md:col-span-5 relative hidden sm:block">
+        {/* Right: collage — three offset product cards */}
+        <div className="md:col-span-5 relative h-[380px] sm:h-[440px] md:h-[480px] hidden sm:block">
           {collage.length === 0 ? (
             <DecorativePanel />
           ) : (
-            <HeroShowcase main={collage[0]} secondary={collage[1] || null} />
+            <>
+              {collage[0] && (
+                <CollageCard
+                  product={collage[0]}
+                  className="absolute top-0 left-2 w-[58%] aspect-[3/4] z-10 rotate-[-4deg]"
+                  badge="01"
+                />
+              )}
+              {collage[1] && (
+                <CollageCard
+                  product={collage[1]}
+                  className="absolute top-12 right-0 w-[60%] aspect-[3/4] z-20 rotate-[3deg]"
+                  badge="02"
+                />
+              )}
+              {collage[2] && (
+                <CollageCard
+                  product={collage[2]}
+                  className="absolute bottom-0 left-10 w-[55%] aspect-square z-30 rotate-[-1deg]"
+                  badge="03"
+                />
+              )}
+              {/* Decorative needle/thread svg */}
+              <svg
+                aria-hidden
+                className="absolute top-2 right-2 w-16 h-16 text-saffron-400 z-40 -rotate-12"
+                viewBox="0 0 64 64"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <line x1="8" y1="56" x2="46" y2="18" />
+                <ellipse cx="49" cy="15" rx="7" ry="3" transform="rotate(-45 49 15)" />
+                <circle cx="49" cy="15" r="1.5" fill="currentColor" />
+              </svg>
+            </>
           )}
         </div>
       </div>
@@ -90,55 +126,30 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
   );
 }
 
-function HeroShowcase({ main, secondary }: { main: HeroProduct; secondary: HeroProduct | null }) {
+function CollageCard({
+  product,
+  className,
+  badge,
+}: {
+  product: HeroProduct;
+  className: string;
+  badge: string;
+}) {
   return (
-    <div className="relative">
-      {/* Big primary product tile — square, grounded, no rotation */}
-      <Link
-        href={`/product/${main.slug}`}
-        className="block group relative aspect-square rounded-3xl overflow-hidden bg-white border border-saffron-200/60 shadow-xl"
-      >
-        {main.imageUrl ? (
+    <Link href={`/product/${product.slug}`} className={`${className} group`}>
+      <div className="w-full h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200 transition-transform group-hover:scale-[1.02] group-hover:rotate-0">
+        {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={main.imageUrl}
-            alt={main.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-          />
+          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-brand-50 to-saffron-100 grid place-items-center text-7xl">🧵</div>
+          <div className="w-full h-full bg-gradient-to-br from-brand-50 to-saffron-100 grid place-items-center text-5xl">🧵</div>
         )}
-        {/* Caption strip at bottom — gives the tile editorial weight */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/85 via-ink/40 to-transparent px-5 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-[.2em] text-saffron-300 mb-1">Featured</p>
-          <p className="font-display text-cream text-lg leading-snug line-clamp-2 drop-shadow">{main.name}</p>
-        </div>
-      </Link>
-
-      {/* Optional secondary product as a small floating chip — bottom-left, grounded against the main tile */}
-      {secondary && (
-        <Link
-          href={`/product/${secondary.slug}`}
-          className="absolute -bottom-6 -left-6 w-28 h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden bg-white border-4 border-cream shadow-xl group hidden md:block"
-        >
-          {secondary.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={secondary.imageUrl}
-              alt={secondary.name}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full bg-saffron-100 grid place-items-center text-3xl">🧵</div>
-          )}
-        </Link>
-      )}
-
-      {/* Small saffron tag, top-right, instead of rotated 01/02/03 numbers */}
-      <span className="absolute -top-3 -right-3 bg-saffron-500 text-white font-display font-bold text-xs px-3 py-1.5 rounded-full shadow-md tracking-wide">
-        Editor&apos;s pick
+      </div>
+      {/* Number badge */}
+      <span className="absolute -top-3 -left-3 bg-ink text-cream font-display font-bold text-xs px-2.5 py-1 rounded-full shadow-md tracking-widest">
+        {badge}
       </span>
-    </div>
+    </Link>
   );
 }
 
