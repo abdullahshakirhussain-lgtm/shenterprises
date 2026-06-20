@@ -15,18 +15,18 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
 
   return (
     <section className="relative overflow-hidden">
-      {/* Decorative blobs behind the hero */}
-      <div aria-hidden className="absolute -top-20 -left-24 w-[420px] h-[420px] rounded-full bg-saffron-100 blur-3xl opacity-50" />
-      <div aria-hidden className="absolute -bottom-32 -right-20 w-[480px] h-[480px] rounded-full bg-brand-100 blur-3xl opacity-60" />
+      {/* Decorative blobs behind the hero — sized down so they don't push horizontal overflow */}
+      <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 w-[260px] h-[260px] md:w-[420px] md:h-[420px] rounded-full bg-saffron-100 blur-3xl opacity-50" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-[280px] h-[280px] md:w-[480px] md:h-[480px] rounded-full bg-brand-100 blur-3xl opacity-60" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-12 md:pt-16 md:pb-20 grid md:grid-cols-12 gap-8 items-center">
+      <div className="relative mx-auto max-w-6xl px-4 pt-8 pb-10 md:pt-16 md:pb-20 grid md:grid-cols-12 gap-8 items-center">
         {/* Left: type-led story */}
-        <div className="md:col-span-7 relative">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-saffron-200 px-3 py-1 text-[11px] font-bold tracking-[.15em] text-saffron-700 uppercase mb-5">
+        <div className="md:col-span-7 relative min-w-0">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-saffron-200 px-3 py-1 text-[10px] sm:text-[11px] font-bold tracking-[.15em] text-saffron-700 uppercase mb-4 sm:mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-saffron-500 animate-pulse" />
-            Sri Lanka's craft supply home
+            Sri Lanka&apos;s craft supply home
           </p>
-          <h1 className="font-display font-semibold text-ink leading-[1.02] text-5xl sm:text-6xl md:text-7xl tracking-tight">
+          <h1 className="font-display font-semibold text-ink leading-[1.05] text-[2.25rem] sm:text-5xl md:text-6xl lg:text-7xl tracking-tight break-words">
             <span className="block">Threads, trims</span>
             <span className="block">
               &amp; tools for{" "}
@@ -34,7 +34,7 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
                 every stitch
                 <svg
                   aria-hidden
-                  className="absolute -bottom-3 left-0 w-full"
+                  className="absolute -bottom-2 sm:-bottom-3 left-0 w-full"
                   viewBox="0 0 420 18"
                   preserveAspectRatio="none"
                   fill="none"
@@ -51,20 +51,20 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
             </span>
           </h1>
 
-          <p className="mt-7 text-base sm:text-lg text-ink-mute max-w-md leading-relaxed">
+          <p className="mt-5 sm:mt-7 text-sm sm:text-base md:text-lg text-ink-mute max-w-md leading-relaxed">
             Hand-picked threads, zippers, scissors and notions trusted by tailors and crafters from Jaffna to Galle.
           </p>
 
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-6 sm:mt-7 flex flex-wrap gap-3">
             <Link
               href="/shop"
-              className="thread-btn inline-flex items-center justify-center rounded-xl bg-ink hover:bg-ink-soft text-cream text-base font-bold px-7 py-3.5 shadow-sm transition-colors"
+              className="thread-btn inline-flex items-center justify-center rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 shadow-sm transition-colors"
             >
               Shop everything
             </Link>
             <Link
               href="/ai-helper"
-              className="inline-flex items-center gap-2 rounded-xl bg-white border-2 border-saffron-300 hover:border-saffron-500 text-saffron-700 text-base font-bold px-7 py-3.5 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-white border-2 border-saffron-300 hover:border-saffron-500 text-saffron-700 text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 transition-colors"
             >
               ✨ Try the AI Helper
             </Link>

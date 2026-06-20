@@ -18,18 +18,24 @@
   --foreground: #3F2A1D;
 }
 
-html, body { background: var(--background); color: var(--foreground); }
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  /* Belt-and-suspenders: hard-cap horizontal overflow so nothing can leak out and
+     create a scrollable phantom column on mobile (decorative blobs, oversized type, etc). */
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 body {
   font-family: var(--font-mulish), 'Mulish', ui-sans-serif, system-ui, sans-serif;
   background-color: #FBF4EC;
   /* Woven-cotton background — SVG checker pattern that reads as fabric weave.
-     Two staggered grids at offset positions = warp & weft. Opacity is tuned to
-     show clearly on a quiet page without competing with content. */
+     NOTE: no `background-attachment: fixed` — that causes severe scroll jank on
+     mobile (Safari especially). Letting it scroll naturally is smoother. */
   background-image:
     radial-gradient(ellipse at 18% 8%,  rgba(184,119,47,.055) 0, transparent 55%),
     radial-gradient(ellipse at 82% 92%, rgba(45,42,38,.035) 0, transparent 55%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23B8772F' stroke-opacity='.10' stroke-width='1'><path d='M0 6 L24 6 M0 18 L24 18'/><path d='M6 0 L6 24 M18 0 L18 24'/></g><g fill='%232D2A26' fill-opacity='.06'><circle cx='6' cy='6' r='0.8'/><circle cx='18' cy='18' r='0.8'/><circle cx='6' cy='18' r='0.4'/><circle cx='18' cy='6' r='0.4'/></g></svg>");
-  background-attachment: fixed;
 }
 
 h1, h2, h3, .font-display, .font-serif {
