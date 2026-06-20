@@ -1,27 +1,28 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
-import HeroSlideshow from "@/components/HeroSlideshow";
+import EditorialHero from "@/components/EditorialHero";
+import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
+import CategoryIcon from "@/components/CategoryIcon";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORY_META: Record<string, { emoji: string; bg: string; anim: string }> = {
-  threads:           { emoji: "🧵", bg: "#FBEAD9", anim: "cat-roll" },
-  zippers:           { emoji: "🔗", bg: "#E7EFF6", anim: "cat-wiggle" },
-  buttons:           { emoji: "🔘", bg: "#F3E9F6", anim: "cat-spin" },
-  ribbons:           { emoji: "🎀", bg: "#FBE6EE", anim: "cat-wiggle" },
-  scissors:          { emoji: "✂️", bg: "#E9F1EC", anim: "cat-wiggle" },
-  elastics:          { emoji: "➰", bg: "#FBEAD9", anim: "cat-bounce" },
-  "lace-trims":      { emoji: "🪢", bg: "#F3E9F6", anim: "cat-wiggle" },
-  "needles-pins":    { emoji: "🧷", bg: "#E7EFF6", anim: "cat-bounce" },
-  "fabric-markers":  { emoji: "🖊️", bg: "#FBE6EE", anim: "cat-wiggle" },
-  "tools-accessories": { emoji: "🧰", bg: "#E9F1EC", anim: "cat-wiggle" },
+// Tonal background per category — soft, refined, no neon
+const CATEGORY_TONES: Record<string, { bg: string; text: string }> = {
+  threads:             { bg: "bg-saffron-100",  text: "text-saffron-700" },
+  zippers:             { bg: "bg-brand-100",    text: "text-brand-800" },
+  buttons:             { bg: "bg-ivory",        text: "text-ink-soft" },
+  ribbons:             { bg: "bg-saffron-100",  text: "text-saffron-700" },
+  scissors:            { bg: "bg-brand-100",    text: "text-brand-800" },
+  elastics:            { bg: "bg-ivory",        text: "text-ink-soft" },
+  "lace-trims":        { bg: "bg-saffron-100",  text: "text-saffron-700" },
+  "needles-pins":      { bg: "bg-brand-100",    text: "text-brand-800" },
+  "fabric-markers":    { bg: "bg-ivory",        text: "text-ink-soft" },
+  "tools-accessories": { bg: "bg-brand-100",    text: "text-brand-800" },
 };
 
-// Resilient fetchers — if Supabase blips, the home page still renders with empty sections
-// instead of crashing the whole page.
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try { return await fn(); }
   catch (e) {
@@ -31,15 +32,21 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 }
 
 export default async function HomePage() {
-  const [banners, categories, offers, allActiveIds, promoText] = await Promise.all([
+  const [banners, categories, offers, allActiveIds, promoText, heroProducts] = await Promise.all([
     safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
     safe(() => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }), [] as any[]),
     safe(() => prisma.product.findMany({ where: { active: true, onOffer: true }, take: 4, orderBy: { updatedAt: "desc" }, include: { variants: true } }), [] as any[]),
     safe(() => prisma.product.findMany({ where: { active: true }, select: { id: true } }), [] as { id: number }[]),
     safe(() => getSetting("promo_strip_text"), null),
+    // Featured products for hero collage — prefer featured > on-offer > any with an image
+    safe(() => prisma.product.findMany({
+      where: { active: true, imageUrl: { not: null } },
+      orderBy: [{ featured: "desc" }, { onOffer: "desc" }, { updatedAt: "desc" }],
+      take: 3,
+      select: { name: true, slug: true, imageUrl: true },
+    }), [] as any[]),
   ]);
 
-  // Truly random 4 products for "Discover more" — re-shuffled on each load
   const sampleIds = allActiveIds.length
     ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 4).map(p => p.id)
     : [];
@@ -49,89 +56,132 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Top promo strip — appears above the header when set */}
       {promoText && <PromoStrip text={promoText} href="/offers" />}
 
-      {/* Hero slideshow */}
-      <HeroSlideshow banners={banners} />
+      {/* Editorial hero (new) — bold typographic statement */}
+      <EditorialHero products={heroProducts} />
 
-      <div className="cut reveal mt-10"><span>✂</span></div>
+      {/* Banner strip — admin-managed promo banners, secondary */}
+      <BannerStrip banners={banners} />
 
-      {/* Categories */}
-      <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <div className="flex items-end justify-between mb-6 reveal">
-          <h2 className="font-serif font-bold text-2xl sm:text-3xl">Shop by category</h2>
-          <Link href="/shop" className="text-sm font-bold text-brand-700 hover:text-brand-600 shrink-0">All products →</Link>
+      <div className="cut reveal mt-4"><span>✂</span></div>
+
+      {/* Categories — confident image-led grid, fewer columns on desktop */}
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+        <div className="text-center mb-10 reveal">
+          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-2">Browse</p>
+          <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">
+            <span className="stitched-dashed">Shop by category</span>
+          </h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 reveal">
           {categories.map(c => {
-            const m = CATEGORY_META[c.slug] || { emoji: "🧶", bg: "#F5EFE6", anim: "cat-wiggle" };
+            const tone = CATEGORY_TONES[c.slug] || { bg: "bg-brand-100", text: "text-brand-800" };
             const id = c.slug === "scissors" ? "cat-scissors" : undefined;
             return (
               <Link key={c.slug} id={id} href={`/category/${c.slug}`}
-                className={`${m.anim} tile flex flex-col items-center justify-center gap-2 rounded-2xl border border-brand-100 shadow-sm py-6 px-2 text-center`}
-                style={{ background: m.bg }}>
+                className={`tile group flex flex-col items-center justify-end gap-3 rounded-2xl ${tone.bg} border border-white/60 shadow-sm py-7 px-3 text-center relative overflow-hidden`}>
                 {c.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.imageUrl} alt={c.name} className="ico w-12 h-12 object-cover rounded-full" />
+                  <img src={c.imageUrl} alt={c.name} className="w-16 h-16 object-cover rounded-full border-2 border-white shadow-sm" />
                 ) : (
-                  <span className="ico text-4xl">{m.emoji}</span>
+                  <CategoryIcon slug={c.slug} className={`w-14 h-14 ${tone.text} transition-transform group-hover:scale-110`} />
                 )}
-                <span className="font-bold text-sm sm:text-base">{c.name}</span>
+                <span className={`font-display font-semibold text-base sm:text-lg ${tone.text}`}>
+                  {c.name}
+                </span>
+                {/* Subtle decorative arrow */}
+                <span className="absolute top-3 right-3 text-xs opacity-0 group-hover:opacity-60 transition-opacity">↗</span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      <div className="cut reveal"><span>✂</span></div>
+      {/* "Behind the spools" — story strip on warmer ivory background to break the rhythm */}
+      <section className="bg-ivory border-y border-saffron-200/40">
+        <div className="mx-auto max-w-6xl px-4 py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
+          <div className="reveal">
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-3">Behind the spools</p>
+            <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink leading-tight">
+              Stocked by tailors,<br />for tailors.
+            </h2>
+            <p className="mt-5 text-ink-mute leading-relaxed max-w-md">
+              Every item on SH Enterprises is hand-picked by people who&apos;ve cut, sewn and stitched for a living. We carry threads that don&apos;t fray, zippers that don&apos;t catch, and trims that finish a garment with pride.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <Link href="/shop" className="rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm font-bold px-5 py-2.5 transition-colors">
+                Start browsing
+              </Link>
+              <Link href="/ai-helper" className="rounded-xl border-2 border-saffron-400 text-saffron-700 hover:bg-saffron-50 text-sm font-bold px-5 py-2.5 transition-colors">
+                Ask the AI helper
+              </Link>
+            </div>
+          </div>
+          <div className="reveal">
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard number="10+" label="Categories" />
+              <StatCard number="500+" label="SKUs" />
+              <StatCard number="∞" label="Stitches" />
+            </div>
+            <ul className="mt-6 space-y-3 text-sm">
+              <StoryLine emoji="🚚">Shipped to every district in Sri Lanka</StoryLine>
+              <StoryLine emoji="💵">Pay cash when your order arrives</StoryLine>
+              <StoryLine emoji="🎯">Tailor-grade quality, retail prices</StoryLine>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-      {/* AI Project Helper banner */}
-      <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
-        <Link
-          href="/ai-helper"
-          className="tile block rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 border border-brand-200 shadow-sm overflow-hidden reveal hover:shadow-md transition-shadow"
-        >
-          <div className="px-6 sm:px-10 py-7 sm:py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-            <div className="flex items-center gap-4">
-              <div className="grid place-items-center h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-white shadow-sm text-3xl sm:text-4xl shrink-0">✨</div>
+      {/* AI Project Helper banner — now styled to match the new palette */}
+      <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
+        <Link href="/ai-helper"
+          className="tile block rounded-3xl bg-gradient-to-br from-saffron-50 via-saffron-100 to-brand-100 border border-saffron-200 shadow-md overflow-hidden reveal relative">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-saffron-300 blur-2xl opacity-50" />
+          <div className="relative px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
+            <div className="flex items-center gap-5">
+              <div className="grid place-items-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white shadow-sm text-3xl sm:text-4xl shrink-0 border border-saffron-200">✨</div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand-600">AI Project Helper</p>
-                <h2 className="font-serif font-bold text-xl sm:text-2xl mt-1 text-brand-900">Tell us what you&apos;re making</h2>
-                <p className="text-brand-700 text-sm mt-1 max-w-md">Describe your project and we&apos;ll pick exactly the threads, buttons and trims you need.</p>
+                <p className="text-xs font-bold uppercase tracking-[.18em] text-saffron-700">AI Project Helper</p>
+                <h2 className="font-display font-semibold text-2xl sm:text-3xl mt-1 text-ink">Tell us what you&apos;re making</h2>
+                <p className="text-ink-mute text-sm sm:text-base mt-1.5 max-w-md">Describe your project — we&apos;ll pick exactly the threads, buttons and trims you need.</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-xl bg-brand-700 text-white font-bold px-5 py-2.5 shrink-0 hover:bg-brand-800 transition-colors">
-              Try it →
+            <span className="inline-flex items-center gap-2 rounded-xl bg-ink text-cream font-bold px-6 py-3 shrink-0 hover:bg-ink-soft transition-colors">
+              Try it now →
             </span>
           </div>
         </Link>
       </section>
 
-      {/* On Offer (hidden if no products on offer) */}
+      {/* On Offer */}
       {offers.length > 0 && (
         <>
           <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-            <div className="flex items-end justify-between mb-6 reveal">
-              <h2 className="font-serif font-bold text-2xl sm:text-3xl">On offer 🔥</h2>
-              <Link href="/offers" className="text-sm font-bold text-brand-700 hover:text-brand-600 shrink-0">See all offers →</Link>
+            <div className="flex items-end justify-between mb-8 reveal">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-1">Limited time</p>
+                <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">On offer <span className="text-saffron-500">🔥</span></h2>
+              </div>
+              <Link href="/offers" className="text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">See all offers →</Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
-              {offers.map(p => <HomeProductCard key={p.id} p={p} badge="SALE" badgeColor="bg-brand-600" />)}
+              {offers.map(p => <HomeProductCard key={p.id} p={p} badge="SALE" badgeColor="bg-saffron-500" />)}
             </div>
           </section>
 
           <section className="mx-auto max-w-6xl px-4 py-4 md:py-6">
-            <Link id="offers-banner" href="/offers" className="tile block rounded-2xl bg-brand-600 text-white shadow-sm overflow-hidden reveal">
-              <div className="px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <Link id="offers-banner" href="/offers" className="tile block rounded-3xl bg-ink text-cream shadow-lg overflow-hidden reveal relative">
+              <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-saffron-500/30 blur-3xl" />
+              <div className="relative px-6 sm:px-10 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-brand-100">Limited time</p>
-                  <h2 className="font-serif font-bold text-3xl sm:text-4xl mt-1 flex items-center gap-3 justify-center sm:justify-start">
+                  <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-300">Limited time</p>
+                  <h2 className="font-display font-semibold text-3xl sm:text-4xl mt-2 flex items-center gap-3 justify-center sm:justify-start">
                     Up to 40% off <span id="bow">🎀</span>
                   </h2>
-                  <p className="text-brand-100 mt-2 max-w-md">Stock up on threads, zippers and trims while the festive deals last.</p>
+                  <p className="text-cream/80 mt-2 max-w-md">Stock up on threads, zippers and trims while the festive deals last.</p>
                 </div>
-                <span className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-700 font-bold px-6 py-3.5 shrink-0">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white font-bold px-6 py-3.5 shrink-0 transition-colors">
                   Shop the sale →
                 </span>
               </div>
@@ -142,12 +192,15 @@ export default async function HomePage() {
         </>
       )}
 
-      {/* Discover more — random 4 products, refreshes on every page load */}
+      {/* Discover more */}
       {shopAllPreview.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-          <div className="flex items-end justify-between mb-6 reveal">
-            <h2 className="font-serif font-bold text-2xl sm:text-3xl">Discover more</h2>
-            <Link href="/shop" className="text-sm font-bold text-brand-700 hover:text-brand-600 shrink-0">Shop all →</Link>
+          <div className="flex items-end justify-between mb-8 reveal">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-1">Fresh picks</p>
+              <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">Discover more</h2>
+            </div>
+            <Link href="/shop" className="text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">Shop all →</Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
             {shopAllPreview.map(p => <HomeProductCard key={p.id} p={p} />)}
@@ -155,60 +208,77 @@ export default async function HomePage() {
         </section>
       )}
 
-      <div className="cut reveal"><span>✂</span></div>
-
-      {/* Trust signals (click for flip easter egg) */}
-      <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 reveal">
-          <button type="button" className="egg-trust tile text-left rounded-2xl bg-white border border-brand-100 shadow-sm p-6" data-alt="📦">
-            <div className="ti grid place-items-center h-14 w-14 rounded-full bg-brand-50 text-3xl mb-3">🚚</div>
-            <h3 className="font-serif font-bold text-lg">Island-wide delivery</h3>
-            <p className="text-muted text-sm mt-1">Fast, reliable shipping to every corner of Sri Lanka.</p>
-          </button>
-          <button type="button" className="egg-trust tile text-left rounded-2xl bg-white border border-brand-100 shadow-sm p-6" data-alt="🤝">
-            <div className="ti grid place-items-center h-14 w-14 rounded-full bg-brand-50 text-3xl mb-3">💵</div>
-            <h3 className="font-serif font-bold text-lg">Cash on delivery</h3>
-            <p className="text-muted text-sm mt-1">Pay when your order arrives — no card needed.</p>
-          </button>
-          <button type="button" className="egg-trust tile text-left rounded-2xl bg-white border border-brand-100 shadow-sm p-6" data-alt="🏆">
-            <div className="ti grid place-items-center h-14 w-14 rounded-full bg-brand-50 text-3xl mb-3">✅</div>
-            <h3 className="font-serif font-bold text-lg">Quality guaranteed</h3>
-            <p className="text-muted text-sm mt-1">Hand-picked supplies trusted by tailors for years.</p>
-          </button>
+      {/* Trust signals — on ivory band to differentiate */}
+      <section className="bg-ivory border-y border-saffron-200/40 mt-6">
+        <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 reveal">
+            <TrustCard emoji="🚚" altEmoji="📦" title="Island-wide delivery" body="Fast, reliable shipping to every corner of Sri Lanka." />
+            <TrustCard emoji="💵" altEmoji="🤝" title="Cash on delivery" body="Pay when your order arrives — no card needed." />
+            <TrustCard emoji="✅" altEmoji="🏆" title="Quality guaranteed" body="Hand-picked supplies trusted by tailors for years." />
+          </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 md:pb-20">
-        <h2 className="font-serif font-bold text-2xl sm:text-3xl text-center mb-8 reveal">Loved by tailors &amp; crafters</h2>
+      <section className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+        <div className="text-center mb-10 reveal">
+          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-2">Reviews</p>
+          <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">Loved by tailors &amp; crafters</h2>
+        </div>
         <div className="grid md:grid-cols-3 gap-4 sm:gap-6 reveal">
-          <figure className="rounded-2xl bg-white border border-brand-100 shadow-sm p-6">
-            <div className="text-brand-400 text-lg mb-2" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote className="text-ink/90 leading-relaxed">&ldquo;Best place for threads and zippers in Colombo. Delivery was quick and everything was good quality.&rdquo;</blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <span className="grid place-items-center h-10 w-10 rounded-full bg-brand-100 font-bold text-brand-700">N</span>
-              <span><span className="block font-bold text-sm">Nimali Perera</span><span className="block text-muted text-xs">Home tailor, Colombo</span></span>
-            </figcaption>
-          </figure>
-          <figure className="rounded-2xl bg-white border border-brand-100 shadow-sm p-6">
-            <div className="text-brand-400 text-lg mb-2" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote className="text-ink/90 leading-relaxed">&ldquo;I run a small boutique and order in bulk. Prices are fair and the staff are very helpful.&rdquo;</blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <span className="grid place-items-center h-10 w-10 rounded-full bg-brand-100 font-bold text-brand-700">R</span>
-              <span><span className="block font-bold text-sm">Roshan Fernando</span><span className="block text-muted text-xs">Boutique owner, Kandy</span></span>
-            </figcaption>
-          </figure>
-          <figure className="rounded-2xl bg-white border border-brand-100 shadow-sm p-6">
-            <div className="text-brand-400 text-lg mb-2" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote className="text-ink/90 leading-relaxed">&ldquo;So easy to order on my phone. Cash on delivery made it stress-free. Highly recommend!&rdquo;</blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <span className="grid place-items-center h-10 w-10 rounded-full bg-brand-100 font-bold text-brand-700">F</span>
-              <span><span className="block font-bold text-sm">Fathima Rizwan</span><span className="block text-muted text-xs">Craft hobbyist, Galle</span></span>
-            </figcaption>
-          </figure>
+          <Testimonial initial="N" name="Nimali Perera" role="Home tailor, Colombo"
+            quote="Best place for threads and zippers in Colombo. Delivery was quick and everything was good quality." />
+          <Testimonial initial="R" name="Roshan Fernando" role="Boutique owner, Kandy"
+            quote="I run a small boutique and order in bulk. Prices are fair and the staff are very helpful." />
+          <Testimonial initial="F" name="Fathima Rizwan" role="Craft hobbyist, Galle"
+            quote="So easy to order on my phone. Cash on delivery made it stress-free. Highly recommend!" />
         </div>
       </section>
     </>
+  );
+}
+
+function StatCard({ number, label }: { number: string; label: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-saffron-200/60 p-4 text-center stitched">
+      <div className="font-display font-bold text-3xl text-saffron-600">{number}</div>
+      <div className="text-xs text-ink-mute uppercase tracking-wide mt-1">{label}</div>
+    </div>
+  );
+}
+
+function StoryLine({ emoji, children }: { emoji: string; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 text-ink-soft">
+      <span className="grid place-items-center h-8 w-8 rounded-full bg-white border border-saffron-200 shadow-sm shrink-0">{emoji}</span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function TrustCard({ emoji, altEmoji, title, body }: { emoji: string; altEmoji: string; title: string; body: string }) {
+  return (
+    <button type="button" className="egg-trust tile text-left rounded-2xl bg-white border border-saffron-200/60 shadow-sm p-6 stitched" data-alt={altEmoji}>
+      <div className="ti grid place-items-center h-14 w-14 rounded-2xl bg-saffron-100 text-3xl mb-4">{emoji}</div>
+      <h3 className="font-display font-semibold text-xl text-ink">{title}</h3>
+      <p className="text-ink-mute text-sm mt-1.5 leading-relaxed">{body}</p>
+    </button>
+  );
+}
+
+function Testimonial({ initial, name, role, quote }: { initial: string; name: string; role: string; quote: string }) {
+  return (
+    <figure className="rounded-2xl bg-white border border-saffron-200/40 shadow-sm p-6 stitched">
+      <div className="text-saffron-500 text-lg mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+      <blockquote className="text-ink-soft leading-relaxed italic">&ldquo;{quote}&rdquo;</blockquote>
+      <figcaption className="mt-5 flex items-center gap-3">
+        <span className="grid place-items-center h-10 w-10 rounded-full bg-saffron-100 font-display font-bold text-saffron-700">{initial}</span>
+        <span>
+          <span className="block font-bold text-sm text-ink">{name}</span>
+          <span className="block text-ink-mute text-xs">{role}</span>
+        </span>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -231,10 +301,10 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
   const packs = variants.filter((v: any) => v.type === "pack");
 
   return (
-    <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-brand-300 shadow-sm overflow-hidden">
+    <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-saffron-300 shadow-sm overflow-hidden">
       <div className="img relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
         {badge && (
-          <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10`}>{badge}</span>
+          <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{badge}</span>
         )}
         {p.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -244,27 +314,27 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
         )}
       </div>
       <div className="p-3 sm:p-4">
-        <h3 className="font-semibold text-sm sm:text-base leading-snug text-balance">
+        <h3 className="font-display font-semibold text-base sm:text-lg leading-snug text-balance text-ink">
           {p.name}
-          {unitLabel && lengths.length === 0 && <span className="text-muted"> — {unitLabel}</span>}
+          {unitLabel && lengths.length === 0 && <span className="text-ink-mute"> — {unitLabel}</span>}
         </h3>
         {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
           <div className="text-[11px] mt-1 space-y-0.5">
             {sizes.length > 0 && <PillRow label="Sizes" items={sizes.map((v: any) => v.name)} />}
             {lengths.length > 0 && <PillRow label="Lengths" items={lengths.map((v: any) => v.name)} />}
             {packs.length > 0 && <PillRow label="Packs" items={packs.map((v: any) => v.name)} />}
-            {colors.length > 1 && <div className="text-muted">{colors.length} colors</div>}
+            {colors.length > 1 && <div className="text-ink-mute">{colors.length} colors</div>}
           </div>
         )}
         <p className="mt-2 flex items-baseline gap-2">
           {noBaseNoVariants ? (
-            <span className="text-sm text-muted">See options</span>
+            <span className="text-sm text-ink-mute">See options</span>
           ) : (
             <>
-              {showFrom && <span className="text-xs text-muted">From</span>}
-              <span className="font-serif font-bold text-brand-700 text-lg">{formatLKR(effective)}</span>
+              {showFrom && <span className="text-xs text-ink-mute">From</span>}
+              <span className="font-display font-bold text-saffron-700 text-lg">{formatLKR(effective)}</span>
               {!showFrom && validBase != null && p.salePrice && (
-                <span className="text-muted text-sm line-through">{formatLKR(p.price)}</span>
+                <span className="text-ink-mute text-sm line-through">{formatLKR(p.price)}</span>
               )}
             </>
           )}
@@ -279,11 +349,11 @@ function PillRow({ label, items }: { label: string; items: string[] }) {
   const extra = items.length - display.length;
   return (
     <div className="flex flex-wrap items-center gap-1">
-      <span className="text-muted">{label}:</span>
+      <span className="text-ink-mute">{label}:</span>
       {display.map((n, i) => (
-        <span key={i} className="inline-block px-1.5 py-0 rounded bg-brand-50 border border-brand-200 text-brand-700">{n}</span>
+        <span key={i} className="inline-block px-1.5 py-0 rounded bg-saffron-50 border border-saffron-200/60 text-saffron-700">{n}</span>
       ))}
-      {extra > 0 && <span className="text-muted">+{extra}</span>}
+      {extra > 0 && <span className="text-ink-mute">+{extra}</span>}
     </div>
   );
 }

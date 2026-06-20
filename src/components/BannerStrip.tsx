@@ -1,0 +1,73 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+type Banner = {
+  id: number;
+  imageUrl: string;
+  headline: string | null;
+  subtitle: string | null;
+  buttonText: string | null;
+  buttonHref: string | null;
+};
+
+/**
+ * Slimmer banner slideshow — sits below the editorial hero.
+ * Showcases promo/seasonal banners without being the first impression.
+ */
+export default function BannerStrip({ banners }: { banners: Banner[] }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const tm = setInterval(() => setIdx(i => (i + 1) % banners.length), 6000);
+    return () => clearInterval(tm);
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+  const cur = banners[idx];
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+      <div className="relative w-full aspect-[3.5/1] min-h-[180px] sm:min-h-[220px] md:min-h-[260px] rounded-3xl overflow-hidden bg-brand-100 shadow-md">
+        {banners.map((b, i) => (
+          <div key={b.id}
+            className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+            aria-hidden={i !== idx}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={b.imageUrl} alt={b.headline || ""} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-ink/65 via-ink/30 to-transparent" />
+            <div className="absolute inset-0 z-10 flex items-center">
+              <div className="px-6 sm:px-10 max-w-lg text-white">
+                {b.headline && (
+                  <h2 className="font-display font-bold leading-tight text-2xl sm:text-3xl md:text-4xl drop-shadow-md">
+                    {b.headline}
+                  </h2>
+                )}
+                {b.subtitle && (
+                  <p className="mt-2 text-sm sm:text-base text-white/90 drop-shadow max-w-md">{b.subtitle}</p>
+                )}
+                {b.buttonText && b.buttonHref && (
+                  <Link href={b.buttonHref}
+                    className="inline-block mt-4 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white text-sm font-bold px-5 py-2.5 shadow transition-colors">
+                    {b.buttonText}
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {banners.length > 1 && (
+          <div className="absolute bottom-3 right-4 z-20 flex gap-1.5">
+            {banners.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)}
+                className={`h-1.5 rounded-full transition-all ${i === idx ? "w-6 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"}`}
+                aria-label={`Go to slide ${i + 1}`} />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

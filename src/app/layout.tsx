@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Lora, Mulish } from "next/font/google";
+import { Lora, Mulish, Fraunces } from "next/font/google";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { CartProvider } from "@/components/CartProvider";
@@ -16,6 +16,12 @@ import { Suspense } from "react";
 
 const lora = Lora({ subsets: ["latin"], weight: ["500","600","700"], display: "swap", variable: "--font-lora" });
 const mulish = Mulish({ subsets: ["latin"], weight: ["400","500","600","700","800"], display: "swap", variable: "--font-mulish" });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["400","500","600","700","800","900"],
+  display: "swap",
+  variable: "--font-fraunces",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
@@ -60,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const lang = getServerLang();
 
   return (
-    <html lang={lang} className={`${lora.variable} ${mulish.variable}`}>
+    <html lang={lang} className={`${lora.variable} ${mulish.variable} ${fraunces.variable}`}>
       <body>
         <LanguageProvider initialLang={lang}>
         <CartProvider>

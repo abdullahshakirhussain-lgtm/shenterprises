@@ -20,14 +20,39 @@
 
 html, body { background: var(--background); color: var(--foreground); }
 body {
-  font-family: 'Mulish', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-mulish), 'Mulish', ui-sans-serif, system-ui, sans-serif;
   background-color: #FBF4EC;
+  /* Layered linen-paper texture — finer & more refined than the old stripes */
   background-image:
-    repeating-linear-gradient(45deg, rgba(180,87,28,.025) 0 2px, transparent 2px 6px),
-    repeating-linear-gradient(-45deg, rgba(180,87,28,.02) 0 2px, transparent 2px 6px);
+    radial-gradient(ellipse at 20% 10%, rgba(184,119,47,.05) 0, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(45,42,38,.04) 0, transparent 55%),
+    repeating-linear-gradient(0deg,   rgba(45,42,38,.012) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg,  rgba(180,87,28,.012) 0 1px, transparent 1px 3px);
 }
 
-h1, h2, h3, .font-display, .font-serif { font-family: 'Lora', Georgia, serif; }
+h1, h2, h3, .font-display, .font-serif {
+  font-family: var(--font-fraunces), 'Fraunces', 'Lora', Georgia, serif;
+  font-feature-settings: "ss01" 1, "ss02" 1;
+  letter-spacing: -0.01em;
+}
+
+/* Stitched underline accent for headlines */
+.stitched-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 4px;
+}
+.stitched-dashed::after {
+  content: "";
+  display: block;
+  margin: 6px auto 0;
+  width: 64px;
+  height: 0;
+  border-top: 2px dashed currentColor;
+  opacity: .45;
+}
 
 @layer components {
   .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition active:scale-[0.98]; }
@@ -38,6 +63,26 @@ h1, h2, h3, .font-display, .font-serif { font-family: 'Lora', Georgia, serif; }
   .input { @apply w-full rounded-md border border-brand-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400; }
   .label { @apply block text-sm font-medium mb-1 text-brand-900; }
   .container-x { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+
+  /* Stitched border — dashed double border that reads as a fabric seam */
+  .stitched {
+    @apply relative;
+    box-shadow:
+      0 0 0 1px rgba(180,87,28,.15),
+      inset 0 0 0 1px rgba(255,255,255,.6);
+  }
+  .stitched::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1.5px dashed rgba(184,119,47,.35);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Saffron primary CTA — used for primary actions in hero etc. */
+  .btn-saffron { @apply btn bg-saffron-500 text-white hover:bg-saffron-600 shadow-sm; }
+  .btn-ink { @apply btn bg-ink text-cream hover:bg-ink-soft; }
 }
 
 /* Hide scrollbar for category strip */
