@@ -30,13 +30,18 @@ const UNIT_TYPES = [
   { value: "cm", label: "cm" },
 ];
 
-export default function ProductForm({ initial, categories }: { initial?: Partial<Product>; categories: Category[] }) {
+export default function ProductForm({ initial, categories: initialCategories }: { initial?: Partial<Product>; categories: Category[] }) {
   const router = useRouter();
   const [p, setP] = useState<Product>({
     name: "", price: 0, stock: 0, onOffer: false, featured: false, active: true,
     unitQty: null, unitType: null,
     ...(initial as any)
   });
+  // Mutable local copy so newly-created categories appear immediately in the dropdown
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [extraImages, setExtraImages] = useState<string[]>(parseImages(initial?.images));
   const [extraFiles, setExtraFiles] = useState<File[]>([]);
@@ -46,6 +51,30 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
   const [savedMsg, setSavedMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [genBusy, setGenBusy] = useState<"" | "desc" | "seo">("");
+
+  async function createCategoryInline() {
+    const name = newCategoryName.trim();
+    if (!name || creatingCategory) return;
+    setCreatingCategory(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setCategories(prev => [...prev, { id: data.id, name: data.name }]);
+      setP(prev => ({ ...prev, categoryId: data.id }));
+      setNewCategoryName("");
+      setShowNewCategory(false);
+    } catch (e: any) {
+      setError("Couldn't create category: " + e.message);
+    } finally {
+      setCreatingCategory(false);
+    }
+  }
 
   async function generateAI(action: "description" | "seo") {
     setGenBusy(action === "description" ? "desc" : "seo");
@@ -214,10 +243,62 @@ export default function ProductForm({ initial, categories }: { initial?: Partial
         <div><label className="label">SKU</label><input className="input" value={p.sku ?? ""} onChange={(e) => up("sku", e.target.value)} /></div>
         <div>
           <label className="label">Category</label>
-          <select className="input" value={p.categoryId ?? ""} onChange={(e) => up("categoryId", e.target.value ? parseInt(e.target.value) : null)}>
+          <select
+            className="input"
+            value={p.categoryId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__new__") {
+                setShowNewCategory(true);
+                return;
+              }
+              up("categoryId", v ? parseInt(v) : null);
+              setShowNewCategory(false);
+            }}
+          >
             <option value="">— None —</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="" disabled>──────────</option>
+            <option value="__new__">+ Create new category…</option>
           </select>
+
+          {showNewCategory && (
+            <div className="mt-2 p-3 rounded-lg bg-brand-50 border border-brand-200 space-y-2">
+              <label className="text-xs font-medium text-brand-800 block">New category name</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  className="input flex-1"
+                  placeholder='e.g. "Stuffing & Filling"'
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); createCategoryInline(); }
+                    if (e.key === "Escape") { setShowNewCategory(false); setNewCategoryName(""); }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={createCategoryInline}
+                  disabled={!newCategoryName.trim() || creatingCategory}
+                  className="btn-primary text-sm shrink-0"
+                >
+                  {creatingCategory ? "Creating…" : "Create"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowNewCategory(false); setNewCategoryName(""); }}
+                  className="btn-secondary text-sm shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="text-[11px] text-brand-500">
+                A slug + Sinhala/Tamil translations are generated automatically.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
