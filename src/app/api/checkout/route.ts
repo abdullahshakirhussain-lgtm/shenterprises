@@ -161,6 +161,23 @@ export async function POST(req: NextRequest) {
     await prisma.cart.updateMany({ where: { id: sid }, data: { abandoned: false } });
     await recordEvent({ type: "purchase", value: total, meta: { orderNumber: order.orderNumber } });
 
+    // Save delivery details on the user for autofill next time. Best-effort.
+    if (user?.id) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: body.email || (user as any).email || null,
+            addressLine1: body.addressLine1 || null,
+            addressLine2: body.addressLine2 || null,
+            districtName: body.districtName || null,
+          },
+        });
+      } catch (e: any) {
+        console.warn("[checkout] could not save user delivery details:", e?.message);
+      }
+    }
+
     // ---------- AI Helper attribution ----------
     // Look at recent chat sessions (last 7 days) without an attributed order yet,
     // and mark any suggestion whose product appears in this order as "inOrder".

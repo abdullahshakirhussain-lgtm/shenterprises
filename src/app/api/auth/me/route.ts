@@ -12,7 +12,11 @@ export async function GET() {
       id: user.id,
       fullName: user.fullName,
       phone: user.phone,
-      discountRate: effectiveDiscount
+      discountRate: effectiveDiscount,
+      email: (user as any).email ?? null,
+      addressLine1: (user as any).addressLine1 ?? null,
+      addressLine2: (user as any).addressLine2 ?? null,
+      districtName: (user as any).districtName ?? null,
     }
   });
 }

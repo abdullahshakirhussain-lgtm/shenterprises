@@ -21,7 +21,13 @@ model User {
   fullName      String
   passwordHash  String
   discountRate  Float    @default(0)
+  // Saved delivery details — auto-filled into checkout for repeat orders
+  email         String?
+  addressLine1  String?
+  addressLine2  String?
+  districtName  String?
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
   orders        Order[]
   reviews       Review[]
 }

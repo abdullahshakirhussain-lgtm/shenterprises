@@ -6,9 +6,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-type District = { id: number; name: string; deliveryFee: number; cities: { id: number; name: string }[] };
+type District = { name: string; province: string; deliveryFee: number };
 type BankInfo = { bank_name?: string; bank_account_name?: string; bank_account_number?: string; bank_branch?: string };
-type Me = { id: number; fullName: string; phone: string; discountRate: number } | null;
+type Me = {
+  id: number;
+  fullName: string;
+  phone: string;
+  discountRate: number;
+  email?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  districtName?: string | null;
+} | null;
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
@@ -16,9 +25,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [districts, setDistricts] = useState<District[]>([]);
   const [districtName, setDistrictName] = useState("");
-  const [cityName, setCityName] = useState("");
   const [fee, setFee] = useState<number | null>(null);
-  const [feeLoading, setFeeLoading] = useState(false);
   const [bank, setBank] = useState<BankInfo>({});
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bank">("cod");
   const [slipFile, setSlipFile] = useState<File | null>(null);
@@ -39,7 +46,17 @@ export default function CheckoutPage() {
     fetch("/api/settings/public").then((r) => r.json()).then(setBank).catch(() => {});
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       setMe(d.user);
-      if (d.user) setForm((f) => ({ ...f, fullName: d.user.fullName, phone: d.user.phone }));
+      if (d.user) {
+        setForm((f) => ({
+          ...f,
+          fullName: d.user.fullName || f.fullName,
+          phone: d.user.phone || f.phone,
+          email: d.user.email || f.email,
+          addressLine1: d.user.addressLine1 || f.addressLine1,
+          addressLine2: d.user.addressLine2 || f.addressLine2,
+        }));
+        if (d.user.districtName) setDistrictName(d.user.districtName);
+      }
     });
     fetch("/api/analytics", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -47,26 +64,26 @@ export default function CheckoutPage() {
     }).catch(() => {});
   }, []); // eslint-disable-line
 
-  const cities = useMemo(() => districts.find((d) => d.name === districtName)?.cities || [], [districts, districtName]);
-
   // discounts
   const accountDiscount = me && me.discountRate > 0 ? Math.round(subtotal * (me.discountRate / 100) * 100) / 100 : 0;
   const subtotalAfterAccount = Math.max(0, subtotal - accountDiscount);
   const couponDiscount = appliedCoupon?.discount || 0;
   const discountedSubtotal = Math.max(0, subtotalAfterAccount - couponDiscount);
 
+  // Fee resolves instantly from the local district list — no API round-trip needed
   useEffect(() => {
-    if (!districtName || !cityName) { setFee(null); return; }
-    setFeeLoading(true);
+    if (!districtName) { setFee(null); return; }
+    const d = districts.find((x) => x.name === districtName);
+    if (!d) { setFee(null); return; }
+    // Free-shipping threshold from settings still applies — keep the API call lightweight
     fetch("/api/delivery-fee", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ district: districtName, city: cityName, subtotal: discountedSubtotal })
+      body: JSON.stringify({ district: districtName, subtotal: discountedSubtotal })
     })
       .then((r) => r.json())
-      .then((d) => setFee(typeof d.fee === "number" ? d.fee : null))
-      .catch(() => setFee(null))
-      .finally(() => setFeeLoading(false));
-  }, [districtName, cityName, discountedSubtotal]);
+      .then((data) => setFee(typeof data.fee === "number" ? data.fee : d.deliveryFee))
+      .catch(() => setFee(d.deliveryFee));
+  }, [districtName, discountedSubtotal, districts]);
 
   // re-validate coupon when subtotal changes
   useEffect(() => {
@@ -98,7 +115,7 @@ export default function CheckoutPage() {
     e.preventDefault();
     setError("");
     if (items.length === 0) { setError("Cart is empty."); return; }
-    if (!districtName || !cityName) { setError("Please select district and city."); return; }
+    if (!districtName) { setError("Please select a district."); return; }
     if (paymentMethod === "bank" && !slipFile) { setError("Please upload your bank deposit slip."); return; }
 
     setSubmitting(true);
@@ -115,7 +132,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form, districtName, cityName, paymentMethod, bankSlipUrl,
+          ...form, districtName, cityName: "—", paymentMethod, bankSlipUrl,
           couponCode: appliedCoupon?.code,
           items: items.map((i) => ({
             productId: i.productId,
@@ -164,19 +181,19 @@ export default function CheckoutPage() {
               <div className="sm:col-span-2"><label className="label">{t("email")}</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
               <div className="sm:col-span-2"><label className="label">{t("address_line1")} *</label><input required className="input" value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></div>
               <div className="sm:col-span-2"><label className="label">{t("address_line2")}</label><input className="input" value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className="label">{t("district")} *</label>
-                <select required className="input" value={districtName} onChange={(e) => { setDistrictName(e.target.value); setCityName(""); }}>
+                <select required className="input" value={districtName} onChange={(e) => setDistrictName(e.target.value)}>
                   <option value="">{t("select_district")}</option>
-                  {districts.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  {districts.map((d) => (
+                    <option key={d.name} value={d.name}>
+                      {d.name}{d.province ? ` — ${d.province}` : ""} (Rs. {d.deliveryFee})
+                    </option>
+                  ))}
                 </select>
-              </div>
-              <div>
-                <label className="label">{t("city")} *</label>
-                <select required className="input" value={cityName} onChange={(e) => setCityName(e.target.value)} disabled={!districtName}>
-                  <option value="">{t("select_city")}</option>
-                  {cities.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
+                <p className="text-xs text-brand-500 mt-1">
+                  Flat-rate delivery: Rs. 400 for Colombo &amp; Gampaha, Rs. 500 for all other districts.
+                </p>
               </div>
               <div className="sm:col-span-2"><label className="label">{t("order_notes")}</label><textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
             </div>
@@ -259,7 +276,7 @@ export default function CheckoutPage() {
 
           <div className="flex justify-between text-sm mt-3">
             <span>{t("delivery")}</span>
-            <span>{feeLoading ? "…" : fee == null ? t("select_area") : fee === 0 ? t("free") : formatLKR(fee)}</span>
+            <span>{fee == null ? t("select_area") : fee === 0 ? t("free") : formatLKR(fee)}</span>
           </div>
           <hr className="my-3" />
           <div className="flex justify-between text-lg font-semibold"><span>{t("total")}</span><span>{formatLKR(total)}</span></div>
