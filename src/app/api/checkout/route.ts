@@ -161,6 +161,53 @@ export async function POST(req: NextRequest) {
     await prisma.cart.updateMany({ where: { id: sid }, data: { abandoned: false } });
     await recordEvent({ type: "purchase", value: total, meta: { orderNumber: order.orderNumber } });
 
+    // ---------- AI Helper attribution ----------
+    // Look at recent chat sessions (last 7 days) without an attributed order yet,
+    // and mark any suggestion whose product appears in this order as "inOrder".
+    // Best-effort — never let attribution failure break the order flow.
+    try {
+      const orderedProductIds = items.map(it => it.productId);
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentSessions = await prisma.chatSession.findMany({
+        where: {
+          startedAt: { gte: cutoff },
+          orderId: null,
+          OR: [
+            ...(user?.id ? [{ userId: user.id }] : []),
+            // Anonymous match via browser cookie is handled client-side after success
+          ],
+        },
+        select: { id: true },
+        take: 30,
+      });
+      if (recentSessions.length > 0) {
+        const sessionIds = recentSessions.map(s => s.id);
+        // Mark matching suggestions
+        await prisma.chatSuggestion.updateMany({
+          where: {
+            sessionId: { in: sessionIds },
+            productId: { in: orderedProductIds },
+            inOrderId: null,
+          },
+          data: { inOrderId: order.id },
+        });
+        // Attribute the session itself to this order (only first matching session — heuristic)
+        const firstMatch = await prisma.chatSuggestion.findFirst({
+          where: { sessionId: { in: sessionIds }, inOrderId: order.id },
+          select: { sessionId: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (firstMatch) {
+          await prisma.chatSession.update({
+            where: { id: firstMatch.sessionId },
+            data: { orderId: order.id, attributedAt: new Date() },
+          });
+        }
+      }
+    } catch (e: any) {
+      console.warn("[checkout] AI attribution failed (ignoring):", e?.message);
+    }
+
     return NextResponse.json({ ok: true, orderNumber: order.orderNumber, orderId: order.id });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Order failed" }, { status: 400 });

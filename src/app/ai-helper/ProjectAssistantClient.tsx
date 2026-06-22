@@ -24,9 +24,28 @@ type Suggestion = {
   imageUrl: string | null;
   stock: number;
   similarity?: number;
+  // Local UI state — not from server, just for instant thumb feedback
+  suggestionId?: number;
+  thumb?: "up" | "down";
 };
 
 const STORAGE_KEY = "sh_ai_chat_v1";
+const BROWSER_ID_KEY = "sh_browser_id";
+const SESSION_ID_KEY = "sh_ai_session_id";
+
+function getOrCreateBrowserId(): string {
+  if (typeof window === "undefined") return "ssr";
+  try {
+    let id = localStorage.getItem(BROWSER_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(BROWSER_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return "anonymous";
+  }
+}
 
 const STARTERS = [
   "I want to make a baby blanket",
@@ -41,12 +60,18 @@ export default function ProjectAssistantClient() {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [browserId, setBrowserId] = useState<string>("");
+  const [rated, setRated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setBrowserId(getOrCreateBrowserId());
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setMessages(JSON.parse(raw));
+      const sid = localStorage.getItem(SESSION_ID_KEY);
+      if (sid) setSessionId(sid);
     } catch {}
   }, []);
 
@@ -75,9 +100,15 @@ export default function ProjectAssistantClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(m => ({ role: m.role, content: m.content })),
+          sessionId,
+          browserId,
         }),
       });
       const data = await res.json();
+      if (data.sessionId && data.sessionId !== sessionId) {
+        setSessionId(data.sessionId);
+        try { localStorage.setItem(SESSION_ID_KEY, data.sessionId); } catch {}
+      }
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       if (data.mode === "clarify") {
@@ -113,7 +144,12 @@ export default function ProjectAssistantClient() {
   function reset() {
     setMessages([]);
     setError("");
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    setSessionId(null);
+    setRated(false);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SESSION_ID_KEY);
+    } catch {}
   }
 
   function addOneToCart(s: Suggestion) {
@@ -124,11 +160,34 @@ export default function ProjectAssistantClient() {
       price: s.price,
       imageUrl: s.imageUrl,
     }, s.quantity);
+    // Tell the server this AI suggestion led to a cart add — silent best-effort
+    if (sessionId && s.price > 0) {
+      fetch("/api/ai/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, productId: s.productId, addedToCart: true }),
+      }).catch(() => {});
+    }
   }
 
   function addAllToCart(items: Suggestion[]) {
     items.forEach(addOneToCart);
   }
+
+  function rateSession(score: number, comment?: string) {
+    if (!sessionId || rated) return;
+    setRated(true);
+    fetch("/api/ai/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, ratingScore: score, ratingComment: comment || null }),
+    }).catch(() => {});
+  }
+
+  // Has the assistant returned at least one suggestions message? If so, show rating widget
+  const hasAnySuggestions = messages.some(
+    m => m.role === "assistant" && m.payload?.mode === "suggestions"
+  );
 
   return (
     <div className="rounded-3xl bg-white border border-saffron-200/60 shadow-lg overflow-hidden flex flex-col h-[75vh] min-h-[500px] max-h-[820px]">
@@ -156,8 +215,21 @@ export default function ProjectAssistantClient() {
             message={m}
             onAddOne={addOneToCart}
             onAddAll={addAllToCart}
+            onThumb={(suggestionId, up) => {
+              if (!sessionId || !suggestionId) return;
+              fetch("/api/ai/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessionId, suggestionId, thumbsUp: up }),
+              }).catch(() => {});
+            }}
           />
         ))}
+
+        {/* Rating widget — appears once the assistant has produced suggestions */}
+        {hasAnySuggestions && !loading && (
+          <RatingWidget rated={rated} onRate={rateSession} />
+        )}
 
         {loading && (
           <div className="flex items-center gap-2 text-ink-mute pl-2">
@@ -179,24 +251,29 @@ export default function ProjectAssistantClient() {
 
       <form
         onSubmit={(e) => { e.preventDefault(); send(draft); }}
-        className="border-t border-saffron-200/40 bg-white p-3 flex gap-2"
+        className="border-t border-saffron-200/40 bg-white p-3"
       >
-        <input
-          type="text"
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          placeholder={messages.length === 0 ? "Tell me what you're making…" : "Ask a follow-up, or refine…"}
-          disabled={loading}
-          maxLength={500}
-          className="flex-1 px-4 py-3 rounded-xl border border-saffron-200 bg-cream/40 text-ink placeholder:text-ink-mute focus:outline-none focus:border-saffron-500 focus:bg-white transition-colors disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={loading || !draft.trim()}
-          className="rounded-xl bg-ink hover:bg-ink-soft text-cream font-bold px-5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "…" : "Send"}
-        </button>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            placeholder={messages.length === 0 ? "Tell me what you're making…" : "Ask a follow-up, or refine…"}
+            disabled={loading}
+            maxLength={500}
+            className="flex-1 px-4 py-3 rounded-xl border border-saffron-200 bg-cream/40 text-ink placeholder:text-ink-mute focus:outline-none focus:border-saffron-500 focus:bg-white transition-colors disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={loading || !draft.trim()}
+            className="rounded-xl bg-ink hover:bg-ink-soft text-cream font-bold px-5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "…" : "Send"}
+          </button>
+        </div>
+        <p className="text-[10px] text-ink-mute text-center mt-2 italic">
+          Conversations help us improve — they&apos;re never shared.
+        </p>
       </form>
     </div>
   );
@@ -230,10 +307,12 @@ function MessageBubble({
   message,
   onAddOne,
   onAddAll,
+  onThumb,
 }: {
   message: ChatMessage;
   onAddOne: (s: Suggestion) => void;
   onAddAll: (s: Suggestion[]) => void;
+  onThumb: (suggestionId: number | undefined, up: boolean) => void;
 }) {
   if (message.role === "user") {
     return (
@@ -271,7 +350,12 @@ function MessageBubble({
       {payload?.mode === "suggestions" && payload.items.length > 0 && (
         <div className="w-full space-y-2">
           {payload.items.map(item => (
-            <SuggestionCard key={item.productId} item={item} onAdd={() => onAddOne(item)} />
+            <SuggestionCard
+              key={item.suggestionId ?? item.productId}
+              item={item}
+              onAdd={() => onAddOne(item)}
+              onThumb={(up) => onThumb(item.suggestionId, up)}
+            />
           ))}
           <div className="flex items-center justify-between gap-3 px-2 pt-1">
             <p className="text-xs text-ink-mute italic">{payload.followUp}</p>
@@ -288,9 +372,62 @@ function MessageBubble({
   );
 }
 
-function SuggestionCard({ item, onAdd }: { item: Suggestion; onAdd: () => void }) {
+function SuggestionCard({
+  item,
+  onAdd,
+  onThumb,
+}: {
+  item: Suggestion;
+  onAdd: () => void;
+  onThumb: (up: boolean) => void;
+}) {
+  const [thumb, setThumb] = useState<"up" | "down" | null>(null);
+
+  function handleThumb(up: boolean) {
+    // Lock once rated — keep UI honest
+    if (thumb) return;
+    setThumb(up ? "up" : "down");
+    onThumb(up);
+  }
+
   return (
-    <div className="flex gap-3 p-3 rounded-xl bg-white border border-saffron-200/60 hover:border-saffron-400 transition-colors">
+    <div className="flex gap-3 p-3 rounded-xl bg-white border border-saffron-200/60 hover:border-saffron-400 transition-colors relative">
+      {/* Thumb buttons — small, top-right */}
+      {item.suggestionId && (
+        <div className="absolute top-2 right-2 flex gap-1">
+          <button
+            onClick={() => handleThumb(true)}
+            disabled={!!thumb}
+            className={`w-6 h-6 grid place-items-center rounded-full text-xs transition-all ${
+              thumb === "up"
+                ? "bg-thread-teal-500 text-white"
+                : thumb === "down"
+                  ? "opacity-30 cursor-not-allowed"
+                  : "bg-white border border-saffron-200 text-ink-mute hover:bg-thread-teal-50 hover:border-thread-teal-500"
+            }`}
+            title="Helpful"
+            aria-label="Mark suggestion as helpful"
+          >
+            👍
+          </button>
+          <button
+            onClick={() => handleThumb(false)}
+            disabled={!!thumb}
+            className={`w-6 h-6 grid place-items-center rounded-full text-xs transition-all ${
+              thumb === "down"
+                ? "bg-thread-maple-500 text-white"
+                : thumb === "up"
+                  ? "opacity-30 cursor-not-allowed"
+                  : "bg-white border border-saffron-200 text-ink-mute hover:bg-thread-maple-50 hover:border-thread-maple-500"
+            }`}
+            title="Not useful"
+            aria-label="Mark suggestion as not useful"
+          >
+            👎
+          </button>
+        </div>
+      )}
+
       <Link href={`/product/${item.slug}`} className="shrink-0">
         <div className="w-16 h-16 rounded-lg bg-brand-50 overflow-hidden">
           {item.imageUrl ? (
@@ -301,7 +438,7 @@ function SuggestionCard({ item, onAdd }: { item: Suggestion; onAdd: () => void }
           )}
         </div>
       </Link>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-14">
         <div className="flex items-start justify-between gap-2">
           <Link href={`/product/${item.slug}`} className="font-display font-semibold text-sm text-ink hover:text-saffron-700 line-clamp-1">
             {item.name}
@@ -328,6 +465,69 @@ function SuggestionCard({ item, onAdd }: { item: Suggestion; onAdd: () => void }
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RatingWidget({ rated, onRate }: { rated: boolean; onRate: (score: number, comment?: string) => void }) {
+  const [score, setScore] = useState<number | null>(null);
+  const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState("");
+  const [showCommentBox, setShowCommentBox] = useState(false);
+
+  if (rated) {
+    return (
+      <div className="mx-auto mt-4 max-w-md text-center text-xs text-ink-mute italic">
+        ✓ Thanks for the feedback — it helps us improve.
+      </div>
+    );
+  }
+
+  function pickStar(n: number) {
+    setScore(n);
+    setShowCommentBox(true);
+  }
+
+  function submit() {
+    if (score == null) return;
+    onRate(score, comment.trim() || undefined);
+  }
+
+  return (
+    <div className="mt-4 mx-auto max-w-md p-4 rounded-2xl bg-ivory/60 border border-saffron-200/60">
+      <p className="text-sm font-display font-semibold text-ink text-center mb-2">How helpful was this?</p>
+      <div className="flex justify-center gap-1">
+        {[1, 2, 3, 4, 5].map(n => (
+          <button
+            key={n}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            onClick={() => pickStar(n)}
+            className="text-2xl transition-transform hover:scale-110"
+            aria-label={`${n} star${n === 1 ? "" : "s"}`}
+          >
+            <span className={n <= (hover || (score ?? 0)) ? "text-saffron-500" : "text-saffron-200"}>★</span>
+          </button>
+        ))}
+      </div>
+      {showCommentBox && (
+        <div className="mt-3 space-y-2">
+          <textarea
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="Anything else? (optional)"
+            maxLength={500}
+            rows={2}
+            className="w-full text-sm rounded-lg border border-saffron-200 bg-white px-3 py-2 focus:outline-none focus:border-saffron-500 resize-none"
+          />
+          <button
+            onClick={submit}
+            className="w-full rounded-lg bg-ink hover:bg-ink-soft text-cream text-sm font-bold py-2 transition-colors"
+          >
+            Submit
+          </button>
+        </div>
+      )}
     </div>
   );
 }

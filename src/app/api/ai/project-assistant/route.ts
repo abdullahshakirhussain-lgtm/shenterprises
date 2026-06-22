@@ -25,6 +25,7 @@ type Suggestion = {
   imageUrl: string | null;
   stock: number;
   similarity?: number;
+  suggestionId?: number;  // populated after DB persist — needed for thumbs feedback
 };
 
 export async function POST(req: NextRequest) {
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
   if (messages.some(m => m.content.length > 1500)) {
     return NextResponse.json({ error: "Message too long." }, { status: 400 });
   }
+
+  // Per-browser feedback session id — caller passes one for continuity
+  const sessionId: string | null = typeof body?.sessionId === "string" && body.sessionId.length > 0 ? body.sessionId : null;
+  const browserId: string = typeof body?.browserId === "string" && body.browserId.length > 0 ? body.browserId : "anonymous";
 
   const lastUserMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
 
@@ -218,8 +223,61 @@ Respond ONLY in JSON:
     });
   }
 
+  // ---------- Persist the chat session + suggestions for feedback loop ----------
+  // Never let a tracking error break the user's response — wrap in try/catch.
+  let persistedSessionId: string | null = sessionId;
+  try {
+    const transcriptJson = JSON.stringify(
+      [...messages, { role: "assistant", content: summary }].slice(-30)
+    );
+    const firstUserMessage = messages.find(m => m.role === "user")?.content || "";
+
+    if (sessionId) {
+      // Existing session — update transcript + suggestion count
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: {
+          transcript: transcriptJson,
+          totalSuggestions: { increment: suggestions.length },
+        },
+      }).catch(() => null); // session may have been deleted; ignore
+    } else {
+      // New session
+      const created = await prisma.chatSession.create({
+        data: {
+          browserId,
+          queryText: firstUserMessage.slice(0, 500),
+          transcript: transcriptJson,
+          totalSuggestions: suggestions.length,
+        },
+      });
+      persistedSessionId = created.id;
+    }
+
+    // Save each suggestion — use a loop instead of createMany so we can capture row IDs
+    // (we need them on the client to attach thumbs-up/down feedback)
+    if (persistedSessionId && suggestions.length > 0) {
+      for (let i = 0; i < suggestions.length; i++) {
+        const s = suggestions[i];
+        const row = await prisma.chatSuggestion.create({
+          data: {
+            sessionId: persistedSessionId!,
+            productId: s.productId,
+            reason: s.reason.slice(0, 300),
+            quantity: s.quantity,
+            similarityScore: s.similarity ?? null,
+          },
+        });
+        suggestions[i] = { ...s, suggestionId: row.id };
+      }
+    }
+  } catch (e: any) {
+    console.warn("[project-assistant] feedback persist failed:", e?.message);
+  }
+
   return NextResponse.json({
     mode: "suggestions",
+    sessionId: persistedSessionId,
     summary,
     items: suggestions,
     followUp,
