@@ -77,8 +77,8 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
           </ul>
         </div>
 
-        {/* Right: collage — three offset product cards */}
-        <div className="md:col-span-5 relative h-[380px] sm:h-[440px] md:h-[480px] hidden sm:block">
+        {/* Right: collage — three offset product cards (also shown on mobile, below the text) */}
+        <div className="md:col-span-5 relative h-[320px] sm:h-[440px] md:h-[480px] mt-6 md:mt-0">
           {collage.length === 0 ? (
             <DecorativePanel />
           ) : (
