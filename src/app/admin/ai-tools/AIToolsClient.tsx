@@ -1,7 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Status = { ready: boolean; total?: number; embedded?: number; message?: string };
+type Status = {
+  ready: boolean;
+  total?: number;
+  embedded?: number;
+  message?: string;
+  extensionInstalled?: boolean;
+  columnExists?: boolean;
+};
 
 export default function AIToolsClient() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -48,13 +55,38 @@ export default function AIToolsClient() {
         ) : !status.ready ? (
           <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded">
             <p className="font-medium text-amber-900">Not set up yet</p>
-            <p className="text-sm text-amber-800 mt-1">
-              Run this SQL in your Supabase SQL Editor first, then come back and click Regenerate:
-            </p>
-            <pre className="mt-2 p-3 bg-amber-100 rounded text-xs font-mono text-amber-900 whitespace-pre-wrap">{`CREATE EXTENSION IF NOT EXISTS vector;
+
+            {/* Diagnostic — show what we found */}
+            {(status.extensionInstalled !== undefined || status.columnExists !== undefined) && (
+              <div className="mt-2 text-xs font-mono text-amber-900 bg-amber-100/60 rounded p-2 space-y-0.5">
+                <div>vector extension installed: <strong>{status.extensionInstalled ? "✓ yes" : "✗ no"}</strong></div>
+                <div>Product.embedding column exists: <strong>{status.columnExists ? "✓ yes" : "✗ no"}</strong></div>
+                {status.message && <div className="text-red-800 mt-1">{status.message}</div>}
+              </div>
+            )}
+
+            {status.extensionInstalled && status.columnExists ? (
+              <div className="mt-3 text-sm text-amber-900">
+                <p className="font-semibold">DB is set up but Railway can&apos;t see it.</p>
+                <p className="mt-1">This is a stale-connection issue. Restart the Railway service:</p>
+                <ol className="mt-1 list-decimal list-inside text-sm">
+                  <li>Open Railway → your service</li>
+                  <li>Click ⋯ (top right) → <strong>Restart</strong></li>
+                  <li>Wait 30 seconds, then click Re-check below</li>
+                </ol>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-amber-800 mt-3">
+                  Run this SQL in your Supabase SQL Editor first, then come back and click Re-check:
+                </p>
+                <pre className="mt-2 p-3 bg-amber-100 rounded text-xs font-mono text-amber-900 whitespace-pre-wrap">{`CREATE EXTENSION IF NOT EXISTS vector;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS embedding vector(1536);
 CREATE INDEX IF NOT EXISTS idx_product_embedding
   ON "Product" USING ivfflat (embedding vector_cosine_ops);`}</pre>
+              </>
+            )}
+
             <button onClick={loadStatus} className="mt-3 text-sm font-bold text-amber-900 underline">
               Re-check status
             </button>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin } from "@/lib/auth";
-import { embed, productEmbeddingText, upsertProductEmbedding, embeddingsAvailable } from "@/lib/embeddings";
+import { embed, productEmbeddingText, upsertProductEmbedding, embeddingsAvailable, embeddingsAvailabilityDetail } from "@/lib/embeddings";
 
 export const dynamic = "force-dynamic";
 
@@ -39,14 +39,19 @@ export async function POST() {
   return NextResponse.json({ total: products.length, embedded: ok, failed });
 }
 
-// GET — status check
+// GET — status check (now with diagnostic detail)
 export async function GET() {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const ready = await embeddingsAvailable();
-  if (!ready) {
-    return NextResponse.json({ ready: false, message: "pgvector extension or embedding column not yet set up" });
+  const detail = await embeddingsAvailabilityDetail();
+  if (!detail.ready) {
+    return NextResponse.json({
+      ready: false,
+      message: detail.error || "pgvector extension or embedding column not yet set up",
+      extensionInstalled: detail.extensionInstalled,
+      columnExists: detail.columnExists,
+    });
   }
 
   try {

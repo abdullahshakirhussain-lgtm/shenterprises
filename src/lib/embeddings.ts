@@ -106,7 +106,59 @@ export async function embeddingsAvailable(): Promise<boolean> {
   try {
     await prisma.$queryRawUnsafe(`SELECT embedding FROM "Product" LIMIT 1`);
     return true;
-  } catch {
+  } catch (e: any) {
+    console.warn("[embeddings] availability check failed:", e?.message);
     return false;
+  }
+}
+
+/**
+ * Diagnostic — returns details about why availability check failed.
+ * Used by the admin AI Tools page to surface the actual error.
+ */
+export async function embeddingsAvailabilityDetail(): Promise<{
+  ready: boolean;
+  error?: string;
+  extensionInstalled?: boolean;
+  columnExists?: boolean;
+}> {
+  // Check extension
+  let extensionInstalled = false;
+  try {
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT 1 FROM pg_extension WHERE extname = 'vector'`
+    );
+    extensionInstalled = rows.length > 0;
+  } catch (e: any) {
+    return { ready: false, error: "Cannot query pg_extension: " + e?.message };
+  }
+
+  // Check column
+  let columnExists = false;
+  try {
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_name = 'Product' AND column_name = 'embedding'`
+    );
+    columnExists = rows.length > 0;
+  } catch (e: any) {
+    return {
+      ready: false,
+      error: "Cannot query columns: " + e?.message,
+      extensionInstalled,
+    };
+  }
+
+  // Final test: actually SELECT it
+  try {
+    await prisma.$queryRawUnsafe(`SELECT embedding FROM "Product" LIMIT 1`);
+    return { ready: true, extensionInstalled, columnExists };
+  } catch (e: any) {
+    return {
+      ready: false,
+      error: "SELECT failed: " + e?.message,
+      extensionInstalled,
+      columnExists,
+    };
   }
 }
