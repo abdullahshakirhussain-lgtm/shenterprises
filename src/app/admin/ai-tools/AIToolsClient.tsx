@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
+type SamplePreview = { id: number; name: string; preview: string };
 type Status = {
   ready: boolean;
   total?: number;
@@ -8,6 +9,7 @@ type Status = {
   message?: string;
   extensionInstalled?: boolean;
   columnExists?: boolean;
+  sample?: SamplePreview[];
 };
 
 export default function AIToolsClient() {
@@ -15,9 +17,9 @@ export default function AIToolsClient() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<string>("");
 
-  async function loadStatus() {
+  async function loadStatus(withSample = false) {
     setStatus(null);
-    const res = await fetch("/api/admin/regenerate-embeddings");
+    const res = await fetch(`/api/admin/regenerate-embeddings${withSample ? "?sample=1" : ""}`);
     const data = await res.json();
     setStatus(data);
   }
@@ -118,6 +120,32 @@ CREATE INDEX IF NOT EXISTS idx_product_embedding
             >
               {running ? "Regenerating…" : "Regenerate all embeddings"}
             </button>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={() => loadStatus(true)}
+                className="text-sm font-bold text-brand-700 underline hover:text-brand-900"
+              >
+                View sample embeddings →
+              </button>
+            </div>
+
+            {status.sample && status.sample.length > 0 && (
+              <div className="border border-brand-200 rounded p-3 bg-brand-50/40 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-700">Sample (first 5 products)</p>
+                <div className="space-y-1.5">
+                  {status.sample.map(s => (
+                    <div key={s.id} className="text-xs font-mono bg-white rounded p-2 border border-brand-100">
+                      <div className="font-bold text-brand-900 not-italic mb-0.5">#{s.id} · {s.name}</div>
+                      <div className="text-brand-600 break-all">{s.preview}…</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-brand-500 italic">
+                  Each product&apos;s embedding is a 1536-number vector. We show only the first ~100 characters of each here so the page stays readable.
+                </p>
+              </div>
+            )}
 
             {result && (
               <div className={`p-3 rounded text-sm ${result.startsWith("✓") ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>

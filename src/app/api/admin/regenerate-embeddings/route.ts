@@ -39,8 +39,8 @@ export async function POST() {
   return NextResponse.json({ total: products.length, embedded: ok, failed });
 }
 
-// GET — status check (now with diagnostic detail)
-export async function GET() {
+// GET — status check (now with diagnostic detail + optional sample preview)
+export async function GET(req: Request) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -62,7 +62,25 @@ export async function GET() {
        FROM "Product"
        WHERE active = true`
     );
-    return NextResponse.json({ ready: true, ...(stats[0] || { total: 0, embedded: 0 }) });
+
+    // Optional: return a sample of 5 embedded products with a truncated vector preview
+    const includeSample = new URL(req.url).searchParams.get("sample") === "1";
+    let sample: Array<{ id: number; name: string; preview: string }> = [];
+    if (includeSample) {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT
+           id,
+           name,
+           SUBSTRING(embedding::text, 1, 100) AS preview
+         FROM "Product"
+         WHERE active = true AND embedding IS NOT NULL
+         ORDER BY id
+         LIMIT 5`
+      );
+      sample = rows.map(r => ({ id: r.id, name: r.name, preview: r.preview }));
+    }
+
+    return NextResponse.json({ ready: true, ...(stats[0] || { total: 0, embedded: 0 }), sample });
   } catch (e: any) {
     return NextResponse.json({ ready: false, message: e?.message });
   }
