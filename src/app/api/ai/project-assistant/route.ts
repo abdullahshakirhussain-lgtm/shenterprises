@@ -19,7 +19,8 @@ type Suggestion = {
   name: string;
   quantity: number;
   reason: string;
-  price: number;
+  price: number;          // effective display price (includes variant pricing fallback)
+  fromPrice: boolean;     // true if multiple distinct prices exist → render as "From Rs X"
   salePrice: number | null;
   imageUrl: string | null;
   stock: number;
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
         price: true, salePrice: true, imageUrl: true, stock: true,
         unitQty: true, unitType: true,
         category: { select: { name: true } },
-        variants: { select: { type: true, name: true } },
+        variants: { select: { type: true, name: true, price: true, salePrice: true } },
       },
     });
     // Preserve vector ordering
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
         price: true, salePrice: true, imageUrl: true, stock: true,
         unitQty: true, unitType: true,
         category: { select: { name: true } },
-        variants: { select: { type: true, name: true } },
+        variants: { select: { type: true, name: true, price: true, salePrice: true } },
       },
     });
   }
@@ -184,19 +185,32 @@ Respond ONLY in JSON:
   const summary: string = typeof modelOut?.summary === "string" ? modelOut.summary : "";
   const followUp: string = typeof modelOut?.followUp === "string" ? modelOut.followUp : "Want me to swap anything or add more?";
 
-  const byId = new Map(products.map(p => [p.id, p]));
+  const byId = new Map(products.map((p: any) => [p.id, p]));
   const suggestions: Suggestion[] = [];
   for (const it of rawItems) {
-    const p = byId.get(Number(it.id));
+    const p: any = byId.get(Number(it.id));
     if (!p) continue;
     const qty = Math.max(1, Math.min(20, Math.floor(Number(it.quantity) || 1)));
+
+    // Compute the right display price the same way the catalog does — treat base of 0 as "no base set"
+    const baseEffective = p.salePrice ?? p.price;
+    const validBase = baseEffective > 0 ? baseEffective : null;
+    const variantPrices = (p.variants || [])
+      .map((v: any) => v.salePrice ?? v.price)
+      .filter((n: any): n is number => n != null && n > 0);
+    const priceCandidates: number[] = [...(validBase != null ? [validBase] : []), ...variantPrices];
+    const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
+    const distinctPrices = new Set(priceCandidates).size;
+    const fromPrice = distinctPrices > 1;
+
     suggestions.push({
       productId: p.id,
       slug: p.slug,
       name: p.name,
       quantity: qty,
       reason: String(it.reason || "").slice(0, 200),
-      price: p.salePrice ?? p.price,
+      price: effective,
+      fromPrice,
       salePrice: p.salePrice,
       imageUrl: p.imageUrl,
       stock: p.stock,

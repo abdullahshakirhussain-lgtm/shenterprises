@@ -19,6 +19,7 @@ type Suggestion = {
   quantity: number;
   reason: string;
   price: number;
+  fromPrice?: boolean;
   salePrice: number | null;
   imageUrl: string | null;
   stock: number;
@@ -153,7 +154,6 @@ export default function ProjectAssistantClient() {
           <MessageBubble
             key={m.ts + "-" + i}
             message={m}
-            onClickQuestion={(q) => send(q)}
             onAddOne={addOneToCart}
             onAddAll={addAllToCart}
           />
@@ -228,12 +228,10 @@ function WelcomeState({ onPick }: { onPick: (s: string) => void }) {
 
 function MessageBubble({
   message,
-  onClickQuestion,
   onAddOne,
   onAddAll,
 }: {
   message: ChatMessage;
-  onClickQuestion: (q: string) => void;
   onAddOne: (s: Suggestion) => void;
   onAddAll: (s: Suggestion[]) => void;
 }) {
@@ -257,17 +255,16 @@ function MessageBubble({
       )}
 
       {payload?.mode === "clarify" && (
-        <div className="w-full max-w-[90%] space-y-1.5 pl-1">
-          {payload.questions.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => onClickQuestion(q)}
-              className="block w-full text-left px-3 py-2 rounded-lg bg-white border border-saffron-200 hover:border-saffron-500 hover:bg-saffron-50 text-sm text-ink transition-all"
-            >
-              <span className="text-saffron-600 mr-2">↗</span>
-              {q}
-            </button>
-          ))}
+        <div className="w-full max-w-[90%] pl-1 space-y-2">
+          <ol className="space-y-1.5 text-sm text-ink list-none">
+            {payload.questions.map((q, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="inline-flex items-center justify-center shrink-0 w-5 h-5 rounded-full bg-saffron-100 text-saffron-700 text-[11px] font-bold">{i + 1}</span>
+                <span>{q}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-ink-mute italic pl-7">Type your answer below — you can answer all of them in one message.</p>
         </div>
       )}
 
@@ -318,11 +315,14 @@ function SuggestionCard({ item, onAdd }: { item: Suggestion; onAdd: () => void }
         <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{item.reason}</p>
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-sm font-bold text-saffron-700">
-            {formatLKR(item.price)} × {item.quantity}
+            {item.price > 0
+              ? <>{item.fromPrice && <span className="text-xs text-ink-mute font-normal mr-1">From</span>}{formatLKR(item.price)} × {item.quantity}</>
+              : <span className="text-ink-mute font-normal italic">See options</span>}
           </span>
           <button
             onClick={onAdd}
-            className="text-xs font-bold text-ink hover:text-saffron-700 transition-colors"
+            disabled={item.price <= 0}
+            className="text-xs font-bold text-ink hover:text-saffron-700 disabled:text-ink-mute/40 disabled:cursor-not-allowed transition-colors"
           >
             + Add
           </button>
