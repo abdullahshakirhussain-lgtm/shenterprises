@@ -24,7 +24,7 @@ export default function AIToolsClient() {
     setStatus(data);
   }
 
-  useEffect(() => { loadStatus(); }, []);
+  useEffect(() => { loadStatus(false); }, []);
 
   async function regenerate() {
     if (!confirm("Regenerate embeddings for all active products? This may take 30–60 seconds and uses your OpenAI quota.")) return;
@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_product_embedding
               </>
             )}
 
-            <button onClick={loadStatus} className="mt-3 text-sm font-bold text-amber-900 underline">
+            <button onClick={() => loadStatus(false)} className="mt-3 text-sm font-bold text-amber-900 underline">
               Re-check status
             </button>
           </div>
