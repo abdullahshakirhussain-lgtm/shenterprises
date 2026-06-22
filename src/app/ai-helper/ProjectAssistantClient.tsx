@@ -1,8 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import { formatLKR } from "@/lib/utils";
+
+type ChatMessage =
+  | { role: "user"; content: string; ts: number }
+  | { role: "assistant"; content: string; ts: number; payload?: AssistantPayload };
+
+type AssistantPayload =
+  | { mode: "clarify"; questions: string[] }
+  | { mode: "suggestions"; items: Suggestion[]; followUp: string };
 
 type Suggestion = {
   productId: number;
@@ -14,50 +22,86 @@ type Suggestion = {
   salePrice: number | null;
   imageUrl: string | null;
   stock: number;
+  similarity?: number;
 };
 
-const STARTER_IDEAS = [
-  "Baby blanket, 1m × 1m",
+const STORAGE_KEY = "sh_ai_chat_v1";
+
+const STARTERS = [
+  "I want to make a baby blanket",
   "School uniform for a 7-year-old",
-  "Saree blouse for a wedding",
-  "Birthday banner with 20 letters",
-  "Cushion covers, set of 4",
-  "Curtains for a small bedroom window",
+  "Wedding favor bags — 50 of them",
+  "Casual cotton sundress, adult",
 ];
 
 export default function ProjectAssistantClient() {
   const { add } = useCart();
-  const [project, setProject] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [summary, setSummary] = useState("");
-  const [items, setItems] = useState<Suggestion[]>([]);
-  const [translated, setTranslated] = useState<string | null>(null);
-  const [addedAll, setAddedAll] = useState(false);
+  const [error, setError] = useState<string>("");
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  async function submit() {
-    const text = project.trim();
-    if (text.length < 4) {
-      setError("Please describe your project in a bit more detail.");
-      return;
-    }
-    setLoading(true);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setMessages(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-30))); } catch {}
+  }, [messages]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, loading]);
+
+  async function send(text: string) {
+    const content = text.trim();
+    if (!content || loading) return;
     setError("");
-    setSummary("");
-    setItems([]);
-    setTranslated(null);
-    setAddedAll(false);
+    setDraft("");
+
+    const next: ChatMessage[] = [...messages, { role: "user", content, ts: Date.now() }];
+    setMessages(next);
+    setLoading(true);
+
     try {
       const res = await fetch("/api/ai/project-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project: text }),
+        body: JSON.stringify({
+          messages: next.map(m => ({ role: m.role, content: m.content })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      setSummary(data.summary || "");
-      setItems(data.items || []);
-      setTranslated(data.translatedQuery || null);
+
+      if (data.mode === "clarify") {
+        setMessages(m => [
+          ...m,
+          {
+            role: "assistant",
+            content: data.message,
+            ts: Date.now(),
+            payload: { mode: "clarify", questions: data.questions || [] },
+          },
+        ]);
+      } else if (data.mode === "suggestions") {
+        setMessages(m => [
+          ...m,
+          {
+            role: "assistant",
+            content: data.summary || "",
+            ts: Date.now(),
+            payload: { mode: "suggestions", items: data.items || [], followUp: data.followUp || "" },
+          },
+        ]);
+      } else {
+        throw new Error("Unexpected response format");
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -65,189 +109,225 @@ export default function ProjectAssistantClient() {
     }
   }
 
-  function updateQty(productId: number, qty: number) {
-    setItems(it => it.map(s => s.productId === productId ? { ...s, quantity: Math.max(1, qty) } : s));
+  function reset() {
+    setMessages([]);
+    setError("");
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
   }
 
-  function removeItem(productId: number) {
-    setItems(it => it.filter(s => s.productId !== productId));
+  function addOneToCart(s: Suggestion) {
+    add({
+      productId: s.productId,
+      name: s.name,
+      slug: s.slug,
+      price: s.price,
+      imageUrl: s.imageUrl,
+    }, s.quantity);
   }
 
-  function addAll() {
-    for (const s of items) {
-      if (s.stock <= 0) continue;
-      add({
-        productId: s.productId,
-        name: s.name,
-        slug: s.slug,
-        price: s.price,
-        imageUrl: s.imageUrl,
-      }, s.quantity);
-    }
-    setAddedAll(true);
+  function addAllToCart(items: Suggestion[]) {
+    items.forEach(addOneToCart);
   }
-
-  const total = items.reduce((sum, s) => sum + s.price * s.quantity, 0);
-  const inStockCount = items.filter(s => s.stock > 0).length;
 
   return (
-    <div className="reveal">
-      {/* Starter prompts */}
-      {items.length === 0 && !loading && (
-        <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Quick ideas</p>
-          <div className="flex flex-wrap gap-2">
-            {STARTER_IDEAS.map(idea => (
-              <button
-                key={idea}
-                type="button"
-                onClick={() => setProject(idea)}
-                className="text-sm px-3 py-1.5 rounded-full border border-brand-200 bg-white text-brand-800 hover:bg-brand-50 hover:border-brand-300 transition"
-              >
-                {idea}
-              </button>
-            ))}
+    <div className="rounded-3xl bg-white border border-saffron-200/60 shadow-lg overflow-hidden flex flex-col h-[75vh] min-h-[500px] max-h-[820px]">
+      <div className="px-5 py-3 border-b border-saffron-200/40 bg-ivory/50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="grid place-items-center h-8 w-8 rounded-xl bg-ink text-cream text-sm">✨</span>
+          <div>
+            <p className="font-display font-semibold text-ink text-sm leading-tight">AI Project Helper</p>
+            <p className="text-[11px] text-ink-mute leading-tight">Powered by GPT-4o</p>
           </div>
         </div>
-      )}
-
-      {/* Input */}
-      <div className="rounded-2xl border border-brand-200 bg-white shadow-sm p-4 sm:p-5">
-        <label className="block text-sm font-bold text-brand-900 mb-2">What are you making?</label>
-        <textarea
-          rows={3}
-          className="input resize-none"
-          placeholder="e.g. I'm making a baby blanket for my niece, about 1m by 1m, in pink cotton…"
-          value={project}
-          onChange={e => setProject(e.target.value)}
-          maxLength={500}
-          disabled={loading}
-        />
-        <div className="flex items-center justify-between mt-3 gap-3">
-          <span className="text-xs text-muted">{project.length}/500 — Sinhala and Tamil welcome</span>
-          <button
-            onClick={submit}
-            disabled={loading || project.trim().length < 4}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-          >
-            {loading ? "Thinking…" : "✨ Get suggestions"}
+        {messages.length > 0 && (
+          <button onClick={reset} className="text-xs font-semibold text-ink-mute hover:text-saffron-700 transition-colors">
+            New chat
           </button>
-        </div>
+        )}
       </div>
 
-      {/* Errors */}
-      {error && (
-        <div className="mt-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm p-3">{error}</div>
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 bg-cream/30">
+        {messages.length === 0 && <WelcomeState onPick={send} />}
+
+        {messages.map((m, i) => (
+          <MessageBubble
+            key={m.ts + "-" + i}
+            message={m}
+            onClickQuestion={(q) => send(q)}
+            onAddOne={addOneToCart}
+            onAddAll={addAllToCart}
+          />
+        ))}
+
+        {loading && (
+          <div className="flex items-center gap-2 text-ink-mute pl-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-saffron-500 animate-bounce" />
+            <span className="inline-block w-2 h-2 rounded-full bg-saffron-500 animate-bounce" style={{ animationDelay: "0.15s" }} />
+            <span className="inline-block w-2 h-2 rounded-full bg-saffron-500 animate-bounce" style={{ animationDelay: "0.3s" }} />
+            <span className="text-xs italic font-display ml-1">Threading the needle…</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+            {error}
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); send(draft); }}
+        className="border-t border-saffron-200/40 bg-white p-3 flex gap-2"
+      >
+        <input
+          type="text"
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder={messages.length === 0 ? "Tell me what you're making…" : "Ask a follow-up, or refine…"}
+          disabled={loading}
+          maxLength={500}
+          className="flex-1 px-4 py-3 rounded-xl border border-saffron-200 bg-cream/40 text-ink placeholder:text-ink-mute focus:outline-none focus:border-saffron-500 focus:bg-white transition-colors disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          disabled={loading || !draft.trim()}
+          className="rounded-xl bg-ink hover:bg-ink-soft text-cream font-bold px-5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? "…" : "Send"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function WelcomeState({ onPick }: { onPick: (s: string) => void }) {
+  return (
+    <div className="text-center py-6 px-4">
+      <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-saffron-100 text-3xl mb-3 stitched">🧵</div>
+      <h2 className="font-display font-semibold text-2xl text-ink mb-2">What are you making?</h2>
+      <p className="text-ink-mute text-sm mb-6 max-w-md mx-auto">
+        Describe your project — I&apos;ll pick the right threads, trims and tools from our catalog.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-2 max-w-xl mx-auto">
+        {STARTERS.map(s => (
+          <button
+            key={s}
+            onClick={() => onPick(s)}
+            className="text-left p-3 rounded-xl border border-saffron-200 bg-white hover:border-saffron-400 hover:shadow-sm transition-all text-sm text-ink"
+          >
+            <span className="text-saffron-600 mr-2">↗</span>
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({
+  message,
+  onClickQuestion,
+  onAddOne,
+  onAddAll,
+}: {
+  message: ChatMessage;
+  onClickQuestion: (q: string) => void;
+  onAddOne: (s: Suggestion) => void;
+  onAddAll: (s: Suggestion[]) => void;
+}) {
+  if (message.role === "user") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-md bg-ink text-cream text-sm">
+          {message.content}
+        </div>
+      </div>
+    );
+  }
+
+  const payload = message.payload;
+  return (
+    <div className="flex flex-col items-start gap-2 max-w-full">
+      {message.content && (
+        <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tl-md bg-saffron-50 text-ink border border-saffron-200/50 text-sm leading-relaxed">
+          {message.content}
+        </div>
       )}
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="mt-6 space-y-3">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="rounded-xl bg-white border border-brand-100 p-4 animate-pulse flex gap-3">
-              <div className="w-16 h-16 bg-brand-100 rounded" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-brand-100 rounded w-3/4" />
-                <div className="h-3 bg-brand-100 rounded w-1/2" />
-              </div>
-            </div>
+      {payload?.mode === "clarify" && (
+        <div className="w-full max-w-[90%] space-y-1.5 pl-1">
+          {payload.questions.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => onClickQuestion(q)}
+              className="block w-full text-left px-3 py-2 rounded-lg bg-white border border-saffron-200 hover:border-saffron-500 hover:bg-saffron-50 text-sm text-ink transition-all"
+            >
+              <span className="text-saffron-600 mr-2">↗</span>
+              {q}
+            </button>
           ))}
         </div>
       )}
 
-      {/* Results */}
-      {!loading && items.length > 0 && (
-        <div className="mt-6 space-y-4">
-          {translated && (
-            <p className="text-xs text-muted italic">Understood as: &ldquo;{translated}&rdquo;</p>
-          )}
-          {summary && (
-            <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4">
-              <p className="text-sm font-bold text-brand-900 mb-1">Here&apos;s what you&apos;ll need:</p>
-              <p className="text-brand-800 leading-relaxed">{summary}</p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {items.map(s => {
-              const outOfStock = s.stock <= 0;
-              return (
-                <div key={s.productId} className={`rounded-xl bg-white border ${outOfStock ? "border-brand-100 opacity-60" : "border-brand-200"} p-3 sm:p-4 flex gap-3 sm:gap-4`}>
-                  <Link href={`/product/${s.slug}`} className="shrink-0">
-                    {s.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.imageUrl} alt={s.name} className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg" />
-                    ) : (
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-brand-100 grid place-items-center text-brand-400 text-2xl">🧵</div>
-                    )}
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link href={`/product/${s.slug}`} className="font-bold text-brand-900 hover:text-brand-700 leading-tight block truncate">{s.name}</Link>
-                    {s.reason && <p className="text-xs text-muted mt-1 leading-snug">{s.reason}</p>}
-                    {outOfStock && <p className="text-xs text-red-700 font-bold mt-1">Out of stock</p>}
-                    <div className="flex items-center justify-between mt-2 gap-2">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => updateQty(s.productId, s.quantity - 1)}
-                          className="w-7 h-7 rounded border border-brand-200 text-brand-700 hover:bg-brand-50 font-bold leading-none"
-                          aria-label="Decrease quantity"
-                          disabled={outOfStock}
-                        >−</button>
-                        <span className="w-8 text-center font-bold text-sm">{s.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateQty(s.productId, s.quantity + 1)}
-                          className="w-7 h-7 rounded border border-brand-200 text-brand-700 hover:bg-brand-50 font-bold leading-none"
-                          aria-label="Increase quantity"
-                          disabled={outOfStock}
-                        >+</button>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(s.productId)}
-                          className="ml-2 text-xs text-red-600 hover:text-red-800 underline"
-                        >Remove</button>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-brand-900">{formatLKR(s.price * s.quantity)}</div>
-                        {s.quantity > 1 && <div className="text-[10px] text-muted">{formatLKR(s.price)} each</div>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="sticky bottom-2 z-10 rounded-2xl bg-brand-600 text-white shadow-lg p-4 flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <div className="text-xs text-brand-100 uppercase tracking-wide">Estimated total</div>
-              <div className="text-2xl font-bold">{formatLKR(total)}</div>
-            </div>
-            {addedAll ? (
-              <Link href="/cart" className="px-5 py-3 rounded-xl bg-white text-brand-700 font-bold hover:bg-brand-50 transition">
-                ✓ Added — view cart →
-              </Link>
-            ) : (
-              <button
-                onClick={addAll}
-                disabled={inStockCount === 0}
-                className="px-5 py-3 rounded-xl bg-white text-brand-700 font-bold hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {inStockCount === 0 ? "All out of stock" : `Add all ${inStockCount} to cart →`}
-              </button>
-            )}
+      {payload?.mode === "suggestions" && payload.items.length > 0 && (
+        <div className="w-full space-y-2">
+          {payload.items.map(item => (
+            <SuggestionCard key={item.productId} item={item} onAdd={() => onAddOne(item)} />
+          ))}
+          <div className="flex items-center justify-between gap-3 px-2 pt-1">
+            <p className="text-xs text-ink-mute italic">{payload.followUp}</p>
+            <button
+              onClick={() => onAddAll(payload.items)}
+              className="shrink-0 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-white text-xs font-bold px-3 py-2 shadow-sm transition-colors"
+            >
+              Add all {payload.items.length} →
+            </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Empty results — model returned 0 items */}
-      {!loading && summary && items.length === 0 && (
-        <div className="mt-6 rounded-2xl bg-brand-50 border border-brand-200 p-5 text-center">
-          <p className="text-brand-900">{summary}</p>
-          <p className="text-sm text-muted mt-2">Try describing your project differently or <Link href="/shop" className="text-brand-700 underline font-bold">browse the catalog</Link>.</p>
+function SuggestionCard({ item, onAdd }: { item: Suggestion; onAdd: () => void }) {
+  return (
+    <div className="flex gap-3 p-3 rounded-xl bg-white border border-saffron-200/60 hover:border-saffron-400 transition-colors">
+      <Link href={`/product/${item.slug}`} className="shrink-0">
+        <div className="w-16 h-16 rounded-lg bg-brand-50 overflow-hidden">
+          {item.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full grid place-items-center text-2xl">🧵</div>
+          )}
         </div>
-      )}
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <Link href={`/product/${item.slug}`} className="font-display font-semibold text-sm text-ink hover:text-saffron-700 line-clamp-1">
+            {item.name}
+          </Link>
+          {item.similarity != null && (
+            <span className="shrink-0 text-[10px] font-bold text-saffron-700 bg-saffron-50 px-1.5 py-0.5 rounded">
+              {Math.round(item.similarity * 100)}% match
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{item.reason}</p>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-sm font-bold text-saffron-700">
+            {formatLKR(item.price)} × {item.quantity}
+          </span>
+          <button
+            onClick={onAdd}
+            className="text-xs font-bold text-ink hover:text-saffron-700 transition-colors"
+          >
+            + Add
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

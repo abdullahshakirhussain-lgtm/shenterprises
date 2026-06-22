@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { embed, productEmbeddingText, upsertProductEmbedding } from "@/lib/embeddings";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,8 +27,13 @@ export async function POST(req: NextRequest) {
         active: b.active !== false,
         metaTitle: b.metaTitle || null,
         metaDesc: b.metaDesc || null
-      }
+      },
+      include: { category: { select: { name: true } } },
     });
+    // Fire-and-forget embedding generation — never block product creation
+    embed(productEmbeddingText({ ...created, variants: [] }))
+      .then(vec => vec && upsertProductEmbedding(created.id, vec))
+      .catch(() => {});
     return NextResponse.json(created);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { embed, productEmbeddingText, upsertProductEmbedding } from "@/lib/embeddings";
+
+// Fields whose changes should trigger an embedding refresh (anything that changes meaning)
+const EMBED_RELEVANT = new Set(["name", "description", "sku", "categoryId", "active"]);
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -27,7 +31,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (b.metaTitle !== undefined)   data.metaTitle = b.metaTitle || null;
     if (b.metaDesc !== undefined)    data.metaDesc = b.metaDesc || null;
 
-    const updated = await prisma.product.update({ where: { id }, data });
+    const updated = await prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        category: { select: { name: true } },
+        variants: { select: { type: true, name: true } },
+      },
+    });
+
+    // Regenerate embedding if any meaning-bearing field changed
+    const shouldReembed = Object.keys(b).some(k => EMBED_RELEVANT.has(k));
+    if (shouldReembed) {
+      embed(productEmbeddingText(updated))
+        .then(vec => vec && upsertProductEmbedding(id, vec))
+        .catch(() => {});
+    }
+
     return NextResponse.json(updated);
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
 }
