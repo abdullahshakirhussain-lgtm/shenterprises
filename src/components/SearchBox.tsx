@@ -76,7 +76,7 @@ export default function SearchBox({
 
   return (
     <div ref={ref} className={`relative ${className || ""}`}>
-      <form action="/search" className="flex items-center rounded-lg border border-brand-200 bg-white overflow-hidden">
+      <form action="/search" className="flex items-stretch h-10 rounded-lg border border-brand-200 bg-white overflow-hidden">
         <input
           name="q"
           value={q}
@@ -86,9 +86,9 @@ export default function SearchBox({
           onKeyDown={onKey}
           placeholder={placeholder}
           autoComplete="off"
-          className="flex-1 px-4 py-2.5 text-sm outline-none bg-transparent"
+          className="flex-1 min-w-0 px-3 sm:px-4 text-sm outline-none bg-transparent leading-none"
         />
-        <button className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-sm font-semibold transition-colors">
+        <button className="bg-brand-600 hover:bg-brand-700 text-white px-4 sm:px-5 text-sm font-semibold transition-colors leading-none shrink-0">
           {submitLabel}
         </button>
       </form>
