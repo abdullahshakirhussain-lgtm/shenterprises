@@ -5,7 +5,7 @@ import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import CategoryIcon from "@/components/CategoryIcon";
-import { Spool, TapeMeasure, Button4Hole, ThreadLoop } from "@/components/CraftDecorations";
+import { TapeMeasure, Button4Hole } from "@/components/CraftDecorations";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -98,43 +98,6 @@ export default async function HomePage() {
               </Link>
             );
           })}
-        </div>
-      </section>
-
-      {/* "Behind the spools" — story strip on warmer ivory background to break the rhythm */}
-      <section className="bg-ivory border-y border-saffron-200/40 relative overflow-hidden">
-        {/* Decorative spool sketch — bottom-right corner */}
-        <Spool className="absolute -bottom-6 -right-4 w-44 h-44 text-saffron-300 opacity-50 pointer-events-none hidden md:block" />
-        <div className="relative mx-auto max-w-6xl px-4 py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
-          <div className="reveal">
-            <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-3">Behind the spools</p>
-            <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink leading-tight">
-              Stocked by tailors,<br />for tailors.
-            </h2>
-            <p className="mt-5 text-ink-mute leading-relaxed max-w-md">
-              Every item on SH Enterprises is hand-picked by people who&apos;ve cut, sewn and stitched for a living. We carry threads that don&apos;t fray, zippers that don&apos;t catch, and trims that finish a garment with pride.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <Link href="/shop" className="rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm font-bold px-5 py-2.5 transition-colors">
-                Start browsing
-              </Link>
-              <Link href="/ai-helper" className="rounded-xl border-2 border-saffron-400 text-saffron-700 hover:bg-saffron-50 text-sm font-bold px-5 py-2.5 transition-colors">
-                Ask the AI helper
-              </Link>
-            </div>
-          </div>
-          <div className="reveal">
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard number="10+" label="Categories" />
-              <StatCard number="500+" label="SKUs" />
-              <StatCard number="∞" label="Stitches" />
-            </div>
-            <ul className="mt-6 space-y-3 text-sm">
-              <StoryLine emoji="🚚">Shipped to every district in Sri Lanka</StoryLine>
-              <StoryLine emoji="💵">Pay cash when your order arrives</StoryLine>
-              <StoryLine emoji="🎯">Tailor-grade quality, retail prices</StoryLine>
-            </ul>
-          </div>
         </div>
       </section>
 
@@ -242,24 +205,6 @@ export default async function HomePage() {
         </div>
       </section>
     </>
-  );
-}
-
-function StatCard({ number, label }: { number: string; label: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-saffron-200/60 p-4 text-center stitched">
-      <div className="font-display font-bold text-3xl text-saffron-600">{number}</div>
-      <div className="text-xs text-ink-mute uppercase tracking-wide mt-1">{label}</div>
-    </div>
-  );
-}
-
-function StoryLine({ emoji, children }: { emoji: string; children: React.ReactNode }) {
-  return (
-    <li className="flex items-center gap-3 text-ink-soft">
-      <span className="grid place-items-center h-8 w-8 rounded-full bg-white border border-saffron-200 shadow-sm shrink-0">{emoji}</span>
-      <span>{children}</span>
-    </li>
   );
 }
 

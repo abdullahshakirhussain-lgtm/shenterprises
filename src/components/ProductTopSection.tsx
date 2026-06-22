@@ -300,7 +300,7 @@ export default function ProductTopSection({
         {/* Pack / Unit selector */}
         {packVariants.length > 0 && (
           <div className="mt-4">
-            <label className="text-sm font-medium text-brand-900 block mb-1">Pack size</label>
+            <label className="text-sm font-medium text-brand-900 block mb-1">{t("pack_size")}</label>
             <select
               className="input max-w-xs"
               value={selPack?.id ?? ""}
@@ -344,7 +344,7 @@ export default function ProductTopSection({
         <div className="mt-6 max-w-xs space-y-3">
           {/* Quantity stepper */}
           <div>
-            <label className="text-sm font-medium text-brand-900 block mb-1">Quantity</label>
+            <label className="text-sm font-medium text-brand-900 block mb-1">{t("quantity_label")}</label>
             <div className="inline-flex items-center rounded-lg border border-brand-200 bg-white overflow-hidden">
               <button
                 type="button"
@@ -371,7 +371,7 @@ export default function ProductTopSection({
               >+</button>
             </div>
             {product.stock > 0 && product.stock <= 10 && (
-              <p className="text-xs text-amber-700 mt-1">Only {product.stock} left in stock</p>
+              <p className="text-xs text-amber-700 mt-1">{t("only_x_left").replace("{n}", String(product.stock))}</p>
             )}
           </div>
 
@@ -380,14 +380,21 @@ export default function ProductTopSection({
             onClick={addToCart}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {added ? `✓ Added ${qty > 1 ? `${qty} ` : ""}to cart` : !ready ? "Choose options" : product.stock <= 0 ? "Out of stock" : `Add ${qty > 1 ? `${qty} ` : ""}to cart`}
+            {added
+              ? `${t("added")}${qty > 1 ? ` (${qty})` : ""}`
+              : !ready
+                ? t("choose_options")
+                : product.stock <= 0
+                  ? t("out_of_stock")
+                  : `${t("add_to_cart")}${qty > 1 ? ` (${qty})` : ""}`
+            }
           </button>
         </div>
 
         <div className="mt-6 text-sm text-brand-700 space-y-1">
-          <div>✓ Cash on delivery available</div>
-          <div>✓ Bank deposit accepted</div>
-          <div>✓ Island-wide delivery</div>
+          <div>✓ {t("cod_available")}</div>
+          <div>✓ {t("bank_accepted")}</div>
+          <div>✓ {t("islandwide_delivery")}</div>
         </div>
       </div>
     </div>

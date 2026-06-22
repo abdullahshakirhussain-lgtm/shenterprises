@@ -60,13 +60,13 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
               href="/shop"
               className="thread-btn inline-flex items-center justify-center rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 shadow-sm transition-colors"
             >
-              Shop everything
+              {t("shop_everything")}
             </Link>
             <Link
               href="/ai-helper"
               className="inline-flex items-center gap-2 rounded-xl bg-white border-2 border-saffron-300 hover:border-saffron-500 text-saffron-700 text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 transition-colors"
             >
-              ✨ Try the AI Helper
+              ✨ {t("try_ai_helper")}
             </Link>
           </div>
 

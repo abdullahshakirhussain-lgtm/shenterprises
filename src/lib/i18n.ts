@@ -24,8 +24,18 @@ export const translations = {
     color: "Color",
     size: "Size",
     length: "Length",
+    pack_size: "Pack size",
     sku: "SKU",
     related_products: "You may also like",
+    quantity_label: "Quantity",
+    choose_options: "Choose options",
+    only_x_left: "Only {n} left in stock",
+
+    // Hero / homepage CTAs
+    shop_everything: "Shop everything",
+    try_ai_helper: "Try the AI Helper",
+    ai_helper_short: "AI Helper",
+    menu: "Menu",
 
     // Reviews
     reviews: "Reviews",
@@ -206,8 +216,17 @@ export const translations = {
     color: "වර්ණය",
     size: "ප්‍රමාණය",
     length: "දිග",
+    pack_size: "කට්ටල ප්‍රමාණය",
     sku: "SKU",
     related_products: "ඔබට ද කැමති විය හැකිය",
+    quantity_label: "ප්‍රමාණය",
+    choose_options: "විකල්ප තෝරන්න",
+    only_x_left: "තොගයේ ඉතුරු {n}ක් පමණි",
+
+    shop_everything: "සියල්ල සාප්පු",
+    try_ai_helper: "AI සහායක අත්හදන්න",
+    ai_helper_short: "AI සහායක",
+    menu: "මෙනුව",
 
     reviews: "සමාලෝචන",
     write_review: "සමාලෝචනයක් ලියන්න",
@@ -376,8 +395,17 @@ export const translations = {
     color: "நிறம்",
     size: "அளவு",
     length: "நீளம்",
+    pack_size: "பேக் அளவு",
     sku: "SKU",
     related_products: "இவையும் உங்களுக்கு பிடிக்கும்",
+    quantity_label: "அளவு",
+    choose_options: "விருப்பங்களை தேர்வு",
+    only_x_left: "கையிருப்பில் {n} மட்டுமே",
+
+    shop_everything: "அனைத்தும் ஷாப்",
+    try_ai_helper: "AI உதவியாளரை முயற்சி",
+    ai_helper_short: "AI உதவியாளர்",
+    menu: "மெனு",
 
     reviews: "விமர்சனங்கள்",
     write_review: "விமர்சனம் எழுது",

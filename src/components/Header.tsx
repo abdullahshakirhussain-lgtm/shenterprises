@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCart } from "./CartProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -23,9 +23,25 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ fullName: string } | null>(null);
 
+  // Cart bump animation — fires whenever the count increases
+  const prevCount = useRef(count);
+  const [bump, setBump] = useState(false);
+  useEffect(() => {
+    if (count > prevCount.current) {
+      setBump(true);
+      const tm = setTimeout(() => setBump(false), 600);
+      prevCount.current = count;
+      return () => clearTimeout(tm);
+    }
+    prevCount.current = count;
+  }, [count]);
+
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setMe(d.user));
   }, []);
+
+  // Close mobile menu when route changes
+  useEffect(() => { setOpen(false); }, [pathname]);
 
   function onLogoClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -35,19 +51,17 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
 
   return (
     <header className="sticky top-0 z-30 bg-cream/95 backdrop-blur border-b border-saffron-200/40 shadow-[0_1px_0_rgba(180,87,28,.04)]">
-      <div className="container-x flex items-center gap-3 py-3.5">
-        {/* Logo: spool monogram + Fraunces wordmark */}
-        <a id="logo" href="/" onClick={onLogoClick} title="psst… click me" className="flex items-center gap-2.5 shrink-0 group">
-          <span className="relative grid place-items-center h-10 w-10 rounded-xl bg-ink text-cream shadow-sm border border-ink-soft transition-transform group-hover:rotate-[-6deg]">
-            {/* Mini spool SVG instead of generic "SH" box */}
-            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <div className="container-x flex items-center gap-2 sm:gap-3 py-3 sm:py-3.5">
+        {/* Logo */}
+        <a id="logo" href="/" onClick={onLogoClick} title="psst… click me" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group">
+          <span className="relative grid place-items-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-ink text-cream shadow-sm border border-ink-soft transition-transform group-hover:rotate-[-6deg]">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <ellipse cx="12" cy="6" rx="5" ry="1.5" />
               <ellipse cx="12" cy="18" rx="5" ry="1.5" />
               <line x1="7" y1="6" x2="7" y2="18" />
               <line x1="17" y1="6" x2="17" y2="18" />
               <path d="M8 9 L16 11 M16 13 L8 15" opacity="0.6" />
             </svg>
-            {/* Saffron stitch accent */}
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-saffron-500 border-2 border-cream" />
           </span>
           <span className="hidden sm:block leading-tight">
@@ -56,46 +70,56 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
           </span>
         </a>
 
+        {/* Search — narrower on mobile to leave room for icons */}
         <div className="hidden md:block flex-1 max-w-xl">
           <SearchBox placeholder={t("search_placeholder")} submitLabel={t("search")} />
         </div>
-        <div className="md:hidden flex-1 max-w-sm">
+        <div className="md:hidden flex-1 min-w-0">
           <SearchBox placeholder={t("search_placeholder_short")} submitLabel={t("search")} />
         </div>
 
-        <nav className="ml-auto flex items-center gap-3 text-sm font-semibold shrink-0">
+        {/* Desktop nav */}
+        <nav className="ml-auto hidden md:flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
-          <Link href="/shop" className="hover:text-saffron-700 hidden sm:block text-ink-soft transition-colors">Shop</Link>
-          <Link href="/offers" className="hover:text-saffron-700 hidden sm:block text-ink-soft transition-colors">{t("offers")}</Link>
+          <Link href="/shop" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("shop_everything")}</Link>
+          <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
           <Link
             href="/ai-helper"
-            className="hidden md:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-saffron-500 to-saffron-600 text-white text-xs font-bold hover:from-saffron-600 hover:to-saffron-700 transition-all shadow-sm hover:shadow"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-saffron-500 to-saffron-600 text-white text-xs font-bold hover:from-saffron-600 hover:to-saffron-700 transition-all shadow-sm hover:shadow"
             title="AI project helper"
           >
-            ✨ AI Helper
+            ✨ {t("ai_helper_short")}
           </Link>
-          <Link href="/track" className="hover:text-saffron-700 hidden md:block text-ink-soft transition-colors">{t("track_my_order")}</Link>
+          <Link href="/track" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("track_my_order")}</Link>
           {me ? (
             <Link href="/account" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("hi")}, {me.fullName.split(" ")[0]}</Link>
           ) : (
             <Link href="/account/login" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("login")}</Link>
           )}
-          <Link
-            href="/cart"
-            className="rounded-lg bg-ink hover:bg-ink-soft text-cream px-3.5 py-1.5 transition-colors relative flex items-center gap-1.5 shadow-sm"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 4h2l2 10h10l2-7H6" />
-              <circle cx="9" cy="17" r="1" fill="currentColor" />
-              <circle cx="16" cy="17" r="1" fill="currentColor" />
-            </svg>
-            <span>{t("cart")}</span>
-            {count > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-saffron-500 text-white text-xs ml-0.5">{count}</span>
-            )}
-          </Link>
-          <button onClick={() => setOpen(v => !v)} className="md:hidden text-ink-soft" aria-label="Menu">☰</button>
+          <CartButton count={count} bump={bump} label={t("cart")} />
         </nav>
+
+        {/* Mobile actions — only what fits: cart + hamburger */}
+        <div className="ml-auto flex md:hidden items-center gap-1.5 shrink-0">
+          <CartButton count={count} bump={bump} label={t("cart")} compact />
+          <button
+            onClick={() => setOpen(v => !v)}
+            className="grid place-items-center h-10 w-10 rounded-lg bg-white border border-saffron-200 text-ink-soft hover:bg-saffron-50 transition-colors"
+            aria-label={t("menu")}
+          >
+            {open ? (
+              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M4 4 L16 16 M16 4 L4 16" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="17" y2="6" />
+                <line x1="3" y1="10" x2="17" y2="10" />
+                <line x1="3" y1="14" x2="17" y2="14" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Tape measure egg target */}
@@ -105,49 +129,86 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         </div>
       </div>
 
-      {/* Category strip — refined, on ivory band with subtle stitched bottom border */}
-      <div
-        className="border-t border-saffron-200/40 bg-ivory/60 relative"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, transparent 0 8px, rgba(184,119,47,.25) 8px 14px, transparent 14px 22px)",
-          backgroundSize: "22px 1px",
-          backgroundPosition: "0 100%",
-          backgroundRepeat: "repeat-x",
-        }}
-      >
-        <div className="container-x">
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
-            {categories.map(c => {
-              const active = pathname === `/category/${c.slug}`;
-              return (
-                <Link
-                  key={c.slug}
-                  href={`/category/${c.slug}`}
-                  className={`shrink-0 font-display text-sm font-semibold px-3.5 py-1.5 rounded-full transition-all ${
-                    active
-                      ? "bg-ink text-cream shadow-sm"
-                      : "text-ink-soft hover:bg-saffron-100 hover:text-saffron-800"
-                  }`}
-                >
-                  {catName(c)}
-                </Link>
-              );
-            })}
+      {/* Category strip — hidden when mobile menu is open to reduce noise */}
+      {!open && (
+        <div
+          className="border-t border-saffron-200/40 bg-ivory/60 relative"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, transparent 0 8px, rgba(184,119,47,.25) 8px 14px, transparent 14px 22px)",
+            backgroundSize: "22px 1px",
+            backgroundPosition: "0 100%",
+            backgroundRepeat: "repeat-x",
+          }}
+        >
+          <div className="container-x">
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
+              {categories.map(c => {
+                const active = pathname === `/category/${c.slug}`;
+                return (
+                  <Link
+                    key={c.slug}
+                    href={`/category/${c.slug}`}
+                    className={`shrink-0 font-display text-sm font-semibold px-3.5 py-1.5 rounded-full transition-all ${
+                      active
+                        ? "bg-ink text-cream shadow-sm"
+                        : "text-ink-soft hover:bg-saffron-100 hover:text-saffron-800"
+                    }`}
+                  >
+                    {catName(c)}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* Mobile drawer menu */}
       {open && (
-        <div className="md:hidden border-t border-saffron-200/40 bg-cream p-4 space-y-3 shadow-inner">
-          <div className="flex flex-col gap-3 text-sm font-semibold">
-            <Link href="/shop" className="text-ink-soft hover:text-saffron-700">Shop all</Link>
-            <Link href="/offers" className="text-ink-soft hover:text-saffron-700">{t("offers")}</Link>
-            <Link href="/ai-helper" className="text-saffron-700 font-bold flex items-center gap-1">✨ AI Project Helper</Link>
-            <Link href="/track" className="text-ink-soft hover:text-saffron-700">{t("track_my_order")}</Link>
+        <div className="md:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
+          <div className="container-x py-4 space-y-1">
+            <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
+            <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
+            <Link href="/ai-helper" className="block py-2.5 px-3 rounded-lg text-saffron-700 font-display font-semibold text-base hover:bg-saffron-100 transition-colors">✨ {t("ai_helper_short")}</Link>
+            <Link href="/track" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("track_my_order")}</Link>
+            {me ? (
+              <Link href="/account" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("hi")}, {me.fullName.split(" ")[0]}</Link>
+            ) : (
+              <Link href="/account/login" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("login")}</Link>
+            )}
+            <div className="pt-2 mt-2 border-t border-saffron-200/50">
+              <LanguageSwitcher compact />
+            </div>
           </div>
         </div>
       )}
     </header>
+  );
+}
+
+function CartButton({ count, bump, label, compact }: { count: number; bump: boolean; label: string; compact?: boolean }) {
+  return (
+    <Link
+      href="/cart"
+      aria-label={label}
+      className={`rounded-lg bg-ink hover:bg-ink-soft text-cream transition-all relative flex items-center gap-1.5 shadow-sm ${
+        compact ? "h-10 w-10 grid place-items-center" : "px-3.5 py-1.5"
+      } ${bump ? "cart-bump" : ""}`}
+    >
+      <svg className={compact ? "w-5 h-5" : "w-4 h-4"} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 4h2l2 10h10l2-7H6" />
+        <circle cx="9" cy="17" r="1" fill="currentColor" />
+        <circle cx="16" cy="17" r="1" fill="currentColor" />
+      </svg>
+      {!compact && <span className="text-sm font-semibold">{label}</span>}
+      {count > 0 && (
+        <span
+          className={`absolute ${compact ? "-top-1 -right-1" : "-top-1.5 -right-1.5"} inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-saffron-500 text-white text-xs font-bold ring-2 ring-cream`}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
   );
 }
