@@ -33,7 +33,7 @@ export default async function HomePage() {
   ]);
 
   const sampleIds = allActiveIds.length
-    ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 4).map(p => p.id)
+    ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 12).map(p => p.id)
     : [];
   const shopAllPreview = sampleIds.length
     ? await safe(() => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } }), [] as any[])
@@ -123,7 +123,7 @@ export default async function HomePage() {
             </div>
             <Link href="/shop" className="text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">Shop all →</Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
             {shopAllPreview.map(p => <HomeProductCard key={p.id} p={p} />)}
           </div>
         </section>
@@ -140,21 +140,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-        <div className="text-center mb-10 reveal">
-          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-2">Reviews</p>
-          <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">Loved by tailors &amp; crafters</h2>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 reveal">
-          <Testimonial initial="N" name="Nimali Perera" role="Home tailor, Colombo"
-            quote="Best place for threads and zippers in Colombo. Delivery was quick and everything was good quality." />
-          <Testimonial initial="R" name="Roshan Fernando" role="Boutique owner, Kandy"
-            quote="I run a small boutique and order in bulk. Prices are fair and the staff are very helpful." />
-          <Testimonial initial="F" name="Fathima Rizwan" role="Craft hobbyist, Galle"
-            quote="So easy to order on my phone. Cash on delivery made it stress-free. Highly recommend!" />
-        </div>
-      </section>
     </>
   );
 }
@@ -166,22 +151,6 @@ function TrustCard({ emoji, altEmoji, title, body }: { emoji: string; altEmoji: 
       <h3 className="font-display font-semibold text-xl text-ink">{title}</h3>
       <p className="text-ink-mute text-sm mt-1.5 leading-relaxed">{body}</p>
     </button>
-  );
-}
-
-function Testimonial({ initial, name, role, quote }: { initial: string; name: string; role: string; quote: string }) {
-  return (
-    <figure className="rounded-2xl bg-white border border-saffron-200/40 shadow-sm p-6 stitched">
-      <div className="text-saffron-500 text-lg mb-3" aria-label="5 out of 5 stars">★★★★★</div>
-      <blockquote className="text-ink-soft leading-relaxed italic">&ldquo;{quote}&rdquo;</blockquote>
-      <figcaption className="mt-5 flex items-center gap-3">
-        <span className="grid place-items-center h-10 w-10 rounded-full bg-saffron-100 font-display font-bold text-saffron-700">{initial}</span>
-        <span>
-          <span className="block font-bold text-sm text-ink">{name}</span>
-          <span className="block text-ink-mute text-xs">{role}</span>
-        </span>
-      </figcaption>
-    </figure>
   );
 }
 
