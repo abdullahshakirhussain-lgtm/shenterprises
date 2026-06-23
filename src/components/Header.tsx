@@ -23,6 +23,29 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ fullName: string } | null>(null);
 
+  // Category strip horizontal scroll state — drives the </> arrow visibility
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 4);
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [categories.length]);
+  function scrollStrip(dir: 1 | -1) {
+    stripRef.current?.scrollBy({ left: dir * 240, behavior: "smooth" });
+  }
+
   // Cart bump animation — fires whenever the count increases
   const prevCount = useRef(count);
   const [bump, setBump] = useState(false);
@@ -135,8 +158,23 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
             backgroundRepeat: "repeat-x",
           }}
         >
-          <div className="container-x">
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
+          <div className="container-x relative">
+            {/* Left arrow + fade — only visible when there's more to the left */}
+            {canScrollLeft && (
+              <>
+                <div aria-hidden className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 z-10 bg-gradient-to-r from-ivory via-ivory/70 to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => scrollStrip(-1)}
+                  aria-label="Scroll categories left"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
+                >
+                  <span className="text-sm font-bold leading-none" aria-hidden>&lsaquo;</span>
+                </button>
+              </>
+            )}
+
+            <div ref={stripRef} className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5 scroll-smooth">
               {/* Shop everything — first chip, always visible regardless of language */}
               <Link
                 href="/shop"
@@ -165,6 +203,21 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
                 );
               })}
             </div>
+
+            {/* Right arrow + fade — only visible when there's more to the right */}
+            {canScrollRight && (
+              <>
+                <div aria-hidden className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 z-10 bg-gradient-to-l from-ivory via-ivory/70 to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => scrollStrip(1)}
+                  aria-label="Scroll categories right"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
+                >
+                  <span className="text-sm font-bold leading-none" aria-hidden>&rsaquo;</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
