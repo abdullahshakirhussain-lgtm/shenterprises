@@ -279,6 +279,51 @@ model Cart {
   createdAt DateTime @default(now())
 }
 
+// ===== Customer profiling =====
+// One row per (browserId, optional userId). Built by the profile-builder job
+// every 15 min from existing AnalyticsEvent / Order / Cart / ChatSession data.
+// Powers personalized recommendations + situational pricing later on.
+
+model CustomerProfile {
+  id                     Int      @id @default(autoincrement())
+  browserId              String   @unique  // cookie-based anonymous id
+  userId                 Int?     @unique  // populated when the visitor signs up
+
+  // Classifier output (one of:
+  //   professional_tailor | boutique_owner | hobbyist | bulk_event_buyer |
+  //   gifter | student | casual_browser | unknown)
+  customerType           String   @default("unknown")
+  typeConfidence         Float    @default(0)   // 0..1
+
+  // Behavioral scores (all 0..1 unless noted)
+  engagementScore        Float    @default(0)   // 0..100
+  ltv                    Float    @default(0)   // total LKR ordered
+  aov                    Float    @default(0)   // avg order value
+  orderCount             Int      @default(0)
+  cartAbandonmentRate    Float    @default(0)
+  discountResponsiveness Float    @default(0)
+
+  // Recency
+  firstSeenAt            DateTime @default(now())
+  lastSeenAt             DateTime @default(now())
+  lastOrderAt            DateTime?
+
+  // Preferences
+  topCategories          String?  // JSON array of category slugs
+  topPriceRange          Float?   // median price of products they engage with
+  preferredLanguage      String?
+  deviceClass            String?
+
+  // Interest vector — averaged embedding of products they've viewed/added/ordered
+  interestVector         Unsupported("vector(1536)")?
+
+  updatedAt              DateTime @updatedAt
+
+  @@index([customerType])
+  @@index([lastSeenAt])
+  @@index([userId])
+}
+
 // ===== AI Helper feedback loop =====
 // Records each AI Helper conversation + every suggestion shown, plus implicit
 // (add-to-cart, ordered) and explicit (thumbs, star rating) signals. Used to
