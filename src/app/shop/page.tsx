@@ -53,80 +53,99 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     return s ? `?${s}` : "";
   }
 
+  // Active-filter badge count — shown on the Filters button so it's obvious when something is on
+  const activeFilterCount =
+    (sort !== "newest" ? 1 : 0) +
+    (!isNaN(min) ? 1 : 0) +
+    (!isNaN(max) ? 1 : 0);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-serif font-bold text-3xl text-ink mb-2">{t("shop_all")}</h1>
-      <p className="text-muted text-sm mb-6">
-        {total} {total === 1 ? t("product") : t("products")}
-        {cat ? ` — ${categories.find(c => c.slug === cat)?.name || cat}` : ""}
-        {q ? ` — "${q}"` : ""}
-      </p>
-
-      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
-        <aside className="card p-5 h-fit lg:sticky lg:top-24 space-y-5">
-          <form action="/shop" method="GET" className="space-y-4">
-            <div>
-              <label className="label">{t("search")}</label>
-              <input name="q" defaultValue={q} className="input" placeholder={t("search_placeholder_short")} />
-            </div>
-            <div>
-              <label className="label">{t("category_label")}</label>
-              <select name="cat" defaultValue={cat} className="input">
-                <option value="">{t("all_categories")}</option>
-                {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">{t("sort_by")}</label>
-              <select name="sort" defaultValue={sort} className="input">
-                <option value="newest">{t("newest_first")}</option>
-                <option value="price-asc">{t("price_low_high")}</option>
-                <option value="price-desc">{t("price_high_low")}</option>
-                <option value="name">{t("name_az")}</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">{t("price_range")}</label>
-              <div className="flex gap-2">
-                <input name="min" type="number" min="0" defaultValue={searchParams.min || ""} placeholder={t("min_price")} className="input" />
-                <input name="max" type="number" min="0" defaultValue={searchParams.max || ""} placeholder={t("max_price")} className="input" />
-              </div>
-            </div>
-            <button className="btn-primary w-full">{t("apply_filters")}</button>
-            {(q || cat || sort !== "newest" || searchParams.min || searchParams.max) && (
-              <Link href="/shop" className="block text-center text-sm text-brand-700 underline">{t("clear_all")}</Link>
-            )}
-          </form>
-        </aside>
-
+    <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+      <div className="flex items-end justify-between gap-3 mb-4">
         <div>
-          {products.length === 0 ? (
-            <div className="card p-10 text-center">
-              <p className="text-brand-700 mb-3">{t("no_products_match")}</p>
-              <Link href="/shop" className="btn-secondary">{t("clear_filters")}</Link>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
-                {products.map(p => <ShopProductCard key={p.id} p={p} />)}
-              </div>
-              {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
-                  {page > 1 && (
-                    <Link href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">{t("prev")}</Link>
-                  )}
-                  <span className="text-sm text-brand-700 px-3">
-                    {t("page_of")} <strong>{page}</strong> {t("of")} {totalPages}
-                  </span>
-                  {page < totalPages && (
-                    <Link href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">{t("next")}</Link>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+          <h1 className="font-display font-semibold text-2xl sm:text-3xl text-ink">{t("shop_all")}</h1>
+          <p className="text-ink-mute text-sm mt-0.5">
+            {total} {total === 1 ? t("product") : t("products")}
+            {cat ? ` — ${categories.find(c => c.slug === cat)?.name || cat}` : ""}
+          </p>
         </div>
+
+        {/* Filters trigger — tucked away in a small button */}
+        <details className="relative">
+          <summary className="list-none cursor-pointer select-none inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-saffron-300 hover:border-saffron-500 text-ink-soft text-sm font-semibold transition-colors">
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="17" y2="6" />
+              <line x1="6" y1="10" x2="14" y2="10" />
+              <line x1="9" y1="14" x2="11" y2="14" />
+            </svg>
+            <span>{t("filter_by")}</span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-saffron-500 text-white text-[10px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </summary>
+
+          <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-[320px] rounded-xl bg-white border border-saffron-300 shadow-xl z-30 p-4">
+            <form action="/shop" method="GET" className="space-y-3">
+              {/* Preserve any active category/search context */}
+              {cat && <input type="hidden" name="cat" value={cat} />}
+              {q && <input type="hidden" name="q" value={q} />}
+
+              <div>
+                <label className="label">{t("sort_by")}</label>
+                <select name="sort" defaultValue={sort} className="input">
+                  <option value="newest">{t("newest_first")}</option>
+                  <option value="price-asc">{t("price_low_high")}</option>
+                  <option value="price-desc">{t("price_high_low")}</option>
+                  <option value="name">{t("name_az")}</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">{t("price_range")}</label>
+                <div className="flex gap-2">
+                  <input name="min" type="number" min="0" defaultValue={searchParams.min || ""} placeholder={t("min_price")} className="input" />
+                  <input name="max" type="number" min="0" defaultValue={searchParams.max || ""} placeholder={t("max_price")} className="input" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button className="btn-primary flex-1 text-sm">{t("apply_filters")}</button>
+                {activeFilterCount > 0 && (
+                  <Link href={`/shop${cat ? `?cat=${cat}` : ""}`} className="btn-secondary text-sm">
+                    {t("clear_all")}
+                  </Link>
+                )}
+              </div>
+            </form>
+          </div>
+        </details>
       </div>
+
+      {products.length === 0 ? (
+        <div className="card p-10 text-center">
+          <p className="text-brand-700 mb-3">{t("no_products_match")}</p>
+          <Link href="/shop" className="btn-secondary">{t("clear_filters")}</Link>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {products.map(p => <ShopProductCard key={p.id} p={p} />)}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+              {page > 1 && (
+                <Link href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">{t("prev")}</Link>
+              )}
+              <span className="text-sm text-brand-700 px-3">
+                {t("page_of")} <strong>{page}</strong> {t("of")} {totalPages}
+              </span>
+              {page < totalPages && (
+                <Link href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">{t("next")}</Link>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
