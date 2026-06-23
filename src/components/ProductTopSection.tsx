@@ -209,13 +209,13 @@ export default function ProductTopSection({
           ) : (
             <div className="w-full h-full grid place-items-center text-brand-300 text-7xl">🧵</div>
           )}
-          {/* SH watermark — top-right, keeps the gold tone, sized to be readable but unobtrusive */}
+          {/* SH watermark — centered on the product photo, larger and clearly branded */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt=""
             aria-hidden
-            className="absolute top-3 right-3 w-16 sm:w-20 h-auto opacity-50 pointer-events-none select-none drop-shadow-sm"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 sm:w-32 h-auto opacity-50 pointer-events-none select-none"
             style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
           />
           {selColor && selColor.imageUrl && (
