@@ -209,6 +209,14 @@ export default function ProductTopSection({
           ) : (
             <div className="w-full h-full grid place-items-center text-brand-300 text-7xl">🧵</div>
           )}
+          {/* Subtle SH watermark — top-right, low opacity so it doesn't fight the product */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden
+            className="absolute top-3 right-3 w-12 sm:w-14 h-auto opacity-30 pointer-events-none select-none mix-blend-luminosity"
+          />
           {selColor && selColor.imageUrl && (
             <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
               Showing: <strong>{vd(selColor)}</strong>

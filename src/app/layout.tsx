@@ -30,11 +30,17 @@ export const metadata: Metadata = {
   description:
     "Buy quality threads, zippers, scissors, elastics, ribbons, buttons and more craft & tailoring supplies online. Island-wide delivery across Sri Lanka. Cash on delivery available.",
   keywords: ["threads", "zippers", "buttons", "elastics", "ribbons", "scissors", "tailoring supplies", "craft supplies", "Sri Lanka", "Colombo"],
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "SH Enterprises — Craft & Tailoring Supplies",
     description: "Threads, zippers, scissors, elastics, ribbons, buttons & more. Island-wide delivery in Sri Lanka.",
     type: "website",
-    locale: "en_LK"
+    locale: "en_LK",
+    images: ["/logo.png"],
   },
   robots: { index: true, follow: true }
 };

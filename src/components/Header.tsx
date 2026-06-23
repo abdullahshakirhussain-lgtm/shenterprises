@@ -54,19 +54,14 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
       <div className="container-x flex items-center gap-2 sm:gap-3 py-3 sm:py-3.5">
         {/* Logo */}
         <a id="logo" href="/" onClick={onLogoClick} title="psst… click me" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group">
-          <span className="relative grid place-items-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-ink text-cream shadow-sm border border-ink-soft transition-transform group-hover:rotate-[-6deg]">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <ellipse cx="12" cy="6" rx="5" ry="1.5" />
-              <ellipse cx="12" cy="18" rx="5" ry="1.5" />
-              <line x1="7" y1="6" x2="7" y2="18" />
-              <line x1="17" y1="6" x2="17" y2="18" />
-              <path d="M8 9 L16 11 M16 13 L8 15" opacity="0.6" />
-            </svg>
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-saffron-500 border-2 border-cream" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="SH Enterprises"
+            className="h-10 sm:h-12 w-auto transition-transform group-hover:rotate-[-6deg]"
+          />
           <span className="hidden sm:block leading-tight">
-            <span className="block font-display font-semibold text-lg text-ink tracking-tight">SH Enterprises</span>
-            <span className="block font-display italic text-[10px] text-saffron-600 tracking-wide -mt-0.5">Craft &amp; tailoring supplies</span>
+            <span className="block font-display italic text-[10px] text-saffron-600 tracking-wide">Craft &amp; tailoring supplies</span>
           </span>
         </a>
 
