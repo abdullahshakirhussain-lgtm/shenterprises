@@ -126,6 +126,17 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
             {shopAllPreview.map(p => <HomeProductCard key={p.id} p={p} />)}
           </div>
+
+          {/* Big CTA: Shop everything — visible after the 12-tile grid */}
+          <div className="mt-10 flex justify-center reveal">
+            <Link
+              href="/shop"
+              className="inline-flex items-center gap-2 rounded-xl bg-ink hover:bg-ink-soft text-cream text-base font-bold px-8 py-3.5 shadow-md hover:shadow-lg transition-all group"
+            >
+              Shop everything
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
+          </div>
         </section>
       )}
 
