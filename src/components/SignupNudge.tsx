@@ -31,7 +31,7 @@ export default function SignupNudge() {
   useEffect(() => {
     // Don't show on auth pages or admin
     if (!pathname) return;
-    if (pathname.startsWith("/account") || pathname.startsWith("/admin")) return;
+    if (pathname.startsWith("/account") || pathname.startsWith("/admin") || pathname.startsWith("/catalog")) return;
 
     // Already shown this session
     let seen = false;

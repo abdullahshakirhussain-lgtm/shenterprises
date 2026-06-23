@@ -18,8 +18,11 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
     c.name;
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
+  // The /catalog page is a self-contained "WhatsApp-style" experience —
+  // the regular nav + category strip would lure customers out of it
+  const isCatalog = pathname?.startsWith("/catalog");
 
-  if (isAdmin) return null;
+  if (isAdmin || isCatalog) return null;
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ fullName: string } | null>(null);
 

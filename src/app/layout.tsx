@@ -13,6 +13,8 @@ import EasterEggs from "@/components/EasterEggs";
 import NavigationOverlay from "@/components/NavigationOverlay";
 import ScrollToTop from "@/components/ScrollToTop";
 import SignupNudge from "@/components/SignupNudge";
+import CartToast from "@/components/CartToast";
+import WhatsappFab from "@/components/WhatsappFab";
 import { Suspense } from "react";
 
 const lora = Lora({ subsets: ["latin"], weight: ["500","600","700"], display: "swap", variable: "--font-lora" });
@@ -98,6 +100,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <SignupNudge />
           </Suspense>
+          <Suspense fallback={null}>
+            <WhatsappFab />
+          </Suspense>
+          <CartToast />
         </CartProvider>
         </LanguageProvider>
       </body>

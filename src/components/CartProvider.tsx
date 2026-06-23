@@ -74,6 +74,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "add_to_cart", productId: item.productId, quantity: qty, value: item.price * qty })
     }).catch(() => {});
+
+    // Fire a window event so the global CartToast can show reassurance feedback
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("sh:cart-added", {
+        detail: { name: item.name, quantity: qty, imageUrl: item.imageUrl }
+      }));
+    }
   }, []);
 
   const remove = useCallback((key: string) => {
