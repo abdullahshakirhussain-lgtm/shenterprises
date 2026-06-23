@@ -1,69 +1,83 @@
-import OpenAI from "openai";
+/**
+ * Translation helpers backed by Google Translate's web endpoint
+ * (translate.googleapis.com/translate_a/single).
+ *
+ * Why this and not OpenAI:
+ * - OpenAI's general models do a mediocre job with Sinhala / Tamil compared to
+ *   Google's purpose-built NMT models for those language pairs.
+ * - No API key required (the endpoint is the one translate.google.com uses).
+ * - Effectively free at our volume; we still keep it best-effort with a soft
+ *   timeout so a slow endpoint never blocks the user's request.
+ *
+ * If the endpoint ever stops working we can swap in Google Cloud Translation
+ * API (paid, requires a key) by editing this file only.
+ */
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const ENDPOINT = "https://translate.googleapis.com/translate_a/single";
+const TIMEOUT_MS = 6000;
 
 /**
- * Translate a short English phrase (typically a color, size, or length name)
- * to Sinhala and Tamil.
- * Returns { si, ta } strings, or null on failure (caller should fall back to English).
+ * Translate a single string. Returns the translation, or the original on failure.
  */
-export async function translateToSinhalaAndTamil(english: string): Promise<{ si: string; ta: string } | null> {
-  if (!english.trim()) return { si: english, ta: english };
-  if (!process.env.OPENAI_API_KEY) return null;
-
+async function googleTranslate(text: string, target: "si" | "ta" | "en", source = "auto"): Promise<string> {
+  if (!text || !text.trim()) return text;
   try {
-    const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 80,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You are a translator for a Sri Lankan craft and tailoring supply shop. Translate the given English term to Sinhala and Tamil. For color names use the standard Sinhala/Tamil color word. For sizes and measurements, keep numbers/units as-is but translate any descriptive English. Respond ONLY with JSON: {\"si\":\"<sinhala>\",\"ta\":\"<tamil>\"}",
-        },
-        {
-          role: "user",
-          content: english,
-        },
-      ],
+    const params = new URLSearchParams({
+      client: "gtx",
+      sl: source,
+      tl: target,
+      dt: "t",
+      q: text,
     });
-    const content = res.choices[0].message.content || "{}";
-    const parsed = JSON.parse(content);
-    if (typeof parsed.si === "string" && typeof parsed.ta === "string") {
-      return { si: parsed.si.trim(), ta: parsed.ta.trim() };
-    }
-  } catch (e: any) {
-    console.warn("[translate] failed:", e?.message);
+    const res = await fetch(`${ENDPOINT}?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        // A real browser UA helps avoid bot-throttling
+        "User-Agent": "Mozilla/5.0 (compatible; SHEnterprisesBot/1.0)",
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return text;
+    const data: any = await res.json();
+    // Response: [ [ [translated, original, …], … ], …other arrays… ]
+    if (!Array.isArray(data) || !Array.isArray(data[0])) return text;
+    const joined = data[0]
+      .map((segment: any[]) => (Array.isArray(segment) && typeof segment[0] === "string" ? segment[0] : ""))
+      .join("");
+    return joined.trim() || text;
+  } catch {
+    return text;
   }
-  return null;
 }
 
 /**
- * Translate a non-English query to English for searching.
- * Used by the search box to handle Sinhala/Tamil queries against the English product DB.
- * Returns the English query, or the original if translation fails / query is already English.
+ * Translate an English term (product name, variant name, etc) to both
+ * Sinhala and Tamil. Used by admin POST/PATCH paths so storefront
+ * pages can display in the customer's chosen language.
+ */
+export async function translateToSinhalaAndTamil(
+  english: string
+): Promise<{ si: string; ta: string } | null> {
+  if (!english.trim()) return { si: english, ta: english };
+  // Two translations run in parallel
+  const [si, ta] = await Promise.all([
+    googleTranslate(english, "si", "en"),
+    googleTranslate(english, "ta", "en"),
+  ]);
+  // If both came back unchanged, treat as a failure so callers can persist null
+  if (si === english && ta === english) return null;
+  return { si, ta };
+}
+
+/**
+ * Translate a search query (which may be in si/ta) to English so it can match
+ * the English-language product catalog. Returns the original if it's already
+ * ASCII / English-looking, or on failure.
  */
 export async function translateQueryToEnglish(query: string): Promise<string> {
   if (!query.trim()) return query;
-  // Quick heuristic: if it's all ASCII, assume English
+  // Quick heuristic: if it's all ASCII assume it's already English
   if (/^[\x00-\x7F]+$/.test(query)) return query;
-  if (!process.env.OPENAI_API_KEY) return query;
-
-  try {
-    const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 60,
-      messages: [
-        {
-          role: "system",
-          content: "You translate search queries for a craft/tailoring supply shop from Sinhala or Tamil to English. Respond with ONLY the translated English query, no quotes, no explanation. Keep brand names and numbers as-is.",
-        },
-        { role: "user", content: query },
-      ],
-    });
-    const out = res.choices[0].message.content?.trim();
-    return out || query;
-  } catch {
-    return query;
-  }
+  const out = await googleTranslate(query, "en", "auto");
+  return out || query;
 }

@@ -81,7 +81,6 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         {/* Desktop nav */}
         <nav className="ml-auto hidden md:flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
-          <Link href="/shop" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("shop_everything")}</Link>
           <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
           <Link
             href="/ai-helper"
@@ -143,6 +142,17 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         >
           <div className="container-x">
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
+              {/* Shop everything — first chip, always visible regardless of language */}
+              <Link
+                href="/shop"
+                className={`shrink-0 font-display text-sm font-semibold px-3.5 py-1.5 rounded-full transition-all border ${
+                  pathname === "/shop"
+                    ? "bg-ink text-cream border-ink shadow-sm"
+                    : "border-saffron-300 text-saffron-800 bg-white hover:bg-saffron-50"
+                }`}
+              >
+                ✦ {t("shop_everything")}
+              </Link>
               {categories.map(c => {
                 const active = pathname === `/category/${c.slug}`;
                 return (

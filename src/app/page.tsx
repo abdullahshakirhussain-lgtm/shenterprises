@@ -4,25 +4,10 @@ import { formatLKR } from "@/lib/utils";
 import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
-import CategoryIcon from "@/components/CategoryIcon";
-import { TapeMeasure, Button4Hole } from "@/components/CraftDecorations";
+import { TapeMeasure } from "@/components/CraftDecorations";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
-
-// Tonal background per category — soft, refined, no neon
-const CATEGORY_TONES: Record<string, { bg: string; text: string }> = {
-  threads:             { bg: "bg-saffron-100",  text: "text-saffron-700" },
-  zippers:             { bg: "bg-brand-100",    text: "text-brand-800" },
-  buttons:             { bg: "bg-ivory",        text: "text-ink-soft" },
-  ribbons:             { bg: "bg-saffron-100",  text: "text-saffron-700" },
-  scissors:            { bg: "bg-brand-100",    text: "text-brand-800" },
-  elastics:            { bg: "bg-ivory",        text: "text-ink-soft" },
-  "lace-trims":        { bg: "bg-saffron-100",  text: "text-saffron-700" },
-  "needles-pins":      { bg: "bg-brand-100",    text: "text-brand-800" },
-  "fabric-markers":    { bg: "bg-ivory",        text: "text-ink-soft" },
-  "tools-accessories": { bg: "bg-brand-100",    text: "text-brand-800" },
-};
 
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try { return await fn(); }
@@ -33,9 +18,8 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 }
 
 export default async function HomePage() {
-  const [banners, categories, offers, allActiveIds, promoText, heroProducts] = await Promise.all([
+  const [banners, offers, allActiveIds, promoText, heroProducts] = await Promise.all([
     safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
-    safe(() => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }), [] as any[]),
     safe(() => prisma.product.findMany({ where: { active: true, onOffer: true }, take: 4, orderBy: { updatedAt: "desc" }, include: { variants: true } }), [] as any[]),
     safe(() => prisma.product.findMany({ where: { active: true }, select: { id: true } }), [] as { id: number }[]),
     safe(() => getSetting("promo_strip_text"), null),
@@ -65,41 +49,8 @@ export default async function HomePage() {
       {/* Banner strip — admin-managed promo banners, secondary */}
       <BannerStrip banners={banners} />
 
-      <div className="cut reveal mt-4"><span>✂</span></div>
-
-      {/* Categories — confident image-led grid, fewer columns on desktop */}
-      <section className="mx-auto max-w-6xl px-4 py-12 md:py-16 relative">
-        {/* Decorative button — scattered top-left, very subtle */}
-        <Button4Hole className="absolute top-4 left-4 w-20 h-20 text-thread-maple-500 opacity-15 pointer-events-none rotate-[12deg] hidden md:block" />
-        <div className="relative text-center mb-10 reveal">
-          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-2">Browse</p>
-          <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">
-            <span className="stitched-dashed">Shop by category</span>
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 reveal">
-          {categories.map(c => {
-            const tone = CATEGORY_TONES[c.slug] || { bg: "bg-brand-100", text: "text-brand-800" };
-            const id = c.slug === "scissors" ? "cat-scissors" : undefined;
-            return (
-              <Link key={c.slug} id={id} href={`/category/${c.slug}`}
-                className={`tile group flex flex-col items-center justify-end gap-3 rounded-2xl ${tone.bg} border border-white/60 shadow-sm py-7 px-3 text-center relative overflow-hidden`}>
-                {c.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.imageUrl} alt={c.name} className="w-16 h-16 object-cover rounded-full border-2 border-white shadow-sm" />
-                ) : (
-                  <CategoryIcon slug={c.slug} className={`w-14 h-14 ${tone.text} transition-transform group-hover:scale-110`} />
-                )}
-                <span className={`font-display font-semibold text-base sm:text-lg ${tone.text}`}>
-                  {c.name}
-                </span>
-                {/* Subtle decorative arrow */}
-                <span className="absolute top-3 right-3 text-xs opacity-0 group-hover:opacity-60 transition-opacity">↗</span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      {/* Category tiles removed — strip below the header already serves as nav.
+          Keeps the homepage tight and reduces scroll length. */}
 
       {/* AI Project Helper banner — now styled to match the new palette */}
       <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
