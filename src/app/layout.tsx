@@ -37,6 +37,9 @@ export const metadata: Metadata = {
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
+  verification: {
+    google: "KrpOoUoDdsXuMPl6_sFST6GCrfX9MHjs5pd7A8zMej4",
+  },
   openGraph: {
     title: "SH Enterprises — Craft & Tailoring Supplies",
     description: "Threads, zippers, scissors, elastics, ribbons, buttons & more. Island-wide delivery in Sri Lanka.",
