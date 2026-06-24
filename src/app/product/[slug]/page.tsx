@@ -5,6 +5,7 @@ import ProductTopSection from "@/components/ProductTopSection";
 import ProductCard from "@/components/ProductCard";
 import RelatedHeading from "@/components/RelatedHeading";
 import ReviewSection from "@/components/ReviewSection";
+import JsonLd, { breadcrumbSchema } from "@/components/JsonLd";
 import { getT } from "@/lib/i18n-server";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -72,9 +73,17 @@ export default async function ProductPage({ params }: { params: { slug: string }
     };
   }
 
+  const siteUrl = process.env.SITE_URL || "https://shenterprises.lk";
+  const breadcrumbCrumbs = [
+    { name: "Home", url: "/" },
+    ...(p.category ? [{ name: p.category.name, url: `/category/${p.category.slug}` }] : []),
+    { name: p.name, url: `/product/${p.slug}` },
+  ];
+
   return (
     <div className="container-x py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={breadcrumbSchema(siteUrl, breadcrumbCrumbs)} />
       <nav className="text-sm text-brand-700 mb-4">
         <Link href="/">{getT()("breadcrumb_home")}</Link> /{" "}
         {p.category && (<><Link href={`/category/${p.category.slug}`}>{p.category.name}</Link> / </>)}

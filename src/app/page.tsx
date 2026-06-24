@@ -5,6 +5,7 @@ import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import { TapeMeasure } from "@/components/CraftDecorations";
+import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +40,13 @@ export default async function HomePage() {
     ? await safe(() => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } }), [] as any[])
     : [];
 
+  const siteUrl = process.env.SITE_URL || "https://shenterprises.lk";
+
   return (
     <>
+      <JsonLd data={organizationSchema(siteUrl)} />
+      <JsonLd data={websiteSchema(siteUrl)} />
+
       {promoText && <PromoStrip text={promoText} href="/offers" />}
 
       {/* Editorial hero (new) — bold typographic statement */}
