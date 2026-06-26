@@ -64,6 +64,10 @@ model Product {
   salePrice   Float?
   sku         String?   @unique
   stock       Int       @default(0)
+  // Single source of truth for availability — when true, blocks checkout and
+  // shows an "Out of stock" badge. The legacy `stock` column is kept for now
+  // but is no longer used for availability checks.
+  outOfStock  Boolean   @default(false)
   unitQty     Int?      // e.g. 100 (for "100 pieces") or 10 (for "10 yards")
   unitType    String?   // "pieces" | "yards" | "meters" | "feet" | "cm"
   imageUrl    String?
@@ -181,6 +185,8 @@ model ProductVariant {
   price     Float?
   salePrice Float?
   sortOrder Int     @default(0)
+  // Per-variant availability — if true, customer can't pick this variant
+  outOfStock Boolean @default(false)
 
   @@index([productId])
 }

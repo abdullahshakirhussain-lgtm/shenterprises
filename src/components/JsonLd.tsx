@@ -79,6 +79,7 @@ export function productSchema(
     salePrice?: number | null;
     imageUrl?: string | null;
     stock: number;
+    outOfStock?: boolean;
     category?: { name: string } | null;
   },
   siteUrl: string
@@ -101,10 +102,9 @@ export function productSchema(
       url: `${siteUrl}/product/${p.slug}`,
       priceCurrency: "LKR",
       price: effectivePrice.toFixed(2),
-      availability:
-        p.stock > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
+      availability: p.outOfStock
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
       seller: {
         "@type": "Organization",
         name: "SH Enterprises",

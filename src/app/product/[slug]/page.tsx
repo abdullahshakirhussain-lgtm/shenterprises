@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
       "@type": "Offer",
       priceCurrency: "LKR",
       price: effective,
-      availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      availability: (p as any).outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"
     }
   };
   if (p.reviews.length > 0) {
@@ -101,6 +101,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           sku: p.sku,
           imageUrl: p.imageUrl,
           stock: p.stock,
+          outOfStock: (p as any).outOfStock ?? false,
         }}
         images={images}
         variants={p.variants.map(v => ({
@@ -112,6 +113,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           imageUrl: v.imageUrl,
           price: (v as any).price ?? null,
           salePrice: (v as any).salePrice ?? null,
+          outOfStock: (v as any).outOfStock ?? false,
         }))}
         unitLabel={unitLabel}
         avgRating={avg}

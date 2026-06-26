@@ -28,6 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (b.onOffer !== undefined)     data.onOffer = !!b.onOffer;
     if (b.featured !== undefined)    data.featured = !!b.featured;
     if (b.active !== undefined)      data.active = b.active !== false;
+    if (b.outOfStock !== undefined)  data.outOfStock = !!b.outOfStock;
     if (b.metaTitle !== undefined)   data.metaTitle = b.metaTitle || null;
     if (b.metaDesc !== undefined)    data.metaDesc = b.metaDesc || null;
 

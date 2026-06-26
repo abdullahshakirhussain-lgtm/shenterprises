@@ -12,6 +12,7 @@ type Product = {
   imageUrl: string | null;
   onOffer: boolean;
   stock: number;
+  outOfStock?: boolean;
   unitQty?: number | null;
   unitType?: string | null;
   variants?: Variant[];
@@ -93,7 +94,7 @@ export default function ProductCard({ p }: { p: Product }) {
               </>
             )}
           </div>
-          {p.stock <= 0 && <div className="text-xs text-red-600 mt-1">Out of stock</div>}
+          {p.outOfStock && <div className="text-xs text-red-600 mt-1">Out of stock</div>}
         </div>
       </div>
     </div>

@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         onOffer: !!b.onOffer,
         featured: !!b.featured,
         active: b.active !== false,
+        outOfStock: !!b.outOfStock,
         metaTitle: b.metaTitle || null,
         metaDesc: b.metaDesc || null
       },

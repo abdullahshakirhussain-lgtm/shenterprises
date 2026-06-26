@@ -47,7 +47,12 @@ export async function POST(req: NextRequest) {
     let subtotal = 0;
     const items = body.items.map((it) => {
       const p = products.find((p) => p.id === it.productId)!;
-      if (p.stock < it.quantity) throw new Error(`Insufficient stock for ${p.name}`);
+      if ((p as any).outOfStock) throw new Error(`${p.name} is currently out of stock`);
+      // Check selected variants too — any out-of-stock variant blocks the order
+      if (it.variantIds && it.variantIds.length > 0) {
+        const blocked = p.variants.find(v => it.variantIds!.includes(v.id) && (v as any).outOfStock);
+        if (blocked) throw new Error(`${p.name} (${blocked.name}) is currently out of stock`);
+      }
 
       // Compute effective price using the universal SUM rule:
       // - Each priced variant contributes its effective amount.
@@ -150,9 +155,8 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    await Promise.all(items.map((i) =>
-      prisma.product.update({ where: { id: i.productId }, data: { stock: { decrement: i.quantity } } })
-    ));
+    // Stock decrement removed — availability is now governed by the
+    // explicit `outOfStock` flag, not a numeric counter.
 
     if (couponCode) {
       await prisma.coupon.update({ where: { code: couponCode }, data: { usedCount: { increment: 1 } } });

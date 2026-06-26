@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id, name, price, salePrice, imageUrl, sortOrder } = await req.json();
+  const { id, name, price, salePrice, imageUrl, sortOrder, outOfStock } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const data: any = {};
   if (name !== undefined) {
@@ -72,6 +72,7 @@ export async function PATCH(req: NextRequest) {
   if (sortOrder !== undefined) data.sortOrder = sortOrder;
   if (price !== undefined) data.price = price === null || price === "" ? null : parseFloat(price);
   if (salePrice !== undefined) data.salePrice = salePrice === null || salePrice === "" ? null : parseFloat(salePrice);
+  if (outOfStock !== undefined) data.outOfStock = !!outOfStock;
   const variant = await prisma.productVariant.update({ where: { id: parseInt(id) }, data });
   return NextResponse.json(variant);
 }

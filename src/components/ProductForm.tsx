@@ -12,6 +12,7 @@ type Product = {
   images?: string | string[] | null;  // server stores JSON string; client uses array
   categoryId?: number | null;
   onOffer: boolean; featured: boolean; active: boolean;
+  outOfStock?: boolean;
   metaTitle?: string | null; metaDesc?: string | null;
 };
 
@@ -33,7 +34,7 @@ const UNIT_TYPES = [
 export default function ProductForm({ initial, categories: initialCategories }: { initial?: Partial<Product>; categories: Category[] }) {
   const router = useRouter();
   const [p, setP] = useState<Product>({
-    name: "", price: 0, stock: 0, onOffer: false, featured: false, active: true,
+    name: "", price: 0, stock: 0, onOffer: false, featured: false, active: true, outOfStock: false,
     unitQty: null, unitType: null,
     ...(initial as any)
   });
@@ -214,10 +215,9 @@ export default function ProductForm({ initial, categories: initialCategories }: 
     <form onSubmit={save} className="card p-5 max-w-3xl space-y-4">
       <div><label className="label">Name *</label><input required className="input" value={p.name} onChange={(e) => up("name", e.target.value)} /></div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-2 gap-3">
         <div><label className="label">Price (LKR) *</label><input required type="number" min="0" step="0.01" className="input" value={p.price} onChange={(e) => up("price", parseFloat(e.target.value) || 0)} /></div>
         <div><label className="label">Sale price</label><input type="number" min="0" step="0.01" className="input" value={p.salePrice ?? ""} onChange={(e) => up("salePrice", e.target.value === "" ? null : parseFloat(e.target.value))} /></div>
-        <div><label className="label">Stock</label><input type="number" min="0" className="input" value={p.stock} onChange={(e) => up("stock", parseInt(e.target.value) || 0)} /></div>
       </div>
 
       {/* Unit qty + type — shown next to product name on storefront */}
@@ -336,6 +336,7 @@ export default function ProductForm({ initial, categories: initialCategories }: 
           <label className="flex items-center gap-2"><input type="checkbox" checked={p.active} onChange={(e) => up("active", e.target.checked)} /> Active (visible)</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={p.onOffer} onChange={(e) => up("onOffer", e.target.checked)} /> On offer</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={p.featured} onChange={(e) => up("featured", e.target.checked)} /> Featured on home</label>
+          <label className="flex items-center gap-2 text-red-700"><input type="checkbox" checked={!!p.outOfStock} onChange={(e) => up("outOfStock", e.target.checked)} /> Out of stock</label>
         </div>
       </div>
 

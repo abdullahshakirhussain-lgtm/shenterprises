@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 
-type Variant = { id: number; type: string; name: string; imageUrl: string | null; sortOrder: number; price?: number | null; salePrice?: number | null };
+type Variant = { id: number; type: string; name: string; imageUrl: string | null; sortOrder: number; price?: number | null; salePrice?: number | null; outOfStock?: boolean };
 type CropBox = { x: number; y: number; width: number; height: number; name: string; confirmed: boolean };
 
 export default function VariantsPanel({
@@ -312,6 +312,15 @@ export default function VariantsPanel({
     });
   }
 
+  async function updateVariantOutOfStock(id: number, value: boolean) {
+    setVariants(v => v.map(x => x.id === id ? { ...x, outOfStock: value } : x));
+    await fetch("/api/admin/products/variants", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, outOfStock: value }),
+    });
+  }
+
   async function updateVariantImage(id: number, file: File) {
     // Upload the image
     const fd = new FormData(); fd.append("file", file);
@@ -441,7 +450,7 @@ export default function VariantsPanel({
               <p className="text-xs text-brand-500 mb-3">Set a price to override the base price when this color is picked. Click the image area to add or change the swatch image.</p>
               <div className="space-y-2">
                 {colorVariants.map(v => (
-                  <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
+                  <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
                 ))}
               </div>
             </div>
@@ -596,7 +605,7 @@ export default function VariantsPanel({
             <div className="space-y-2">
               <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
               {sizeVariants.map(v => (
-                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
               ))}
             </div>
           ) : (
@@ -624,7 +633,7 @@ export default function VariantsPanel({
             <div className="space-y-2">
               <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
               {lengthVariants.map(v => (
-                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
               ))}
             </div>
           ) : (
@@ -661,7 +670,7 @@ export default function VariantsPanel({
             <div className="space-y-2">
               <p className="text-xs text-brand-500">Use this when the product can be bought as individual pieces OR as a pack. Each row has its own price.</p>
               {packVariants.map(v => (
-                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} showImage />
+                <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
               ))}
             </div>
           ) : (
@@ -687,12 +696,13 @@ export default function VariantsPanel({
 }
 
 function VariantRow({
-  variant, onDelete, onPriceChange, onImageChange, showImage,
+  variant, onDelete, onPriceChange, onImageChange, onOutOfStockChange, showImage,
 }: {
   variant: Variant;
   onDelete: (id: number) => void;
   onPriceChange: (id: number, field: "price" | "salePrice", value: string) => void;
   onImageChange?: (id: number, file: File) => void;
+  onOutOfStockChange?: (id: number, value: boolean) => void;
   showImage?: boolean;
 }) {
   const [price, setPrice] = useState<string>(variant.price != null ? String(variant.price) : "");
@@ -756,6 +766,17 @@ function VariantRow({
           />
         </div>
       </div>
+      {onOutOfStockChange && (
+        <label className="flex flex-col items-center gap-0.5 text-[10px] text-brand-500 select-none cursor-pointer" title="Mark this variant as out of stock">
+          <span className="uppercase tracking-wide">Out</span>
+          <input
+            type="checkbox"
+            checked={!!variant.outOfStock}
+            onChange={e => onOutOfStockChange(variant.id, e.target.checked)}
+            className="w-4 h-4 accent-red-600"
+          />
+        </label>
+      )}
       <button onClick={() => onDelete(variant.id)} className="text-red-500 hover:text-red-700 text-lg px-2" title="Delete variant">✕</button>
     </div>
   );

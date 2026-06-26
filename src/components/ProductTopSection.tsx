@@ -13,6 +13,7 @@ type Variant = {
   imageUrl: string | null;
   price?: number | null;
   salePrice?: number | null;
+  outOfStock?: boolean;
 };
 
 function variantDisplay(v: Variant, lang: string): string {
@@ -39,6 +40,7 @@ export default function ProductTopSection({
     sku: string | null;
     imageUrl: string | null;
     stock: number;
+    outOfStock?: boolean;
   };
   images: string[];           // gallery (main + additional)
   variants: Variant[];
@@ -157,8 +159,13 @@ export default function ProductTopSection({
   if (selColor) titleParts.push(vd(selColor));
   const titleSuffix = titleParts.length ? ` — ${titleParts.join(", ")}` : "";
 
+  // Availability — product-level OR any selected variant marked as out of stock
+  const selectedOutOfStock =
+    !!(selColor?.outOfStock || selSize?.outOfStock || selLength?.outOfStock || selPack?.outOfStock);
+  const isOutOfStock = !!product.outOfStock || selectedOutOfStock;
+
   function addToCart() {
-    if (!ready || product.stock <= 0) return;
+    if (!ready || isOutOfStock) return;
     const sel: CartVariant[] = [];
     if (selColor) sel.push({ id: selColor.id, type: "color", name: vd(selColor) });
     if (selSize) sel.push({ id: selSize.id, type: "size", name: vd(selSize) });
@@ -179,7 +186,7 @@ export default function ProductTopSection({
     setTimeout(() => setAdded(false), 1200);
   }
 
-  const maxQty = product.stock > 0 ? product.stock : 99;
+  const maxQty = 99;
   function decQty() { setQty(q => Math.max(1, q - 1)); }
   function incQty() { setQty(q => Math.min(maxQty, q + 1)); }
   function onQtyInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -271,9 +278,13 @@ export default function ProductTopSection({
           )}
         </div>
         {product.sku && <div className="mt-1 text-xs text-brand-600">SKU: {product.sku}</div>}
-        <div className={`mt-2 text-sm ${product.stock > 0 ? "text-green-700" : "text-red-700"}`}>
-          {product.stock > 0 ? `In stock (${product.stock})` : "Out of stock"}
-        </div>
+        {isOutOfStock ? (
+          <div className="mt-2 inline-block text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-0.5">
+            {selectedOutOfStock && !product.outOfStock ? "This option is out of stock" : t("out_of_stock")}
+          </div>
+        ) : (
+          <div className="mt-2 text-sm text-green-700">In stock</div>
+        )}
         {product.description && <p className="mt-4 text-brand-800 whitespace-pre-line">{product.description}</p>}
 
         {/* Size selector */}
@@ -358,7 +369,7 @@ export default function ProductTopSection({
               <button
                 type="button"
                 onClick={decQty}
-                disabled={qty <= 1 || product.stock <= 0}
+                disabled={qty <= 1 || isOutOfStock}
                 className="w-10 h-10 text-lg font-bold text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 aria-label="Decrease quantity"
               >−</button>
@@ -368,24 +379,21 @@ export default function ProductTopSection({
                 max={maxQty}
                 value={qty}
                 onChange={onQtyInput}
-                disabled={product.stock <= 0}
+                disabled={isOutOfStock}
                 className="w-14 h-10 text-center font-semibold text-brand-900 bg-transparent outline-none border-x border-brand-200 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button
                 type="button"
                 onClick={incQty}
-                disabled={qty >= maxQty || product.stock <= 0}
+                disabled={qty >= maxQty || isOutOfStock}
                 className="w-10 h-10 text-lg font-bold text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 aria-label="Increase quantity"
               >+</button>
             </div>
-            {product.stock > 0 && product.stock <= 10 && (
-              <p className="text-xs text-amber-700 mt-1">{t("only_x_left").replace("{n}", String(product.stock))}</p>
-            )}
           </div>
 
           <button
-            disabled={!ready || product.stock <= 0}
+            disabled={!ready || isOutOfStock}
             onClick={addToCart}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -393,7 +401,7 @@ export default function ProductTopSection({
               ? `${t("added")}${qty > 1 ? ` (${qty})` : ""}`
               : !ready
                 ? t("choose_options")
-                : product.stock <= 0
+                : isOutOfStock
                   ? t("out_of_stock")
                   : `${t("add_to_cart")}${qty > 1 ? ` (${qty})` : ""}`
             }
