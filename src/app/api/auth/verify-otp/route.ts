@@ -17,7 +17,24 @@ export async function POST(req: NextRequest) {
 
     if (!record) return NextResponse.json({ error: "No OTP found for this number. Please request a new one." }, { status: 400 });
     if (record.expiresAt < new Date()) return NextResponse.json({ error: "OTP has expired. Please request a new one." }, { status: 400 });
-    if (record.code !== String(code).trim()) return NextResponse.json({ error: "Incorrect OTP code." }, { status: 400 });
+
+    // Brute-force guard: lock this code after 5 wrong guesses
+    const MAX_ATTEMPTS = 5;
+    if ((record.attempts ?? 0) >= MAX_ATTEMPTS) {
+      return NextResponse.json(
+        { error: "Too many incorrect attempts. Please request a new code." },
+        { status: 429 }
+      );
+    }
+
+    if (record.code !== String(code).trim()) {
+      await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+      const left = MAX_ATTEMPTS - (record.attempts ?? 0) - 1;
+      return NextResponse.json(
+        { error: left > 0 ? `Incorrect code. ${left} attempt${left === 1 ? "" : "s"} left.` : "Incorrect code. Please request a new one." },
+        { status: 400 }
+      );
+    }
 
     await prisma.otpCode.update({ where: { id: record.id }, data: { verified: true } });
 

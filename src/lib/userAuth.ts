@@ -2,7 +2,15 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "fallback-secret-change-me");
+function secretString(): string {
+  const s = process.env.AUTH_SECRET;
+  if (s && s.length >= 16) return s;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET is not set (or too short). Set a 32+ char random secret in the environment.");
+  }
+  return "dev-only-insecure-secret-do-not-use-in-prod";
+}
+const secret = () => new TextEncoder().encode(secretString());
 export const USER_COOKIE = "sh_user";
 
 export async function signUserToken(payload: { sub: string; phone: string }) {

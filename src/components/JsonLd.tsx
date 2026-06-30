@@ -8,12 +8,24 @@
 
 type Props = { data: object };
 
+/**
+ * Serialize JSON for safe embedding inside a <script> tag.
+ * JSON.stringify does NOT escape "<", so a value containing "</script>" could
+ * break out of the tag and execute. Escaping the angle brackets and ampersand
+ * fully prevents the breakout — this is the actual XSS guard.
+ */
+export function safeJsonLd(data: object): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 export default function JsonLd({ data }: Props) {
   return (
     <script
       type="application/ld+json"
-      // Dangerously OK here: we control the data shape, not user input
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }
@@ -33,9 +45,7 @@ export function organizationSchema(siteUrl: string) {
       addressCountry: "LK",
       addressRegion: "Western Province",
     },
-    sameAs: [
-      // Add any social profiles here when ready
-    ],
+    sameAs: [],
   };
 }
 

@@ -21,18 +21,36 @@ const schema = z.object({
   bankSlipUrl: z.string().optional(),
   couponCode: z.string().optional(),
   items: z.array(z.object({
-    productId: z.number(),
-    quantity: z.number().min(1),
-    variantLabel: z.string().optional(),  // e.g. "Black, 1/2 inch, 144 yards"
-    variantIds: z.array(z.number()).optional(),  // selected variant IDs — used for server-side price lookup
-  })).min(1)
+    productId: z.number().int().positive(),
+    quantity: z.number().int().min(1).max(10000),
+    variantLabel: z.string().max(200).optional(),  // e.g. "Black, 1/2 inch, 144 yards"
+    variantIds: z.array(z.number().int().positive()).max(10).optional(),  // selected variant IDs — used for server-side price lookup
+  })).min(1).max(200)
 });
+
+// Bank slip URLs must point at our own storage — never an arbitrary external URL.
+function isAllowedSlipUrl(url: string): boolean {
+  if (url.startsWith("/uploads/")) return true; // local disk fallback
+  try {
+    const u = new URL(url);
+    const publicBase = process.env.R2_PUBLIC_URL || "";
+    if (publicBase && url.startsWith(publicBase)) return true;
+    // Accept r2.dev / r2.cloudflarestorage hosts as a fallback
+    return /\.r2\.(dev|cloudflarestorage\.com)$/i.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
     if (body.paymentMethod === "bank" && !body.bankSlipUrl) {
       return NextResponse.json({ error: "Bank slip is required for bank deposit" }, { status: 400 });
+    }
+    // Reject slip URLs that don't point at our own storage (anti-phishing)
+    if (body.bankSlipUrl && !isAllowedSlipUrl(body.bankSlipUrl)) {
+      return NextResponse.json({ error: "Invalid bank slip reference" }, { status: 400 });
     }
 
     const user = await getCurrentUser();

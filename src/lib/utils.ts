@@ -12,8 +12,15 @@ export function formatLKR(n: number) {
 }
 
 export function generateOrderNumber() {
+  // Keep the date prefix for human readability, but use a cryptographically
+  // random 8-char suffix (~2.8e12 combinations) so order numbers can't be
+  // guessed/enumerated to harvest customer PII via the tracking endpoint.
   const ts = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I
+  let rand = "";
+  // crypto is available in both Node and edge runtimes
+  const bytes = (globalThis.crypto || require("crypto").webcrypto).getRandomValues(new Uint8Array(8));
+  for (let i = 0; i < 8; i++) rand += alphabet[bytes[i] % alphabet.length];
   return `SH-${ts}-${rand}`;
 }
 

@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { translateQueryToEnglish } from "@/lib/translate";
 import { vectorSearchProducts } from "@/lib/embeddings";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,15 @@ type Suggestion = {
 export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 503 });
+  }
+
+  // Each call hits GPT-4o (real money). Throttle to 15 messages per IP per 5 min.
+  const rl = rateLimit(`ai-assist:${clientIp(req)}`, 15, 300);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "You're sending messages a bit fast — please wait a moment." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
   }
 
   let body: any;

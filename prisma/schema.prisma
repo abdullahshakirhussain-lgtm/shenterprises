@@ -38,6 +38,7 @@ model OtpCode {
   code      String
   expiresAt DateTime
   verified  Boolean  @default(false)
+  attempts  Int      @default(0)  // failed verify attempts — locks after a threshold
   createdAt DateTime @default(now())
 
   @@index([phone])
