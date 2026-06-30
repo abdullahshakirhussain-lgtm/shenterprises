@@ -37,12 +37,21 @@ export async function POST(req: NextRequest) {
 
     const user = await getCurrentUser();
 
+    // Deduplicate — the same product can appear in multiple cart lines (one per
+    // variant, e.g. the same zipper in Black and White). Comparing raw counts
+    // against findMany (which returns each product once) would wrongly fail.
     const ids = body.items.map((i) => i.productId);
+    const uniqueIds = Array.from(new Set(ids));
     const products = await prisma.product.findMany({
-      where: { id: { in: ids }, active: true },
+      where: { id: { in: uniqueIds }, active: true },
       include: { variants: true },
     });
-    if (products.length !== ids.length) return NextResponse.json({ error: "Some products are unavailable" }, { status: 400 });
+    if (products.length !== uniqueIds.length) {
+      const found = new Set(products.map((p) => p.id));
+      const missing = uniqueIds.filter((id) => !found.has(id));
+      console.warn("[checkout] unavailable product ids:", missing);
+      return NextResponse.json({ error: "Some products are unavailable" }, { status: 400 });
+    }
 
     let subtotal = 0;
     const items = body.items.map((it) => {
