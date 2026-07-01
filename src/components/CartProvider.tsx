@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { pixelTrack } from "@/lib/pixel";
 
 export type CartVariant = { type: "color" | "size" | "length" | "pack"; name: string; id: number };
 
@@ -74,6 +75,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "add_to_cart", productId: item.productId, quantity: qty, value: item.price * qty })
     }).catch(() => {});
+
+    // Meta Pixel — AddToCart conversion event
+    pixelTrack("AddToCart", {
+      content_name: item.name,
+      content_ids: [String(item.productId)],
+      content_type: "product",
+      value: item.price * qty,
+      currency: "LKR",
+    });
 
     // Fire a window event so the global CartToast can show reassurance feedback
     if (typeof window !== "undefined") {

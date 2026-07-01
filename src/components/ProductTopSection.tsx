@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useCart, type CartVariant } from "./CartProvider";
 import { useLanguage } from "./LanguageProvider";
 import { formatLKR } from "@/lib/utils";
+import { pixelTrack } from "@/lib/pixel";
 
 type Variant = {
   id: number;
@@ -53,6 +54,18 @@ export default function ProductTopSection({
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const vd = (v: Variant) => variantDisplay(v, lang);
+
+  // Meta Pixel — ViewContent when a product page opens
+  useEffect(() => {
+    pixelTrack("ViewContent", {
+      content_name: product.name,
+      content_ids: [String(product.id)],
+      content_type: "product",
+      value: product.salePrice ?? product.price,
+      currency: "LKR",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
 
   const colorVariants = variants.filter(v => v.type === "color");
   const sizeVariants = variants.filter(v => v.type === "size");

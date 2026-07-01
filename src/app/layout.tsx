@@ -13,6 +13,7 @@ import EasterEggs from "@/components/EasterEggs";
 import NavigationOverlay from "@/components/NavigationOverlay";
 import ScrollToTop from "@/components/ScrollToTop";
 import SignupNudge from "@/components/SignupNudge";
+import MetaPixel from "@/components/MetaPixel";
 import CartToast from "@/components/CartToast";
 import WhatsappFab from "@/components/WhatsappFab";
 import { Suspense } from "react";
@@ -90,6 +91,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }))} />
           <Suspense fallback={null}>
             <AnalyticsTracker />
+          </Suspense>
+          <Suspense fallback={null}>
+            <MetaPixel />
           </Suspense>
           <main className="min-h-[60vh]">{children}</main>
           <Footer phone={settings.site_phone} email={settings.site_email} address={settings.site_address} />

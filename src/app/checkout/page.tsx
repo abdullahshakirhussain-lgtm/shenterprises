@@ -5,6 +5,7 @@ import { formatLKR } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { pixelTrack } from "@/lib/pixel";
 
 type District = { name: string; province: string; deliveryFee: number };
 type BankInfo = { bank_name?: string; bank_account_name?: string; bank_account_number?: string; bank_branch?: string };
@@ -62,6 +63,7 @@ export default function CheckoutPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "begin_checkout", value: subtotal })
     }).catch(() => {});
+    pixelTrack("InitiateCheckout", { value: subtotal, currency: "LKR", num_items: items.length });
   }, []); // eslint-disable-line
 
   // discounts
@@ -146,6 +148,14 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Order failed");
+      // Meta Pixel — Purchase conversion (fired here where we know the final total)
+      pixelTrack("Purchase", {
+        value: total,
+        currency: "LKR",
+        num_items: items.length,
+        content_ids: items.map(i => String(i.productId)),
+        content_type: "product",
+      });
       clear();
       router.push(`/checkout/success?order=${encodeURIComponent(data.orderNumber)}`);
     } catch (err: any) { setError(err.message); } finally { setSubmitting(false); }
