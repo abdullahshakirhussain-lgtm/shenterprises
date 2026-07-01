@@ -77,6 +77,7 @@ export function pixelTrack(
 ): string {
   const eventId = opts?.eventId || newEventId();
   if (typeof window === "undefined") return eventId;
+  if (!META_PIXEL_ID) return eventId;   // Meta not configured — don't hit our server either
   if (!hasConsent()) return eventId;
 
   // 1) Browser pixel (if loaded)

@@ -2,7 +2,7 @@
 import { useCart } from "@/components/CartProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { formatLKR } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { pixelTrack } from "@/lib/pixel";
@@ -64,6 +64,16 @@ export default function CheckoutPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "begin_checkout", value: subtotal })
     }).catch(() => {});
+  }, []); // eslint-disable-line
+
+  // InitiateCheckout must wait until the cart has hydrated from localStorage —
+  // CartProvider populates `items` in its own effect AFTER this page mounts, so
+  // firing on mount would send an empty cart. Fire once, when items are present.
+  const icFired = useRef(false);
+  useEffect(() => {
+    if (icFired.current) return;
+    if (items.length === 0) return;
+    icFired.current = true;
     pixelTrack("InitiateCheckout", {
       value: subtotal,
       currency: "LKR",
@@ -71,7 +81,7 @@ export default function CheckoutPage() {
       content_ids: items.map(i => contentId({ sku: i.sku, id: i.productId })),
       content_type: "product",
     });
-  }, []); // eslint-disable-line
+  }, [items, subtotal]);
 
   // discounts
   const accountDiscount = me && me.discountRate > 0 ? Math.round(subtotal * (me.discountRate / 100) * 100) / 100 : 0;
