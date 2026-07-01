@@ -118,6 +118,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         unitLabel={unitLabel}
         avgRating={avg}
         reviewCount={p.reviews.length}
+        categoryName={p.category?.name ?? null}
       />
 
       {related.length > 0 && (

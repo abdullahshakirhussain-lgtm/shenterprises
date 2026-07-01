@@ -4,6 +4,7 @@ import { useCart, type CartVariant } from "./CartProvider";
 import { useLanguage } from "./LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import { pixelTrack } from "@/lib/pixel";
+import { contentId } from "@/lib/contentId";
 
 type Variant = {
   id: number;
@@ -30,6 +31,7 @@ export default function ProductTopSection({
   unitLabel,
   avgRating,
   reviewCount,
+  categoryName,
 }: {
   product: {
     id: number;
@@ -48,6 +50,7 @@ export default function ProductTopSection({
   unitLabel: string | null;
   avgRating: number;
   reviewCount: number;
+  categoryName?: string | null;   // for Meta ViewContent content_category
 }) {
   const { add } = useCart();
   const { lang, t } = useLanguage();
@@ -55,12 +58,13 @@ export default function ProductTopSection({
   const [qty, setQty] = useState(1);
   const vd = (v: Variant) => variantDisplay(v, lang);
 
-  // Meta Pixel — ViewContent when a product page opens
+  // Meta Pixel — ViewContent when a product page opens (deduped browser + CAPI)
   useEffect(() => {
     pixelTrack("ViewContent", {
       content_name: product.name,
-      content_ids: [String(product.id)],
+      content_ids: [contentId({ sku: product.sku, id: product.id })],
       content_type: "product",
+      content_category: categoryName || undefined,
       value: product.salePrice ?? product.price,
       currency: "LKR",
     });
@@ -189,6 +193,7 @@ export default function ProductTopSection({
 
     add({
       productId: product.id,
+      sku: product.sku,
       name: cartName,
       slug: product.slug,
       price: effective,  // already reflects highest selected variant price

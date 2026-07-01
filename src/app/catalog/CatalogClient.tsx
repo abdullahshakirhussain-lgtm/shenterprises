@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { formatLKR } from "@/lib/utils";
+import { pixelTrack } from "@/lib/pixel";
 
 type Variant = {
   id: number;
@@ -48,6 +49,8 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) setCart(JSON.parse(raw));
     } catch {}
+    // Meta: catalog opened — a demand signal for the WhatsApp-first browse flow
+    pixelTrack("ViewContent", { content_name: "QuickCatalog", content_category: "catalog" });
   }, []);
   useEffect(() => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch {}
@@ -112,6 +115,17 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
 
   function sendToWhatsApp() {
     if (cart.length === 0) return;
+    // Meta: the critical on-site -> off-site handoff. Orders close on WhatsApp,
+    // so this Lead (ContactWhatsApp) is our primary conversion-intent signal.
+    pixelTrack("Lead", {
+      content_name: "ContactWhatsApp",
+      source: "catalog",
+      value: totalLkr,
+      currency: "LKR",
+      num_items: cart.reduce((s, l) => s + l.quantity, 0),
+      content_ids: cart.map(l => l.variantId ? `SHE-${l.productId}-${l.variantId}` : `SHE-${l.productId}`),
+      content_type: "product",
+    });
     const text = encodeURIComponent(buildWhatsappText());
     const url = shopPhone
       ? `https://wa.me/${shopPhone}?text=${text}`

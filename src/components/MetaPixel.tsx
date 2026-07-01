@@ -2,12 +2,13 @@
 import Script from "next/script";
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { META_PIXEL_ID } from "@/lib/pixel";
+import { META_PIXEL_ID, captureFbclid, pixelTrack } from "@/lib/pixel";
 
 /**
- * Loads the Meta Pixel base code and fires PageView on every client-side
- * route change (Next.js SPA navigation doesn't reload the page, so the base
- * PageView alone would miss subsequent views).
+ * Loads the Meta Pixel base code, captures fbclid -> _fbc on landing, and fires
+ * a deduplicated PageView (browser + server CAPI) on every client-side route
+ * change. Next.js SPA navigation doesn't reload the page, so the base PageView
+ * alone would miss subsequent views.
  *
  * Renders nothing and loads nothing when NEXT_PUBLIC_META_PIXEL_ID is unset.
  */
@@ -15,10 +16,16 @@ export default function MetaPixel() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Capture the click id once as early as possible
+  useEffect(() => { captureFbclid(); }, []);
+
   useEffect(() => {
     if (!META_PIXEL_ID) return;
-    if (typeof window === "undefined" || typeof window.fbq !== "function") return;
-    window.fbq("track", "PageView");
+    // Deduplicated PageView (browser pixel + server CAPI share one event_id).
+    // The base script also fires an initial PageView; that first one is browser
+    // only (no matching server twin) which Meta tolerates. Subsequent SPA
+    // navigations are the deduped ones.
+    pixelTrack("PageView");
   }, [pathname, searchParams]);
 
   if (!META_PIXEL_ID) return null;
@@ -35,7 +42,8 @@ export default function MetaPixel() {
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '${META_PIXEL_ID}');
-        fbq('track', 'PageView');
+        // NOTE: PageView is fired by the React effect (deduped browser+CAPI),
+        // not here, so the landing page isn't counted twice.
       `}
     </Script>
   );

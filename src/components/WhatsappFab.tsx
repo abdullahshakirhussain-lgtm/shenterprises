@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { pixelTrack } from "@/lib/pixel";
 
 /**
  * Small floating WhatsApp icon, bottom-left, that opens a chat with the shop.
@@ -53,6 +54,7 @@ export default function WhatsappFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
+      onClick={() => pixelTrack("Lead", { content_name: "ContactWhatsApp", source: "fab" })}
       className={`fixed bottom-4 left-4 z-30 group transition-all duration-500 ${
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}

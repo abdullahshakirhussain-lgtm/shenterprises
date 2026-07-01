@@ -1,12 +1,14 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { pixelTrack } from "@/lib/pixel";
+import { contentId } from "@/lib/contentId";
 
 export type CartVariant = { type: "color" | "size" | "length" | "pack"; name: string; id: number };
 
 export type CartItem = {
   key: string;            // unique line key = productId + sorted variant ids
   productId: number;
+  sku?: string | null;    // for canonical Meta/Google content id
   name: string;
   slug: string;
   price: number;
@@ -76,10 +78,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ type: "add_to_cart", productId: item.productId, quantity: qty, value: item.price * qty })
     }).catch(() => {});
 
-    // Meta Pixel — AddToCart conversion event
+    // Meta Pixel — AddToCart conversion event (deduped browser + CAPI)
     pixelTrack("AddToCart", {
       content_name: item.name,
-      content_ids: [String(item.productId)],
+      content_ids: [contentId({ sku: item.sku, id: item.productId })],
       content_type: "product",
       value: item.price * qty,
       currency: "LKR",
