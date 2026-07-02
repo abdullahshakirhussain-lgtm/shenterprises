@@ -52,10 +52,6 @@ export async function POST(req: NextRequest) {
     custom_data: body?.customData && typeof body.customData === "object" ? body.customData : undefined,
   });
 
-  // TEMPORARY — confirms server CAPI is firing with the matching event_id.
-  // Remove once dedup is verified in Meta Test Events.
-  console.log(`[meta-capi] ${eventName} id=${eventId} sent=${result.ok}${result.error ? " err=" + result.error : ""}`);
-
   // Always 200 to the browser — tracking must never surface as a user error
   return NextResponse.json({ ok: result.ok });
 }
