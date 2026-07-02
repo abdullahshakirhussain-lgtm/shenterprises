@@ -78,9 +78,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const lang = getServerLang();
 
+  // Read at RUNTIME (not build-time inlined) so it survives Railway build caching.
+  // Accept either name so no Railway change is needed.
+  const metaPixelId = process.env.META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
+
   return (
     <html lang={lang} className={`${lora.variable} ${mulish.variable} ${fraunces.variable}`}>
       <body>
+        {/* Seed the pixel id synchronously as the HTML parses — before hydration
+            and before any component effect — so pixelTrack() in any component can
+            read window.__META_PIXEL_ID regardless of effect ordering. */}
+        {metaPixelId && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.__META_PIXEL_ID=${JSON.stringify(metaPixelId)};`,
+            }}
+          />
+        )}
         <LanguageProvider initialLang={lang}>
         <CartProvider>
           <Header categories={categories.map((c: any) => ({
@@ -93,7 +107,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <AnalyticsTracker />
           </Suspense>
           <Suspense fallback={null}>
-            <MetaPixel />
+            <MetaPixel pixelId={metaPixelId} />
           </Suspense>
           <main className="min-h-[60vh]">{children}</main>
           <Footer phone={settings.site_phone} email={settings.site_email} address={settings.site_address} />

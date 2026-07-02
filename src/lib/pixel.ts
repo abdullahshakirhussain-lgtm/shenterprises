@@ -16,8 +16,21 @@ declare global {
   }
 }
 
+// Build-time fallback (works if the var IS present at build). We do NOT rely on
+// this — the root layout seeds window.__META_PIXEL_ID from a RUNTIME env read,
+// which survives Railway build caching. resolvePixelId() prefers the runtime one.
 export const META_PIXEL_ID =
   typeof process !== "undefined" ? process.env.NEXT_PUBLIC_META_PIXEL_ID || "" : "";
+
+/** The pixel id actually in effect at runtime. Prefers the value the server
+ *  injected into window.__META_PIXEL_ID; falls back to the build-inlined const. */
+export function resolvePixelId(): string {
+  if (typeof window !== "undefined") {
+    const w = (window as any).__META_PIXEL_ID;
+    if (w) return String(w);
+  }
+  return META_PIXEL_ID;
+}
 
 /** Placeholder consent gate. No banner exists yet; returns true.
  *  Wire a real check here if a consent mechanism is added later. */
@@ -77,7 +90,7 @@ export function pixelTrack(
 ): string {
   const eventId = opts?.eventId || newEventId();
   if (typeof window === "undefined") return eventId;
-  if (!META_PIXEL_ID) return eventId;   // Meta not configured — don't hit our server either
+  if (!resolvePixelId()) return eventId;   // Meta not configured — don't hit our server either
   if (!hasConsent()) return eventId;
 
   // 1) Browser pixel (if loaded)

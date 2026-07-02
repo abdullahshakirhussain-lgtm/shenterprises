@@ -2,33 +2,35 @@
 import Script from "next/script";
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { META_PIXEL_ID, captureFbclid, pixelTrack } from "@/lib/pixel";
+import { captureFbclid, pixelTrack } from "@/lib/pixel";
 
 /**
  * Loads the Meta Pixel base code, captures fbclid -> _fbc on landing, and fires
  * a deduplicated PageView (browser + server CAPI) on every client-side route
- * change. Next.js SPA navigation doesn't reload the page, so the base PageView
- * alone would miss subsequent views.
+ * change.
  *
- * Renders nothing and loads nothing when NEXT_PUBLIC_META_PIXEL_ID is unset.
+ * The pixel id is passed as a prop from the root layout, which reads it from a
+ * RUNTIME env var (process.env.META_PIXEL_ID / NEXT_PUBLIC_META_PIXEL_ID). This
+ * avoids the NEXT_PUBLIC build-time inlining trap on Railway — if the var wasn't
+ * present when `next build` ran, an inlined constant would be empty forever, but
+ * a runtime read is always current. The id is also seeded to window (by the
+ * layout, synchronously) so pixelTrack() in other components can read it.
+ *
+ * Renders nothing when no id is configured.
  */
-export default function MetaPixel() {
+export default function MetaPixel({ pixelId }: { pixelId: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Capture the click id once as early as possible
   useEffect(() => { captureFbclid(); }, []);
 
   useEffect(() => {
-    if (!META_PIXEL_ID) return;
+    if (!pixelId) return;
     // Deduplicated PageView (browser pixel + server CAPI share one event_id).
-    // The base script also fires an initial PageView; that first one is browser
-    // only (no matching server twin) which Meta tolerates. Subsequent SPA
-    // navigations are the deduped ones.
     pixelTrack("PageView");
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, pixelId]);
 
-  if (!META_PIXEL_ID) return null;
+  if (!pixelId) return null;
 
   return (
     <Script id="meta-pixel" strategy="afterInteractive">
@@ -41,8 +43,8 @@ export default function MetaPixel() {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${META_PIXEL_ID}');
-        // NOTE: PageView is fired by the React effect (deduped browser+CAPI),
+        fbq('init', '${pixelId}');
+        // PageView is fired by the React effect (deduped browser+CAPI),
         // not here, so the landing page isn't counted twice.
       `}
     </Script>
