@@ -19,14 +19,14 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
       <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 w-[260px] h-[260px] md:w-[420px] md:h-[420px] rounded-full bg-saffron-200 blur-3xl opacity-60" />
       <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-[280px] h-[280px] md:w-[480px] md:h-[480px] rounded-full bg-brand-200 blur-3xl opacity-50" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-8 pb-10 md:pt-16 md:pb-20 grid md:grid-cols-12 gap-8 items-center">
+      <div className="relative mx-auto max-w-6xl px-4 pt-6 pb-8 md:pt-10 md:pb-12 grid md:grid-cols-12 gap-6 md:gap-8 items-center">
         {/* Left: type-led story */}
         <div className="md:col-span-7 relative min-w-0">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-saffron-200 px-3 py-1 text-[10px] sm:text-[11px] font-bold tracking-[.15em] text-saffron-700 uppercase mb-4 sm:mb-5">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-saffron-200 px-3 py-1 text-[10px] sm:text-[11px] font-bold tracking-[.15em] text-saffron-700 uppercase mb-3 sm:mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-saffron-500 animate-pulse" />
             Sri Lanka&apos;s craft supply home
           </p>
-          <h1 className="font-display font-semibold text-ink leading-[1.05] text-[2.25rem] sm:text-5xl md:text-6xl lg:text-7xl tracking-tight break-words">
+          <h1 className="font-display font-semibold text-ink leading-[1.05] text-[1.85rem] sm:text-4xl md:text-5xl lg:text-6xl tracking-tight break-words">
             <span className="block">Threads, trims</span>
             <span className="block">
               &amp; tools for{" "}
@@ -51,11 +51,11 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
             </span>
           </h1>
 
-          <p className="mt-5 sm:mt-7 text-sm sm:text-base md:text-lg text-ink-mute max-w-md leading-relaxed">
+          <p className="mt-4 sm:mt-5 text-sm sm:text-base text-ink-mute max-w-md leading-relaxed">
             Hand-picked threads, zippers, scissors and notions trusted by tailors and crafters from Jaffna to Galle.
           </p>
 
-          <div className="mt-6 sm:mt-7 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href="/shop"
               className="thread-btn inline-flex items-center justify-center rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 shadow-sm transition-colors"
@@ -70,7 +70,7 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
             </Link>
           </div>
 
-          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-ink-soft">
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-ink-soft">
             <li className="flex items-center gap-2"><Check /> {t("islandwide_delivery")}</li>
             <li className="flex items-center gap-2"><Check /> {t("cod_available")}</li>
             <li className="flex items-center gap-2"><Check /> {t("bank_accepted")}</li>
@@ -78,7 +78,7 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
         </div>
 
         {/* Right: collage — three offset product cards (also shown on mobile, below the text) */}
-        <div className="md:col-span-5 relative h-[320px] sm:h-[440px] md:h-[480px] mt-6 md:mt-0">
+        <div className="md:col-span-5 relative h-[260px] sm:h-[360px] md:h-[400px] mt-2 md:mt-0">
           {collage.length === 0 ? (
             <DecorativePanel />
           ) : (

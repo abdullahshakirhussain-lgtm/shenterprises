@@ -4,7 +4,6 @@ import { formatLKR } from "@/lib/utils";
 import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
-import { TapeMeasure } from "@/components/CraftDecorations";
 import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
 import { getSetting } from "@/lib/settings";
 
@@ -57,29 +56,6 @@ export default async function HomePage() {
 
       {/* Category tiles removed — strip below the header already serves as nav.
           Keeps the homepage tight and reduces scroll length. */}
-
-      {/* AI Project Helper banner — now styled to match the new palette */}
-      <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-        <Link href="/ai-helper"
-          className="tile block rounded-3xl bg-gradient-to-br from-saffron-50 via-saffron-100 to-brand-100 border border-saffron-200 shadow-md overflow-hidden reveal relative">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-saffron-300 blur-2xl opacity-50" />
-          {/* Decorative tape measure curling across the top edge */}
-          <TapeMeasure className="absolute -top-2 right-12 w-44 h-20 text-thread-teal-500 opacity-60 pointer-events-none rotate-[-8deg] hidden sm:block" />
-          <div className="relative px-6 sm:px-10 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
-            <div className="flex items-center gap-5">
-              <div className="grid place-items-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white shadow-sm text-3xl sm:text-4xl shrink-0 border border-saffron-200">✨</div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.18em] text-saffron-700">AI Project Helper</p>
-                <h2 className="font-display font-semibold text-2xl sm:text-3xl mt-1 text-ink">Tell us what you&apos;re making</h2>
-                <p className="text-ink-mute text-sm sm:text-base mt-1.5 max-w-md">Describe your project — we&apos;ll pick exactly the threads, buttons and trims you need.</p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-2 rounded-xl bg-ink text-cream font-bold px-6 py-3 shrink-0 hover:bg-ink-soft transition-colors">
-              Try it now →
-            </span>
-          </div>
-        </Link>
-      </section>
 
       {/* On Offer */}
       {offers.length > 0 && (
