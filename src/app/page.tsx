@@ -5,6 +5,7 @@ import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
+import { fetchOfferProducts, maxDiscountPercent } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,8 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 export default async function HomePage() {
   const [banners, offers, allActiveIds, promoText, heroProducts] = await Promise.all([
     safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
-    safe(() => prisma.product.findMany({ where: { active: true, onOffer: true }, take: 4, orderBy: { updatedAt: "desc" }, include: { variants: true } }), [] as any[]),
+    // Genuine sale price OR flagged on-offer — same rule as the /offers page
+    safe(() => fetchOfferProducts(8), [] as any[]),
     safe(() => prisma.product.findMany({ where: { active: true }, select: { id: true } }), [] as { id: number }[]),
     safe(() => getSetting("promo_strip_text"), null),
     // Featured products for hero collage — prefer featured > on-offer > any with an image
@@ -31,6 +33,9 @@ export default async function HomePage() {
       select: { name: true, slug: true, imageUrl: true },
     }), [] as any[]),
   ]);
+
+  // Real biggest discount for the offers banner (no more hardcoded "40%")
+  const maxOfferDiscount = maxDiscountPercent(offers);
 
   const sampleIds = allActiveIds.length
     ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 12).map(p => p.id)
@@ -80,7 +85,7 @@ export default async function HomePage() {
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-300">Limited time</p>
                   <h2 className="font-display font-semibold text-3xl sm:text-4xl mt-2 flex items-center gap-3 justify-center sm:justify-start">
-                    Up to 40% off <span id="bow">🎀</span>
+                    {maxOfferDiscount > 0 ? `Up to ${maxOfferDiscount}% off` : "Special offers"} <span id="bow">🎀</span>
                   </h2>
                   <p className="text-cream/80 mt-2 max-w-md">Stock up on threads, zippers and trims while the festive deals last.</p>
                 </div>

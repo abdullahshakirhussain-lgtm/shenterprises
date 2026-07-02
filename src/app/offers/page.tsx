@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import { getT } from "@/lib/i18n-server";
+import { fetchOfferProducts } from "@/lib/offers";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -10,11 +10,8 @@ export const metadata: Metadata = {
 };
 
 export default async function OffersPage() {
-  const items = await prisma.product.findMany({
-    where: { active: true, onOffer: true },
-    orderBy: { updatedAt: "desc" },
-    include: { variants: true }
-  });
+  // Any product with a genuine sale price OR flagged on-offer.
+  const items = await fetchOfferProducts();
   const t = getT();
   return (
     <div className="container-x py-8">
