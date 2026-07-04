@@ -126,6 +126,15 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
       content_ids: cart.map(l => l.variantId ? `SHE-${l.productId}-${l.variantId}` : `SHE-${l.productId}`),
       content_type: "product",
     });
+    // Owned analytics — same fire point, parallel log.
+    fetch("/api/analytics", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "whatsapp_click",
+        value: totalLkr,
+        meta: { source: "catalog", items: cart.map(l => ({ id: l.productId, qty: l.quantity })) },
+      }),
+    }).catch(() => {});
     const text = encodeURIComponent(buildWhatsappText());
     const url = shopPhone
       ? `https://wa.me/${shopPhone}?text=${text}`

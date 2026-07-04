@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { calculateDeliveryFee } from "@/lib/koombiyo";
 import { generateOrderNumber } from "@/lib/utils";
 import { z } from "zod";
-import { getOrCreateSessionId, recordEvent } from "@/lib/analytics";
+import { getOrCreateSessionId, recordEvent, attachPhoneToSession } from "@/lib/analytics";
 import { getCurrentUser } from "@/lib/userAuth";
 import { applyCoupon } from "@/lib/coupons";
 import { getSetting } from "@/lib/settings";
@@ -184,6 +184,10 @@ export async function POST(req: NextRequest) {
 
     // Stock decrement removed — availability is now governed by the
     // explicit `outOfStock` flag, not a numeric counter.
+
+    // Owned analytics — link this buyer's phone (hash + last4 only) to their
+    // session so prior anonymous browsing ties to a real, repeat customer.
+    attachPhoneToSession(sid, body.phone).catch(() => {});
 
     if (couponCode) {
       await prisma.coupon.update({ where: { code: couponCode }, data: { usedCount: { increment: 1 } } });

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import { smartSearch } from "@/lib/search";
 import { getT } from "@/lib/i18n-server";
+import { recordEvent } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,12 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   const q = (searchParams.q || "").trim();
   const slim = q ? await smartSearch(q, 60) : [];
   const t = getT();
+
+  // Owned analytics — log the search query + how many results it returned.
+  // Server-side so it captures every real search-results view. Best-effort.
+  if (q) {
+    recordEvent({ type: "search", meta: { query: q.slice(0, 120), results: slim.length } }).catch(() => {});
+  }
 
   const items = slim.length
     ? await prisma.product.findMany({

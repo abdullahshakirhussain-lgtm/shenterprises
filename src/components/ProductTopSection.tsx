@@ -59,6 +59,7 @@ export default function ProductTopSection({
   const vd = (v: Variant) => variantDisplay(v, lang);
 
   // Meta Pixel — ViewContent when a product page opens (deduped browser + CAPI)
+  // + parallel log to our OWN analytics (same fire point, fire-and-forget).
   useEffect(() => {
     pixelTrack("ViewContent", {
       content_name: product.name,
@@ -68,6 +69,16 @@ export default function ProductTopSection({
       value: product.salePrice ?? product.price,
       currency: "LKR",
     });
+    fetch("/api/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "product_view",
+        productId: product.id,
+        value: product.salePrice ?? product.price,
+        meta: { name: product.name, category: categoryName || null, sku: product.sku || null },
+      }),
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 

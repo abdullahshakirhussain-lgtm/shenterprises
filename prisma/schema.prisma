@@ -257,7 +257,14 @@ model AnalyticsSession {
   userAgent   String?
   pageViews   Int      @default(0)
   totalMs     Int      @default(0)
+  // Owned-analytics phone linking — SHA-256 hash for matching + last 4 digits for
+  // eyeball recognition in the dashboard. Full number is NEVER stored here (it
+  // lives in Order/OMS). Attached at checkout / for logged-in users.
+  phoneHash   String?
+  phoneLast4  String?
   events      AnalyticsEvent[]
+
+  @@index([phoneHash])
 }
 
 model AnalyticsEvent {

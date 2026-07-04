@@ -53,3 +53,38 @@ export async function recordEvent(opts: {
     }
   });
 }
+
+/**
+ * Normalise a phone to E.164-without-plus (SL: 0XXXXXXXXX -> 94XXXXXXXXX).
+ * Returns null when there aren't enough digits.
+ */
+function normalizePhoneDigits(phone: string): string | null {
+  let d = String(phone).replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("0")) d = "94" + d.slice(1);
+  else if (d.length === 9) d = "94" + d;
+  return d.length >= 9 ? d : null;
+}
+
+/**
+ * Link a phone to the current analytics session so past anonymous activity
+ * ties to a real (repeat) customer. Stores ONLY a SHA-256 hash (for matching)
+ * and the last 4 digits (for eyeball recognition) — never the full number.
+ * Best-effort; never throws into the caller.
+ */
+export async function attachPhoneToSession(sessionId: string, phone: string): Promise<void> {
+  try {
+    const digits = normalizePhoneDigits(phone);
+    if (!digits) return;
+    const phoneHash = crypto.createHash("sha256").update(digits).digest("hex");
+    const phoneLast4 = digits.slice(-4);
+    // Update if the session row exists; create a minimal one if it somehow doesn't.
+    await prisma.analyticsSession.upsert({
+      where: { id: sessionId },
+      update: { phoneHash, phoneLast4, lastSeen: new Date() },
+      create: { id: sessionId, phoneHash, phoneLast4, source: "direct" },
+    });
+  } catch (e: any) {
+    console.warn("[analytics] attachPhoneToSession failed:", e?.message);
+  }
+}

@@ -54,7 +54,13 @@ export default function WhatsappFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
-      onClick={() => pixelTrack("Lead", { content_name: "ContactWhatsApp", source: "fab" })}
+      onClick={() => {
+        pixelTrack("Lead", { content_name: "ContactWhatsApp", source: "fab" });
+        fetch("/api/analytics", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "whatsapp_click", meta: { source: "fab" } }),
+        }).catch(() => {});
+      }}
       className={`fixed bottom-4 left-4 z-30 group transition-all duration-500 ${
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}
