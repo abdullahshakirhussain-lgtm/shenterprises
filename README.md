@@ -89,3 +89,32 @@ Leave the vars empty and nothing loads — the site runs Meta-free.
 `content_ids` use `src/lib/contentId.ts` -> `sku` when set, else `SHE-{id}`.
 Use the same scheme for a future Meta Catalog / Google Merchant feed so dynamic
 ads and Shopping listings match without ID drift.
+
+## Machines (industrial sewing machines — Prime)
+
+Machines are a **separate model** from products — no cart, no checkout. Ordering
+is **Call + WhatsApp only**. Manage them all from the dashboard.
+
+### Add a machine
+1. Admin → **Machines** → **+ Add machine**
+2. Fill in:
+   - **Model number** (required) — the SEO anchor (e.g. `JK-8720`). The slug
+     becomes `prime-jk-8720`.
+   - **Name**, optional **Category**
+   - **Price** — leave empty to show "Enquire for price"
+   - **Description**
+   - **Specifications** — repeatable key/value rows (Max speed → 5000 spm, etc.)
+   - **Warranty / trust info**
+   - **Main image** + **Gallery images**
+   - **Active** toggle
+3. Save. The machine appears at `/machines` and `/machines/prime-<model>`.
+
+### What each machine page does
+- Premium dark template, distinct from the accessory catalog.
+- Model number is prominent + baked into the `<title>`, meta, H1, and JSON-LD.
+- Spec table, trust block (authorized dealer + warranty + island-wide service).
+- **Call** button (`tel:`) and **WhatsApp** button pre-filled with the model
+  number ("Hi, I'm interested in the Prime <model>…") so you know which machine.
+- WhatsApp clicks fire the same ContactWhatsApp/Lead pixel + analytics
+  `whatsapp_click` log as the rest of the site, tagged with the model number.
+- `/machines/*` pages are in the sitemap automatically.

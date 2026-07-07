@@ -293,6 +293,29 @@ model Cart {
   createdAt DateTime @default(now())
 }
 
+// ===== Machines (industrial sewing machines — brand Prime) =====
+// A separate model from Product: no cart/checkout/variants. Ordering is
+// Call + WhatsApp only. Admin-managed via /admin/machines.
+model Machine {
+  id           Int      @id @default(autoincrement())
+  modelNumber  String                    // SEO anchor, e.g. "JK-8720"
+  brand        String   @default("Prime")
+  name         String
+  slug         String   @unique          // e.g. "prime-jk-8720"
+  category     String?                   // e.g. "Single Needle Lockstitch"
+  price        Float?                    // nullable -> "Enquire for price"
+  imageUrl     String?                   // primary image
+  images       String?                   // JSON array of gallery image URLs
+  description  String?
+  specs        String?                   // JSON array of { key, value } spec rows
+  warrantyInfo String?                   // trust / warranty text
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([active])
+}
+
 // ===== Customer profiling =====
 // One row per (browserId, optional userId). Built by the profile-builder job
 // every 15 min from existing AnalyticsEvent / Order / Cart / ChatSession data.

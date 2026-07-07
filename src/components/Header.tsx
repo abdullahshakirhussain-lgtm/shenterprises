@@ -102,6 +102,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         {/* Desktop nav */}
         <nav className="ml-auto hidden md:flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
+          <Link href="/machines" className="hover:text-saffron-700 text-ink-soft transition-colors">Machines</Link>
           <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
           <Link
             href="/ai-helper"
@@ -230,6 +231,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         <div className="md:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
           <div className="container-x py-4 space-y-1">
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
+            <Link href="/machines" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">Machines</Link>
             <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
             <Link href="/ai-helper" className="block py-2.5 px-3 rounded-lg text-saffron-700 font-display font-semibold text-base hover:bg-saffron-100 transition-colors">✨ {t("ai_helper_short")}</Link>
             <Link href="/track" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("track_my_order")}</Link>
