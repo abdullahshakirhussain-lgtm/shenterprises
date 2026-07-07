@@ -12,7 +12,10 @@ export default async function AdminMachines() {
     <div className="container-x py-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl text-brand-900">Machines ({machines.length})</h1>
-        <Link href="/admin/machines/new" className="btn-primary">+ Add machine</Link>
+        <div className="flex gap-2">
+          <Link href="/admin/machines/bulk" className="btn-secondary">⚡ Bulk from photos</Link>
+          <Link href="/admin/machines/new" className="btn-primary">+ Add machine</Link>
+        </div>
       </div>
 
       {machines.length === 0 ? (
