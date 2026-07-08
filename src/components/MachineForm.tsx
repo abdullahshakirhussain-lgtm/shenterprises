@@ -94,22 +94,34 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
 
-      // Description + intro: fill-empty vs overwrite
-      if (data.description && (mode === "overwrite" || !m.description)) up("description", data.description);
-      if (data.seoIntro && (mode === "overwrite" || !m.seoIntro)) up("seoIntro", data.seoIntro);
+      // Description + intro — set BOTH in one functional update so neither
+      // clobbers the other (the old back-to-back up() calls spread a stale m).
+      setM(prev => ({
+        ...prev,
+        description: data.description && (mode === "overwrite" || !prev.description) ? data.description : prev.description,
+        seoIntro: data.seoIntro && (mode === "overwrite" || !prev.seoIntro) ? data.seoIntro : prev.seoIntro,
+      }));
 
-      // Equivalents: overwrite replaces; fill merges new ones only
-      const incomingEq: EquivRow[] = data.equivalents || [];
+      // Equivalents: overwrite replaces; fill merges new ones only (functional, no stale closure)
+      const incomingEq: EquivRow[] = Array.isArray(data.equivalents) ? data.equivalents : [];
       if (mode === "overwrite") {
         setEquivalents(incomingEq);
       } else {
-        const have = new Set(equivalents.map(e => `${e.brand}|${e.model}`.toLowerCase()));
-        setEquivalents(prev => [...prev, ...incomingEq.filter(e => !have.has(`${e.brand}|${e.model}`.toLowerCase()))]);
+        setEquivalents(prev => {
+          const have = new Set(prev.map(e => `${e.brand}|${e.model}`.toLowerCase()));
+          return [...prev, ...incomingEq.filter(e => !have.has(`${e.brand}|${e.model}`.toLowerCase()))];
+        });
       }
 
       // FAQ: overwrite replaces; fill only if empty
-      const incomingFaq: FaqRow[] = data.faq || [];
-      if (mode === "overwrite" || faq.length === 0) setFaq(incomingFaq);
+      const incomingFaq: FaqRow[] = Array.isArray(data.faq) ? data.faq : [];
+      setFaq(prev => (mode === "overwrite" || prev.length === 0) ? incomingFaq : prev);
+
+      // Surface an explicit note if the model returned zero equivalents so it's
+      // not mistaken for a silent failure.
+      if (incomingEq.length === 0) {
+        setError("Generated text, but no cross-brand equivalents were confidently identified — add them manually if you know them.");
+      }
     } catch (e: any) { setError(e.message); } finally { setSuggesting(false); }
   }
 

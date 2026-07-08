@@ -42,7 +42,7 @@ Industrial sewing machines are heavily cloned: most house-brand machines are the
 
 GROUNDING RULES (important):
 - Use ONLY the specs provided. NEVER invent specific numbers (speed, needle, motor watts) that weren't given. If a spec is unknown, describe it in general terms ("high-speed", "servo motor") without a fake figure.
-- Derive equivalents from the machine CLASS/TYPE, not from trying to decode the house-brand model number. Only list equivalents you're genuinely confident share the same class. Few accurate ones beat many wrong ones.
+- Derive equivalents from the machine CLASS/TYPE (from the name/category/specs), NOT from trying to decode the house-brand model number. For any standard industrial machine class you SHOULD list the well-known equivalents — e.g. a single-needle lockstitch → Juki DDL-8700, Jack JK-8720, Zoje ZJ-A8800, Typical GC6-series, Brother S-7200; a 4-thread overlock → Juki MO-6714, Jack C4, Siruba 747. Always return at least 3–6 equivalents for a recognisable class. Only return an empty list if the machine type is genuinely unclear from the inputs.
 - Keep it factual and useful, not fluffy.
 
 Return ONLY JSON:
@@ -67,14 +67,45 @@ Known specs: ${specLines || "(none provided)"}`,
     });
 
     const parsed = JSON.parse(res.choices[0]?.message?.content || "{}");
-    const equivalents = (Array.isArray(parsed.equivalents) ? parsed.equivalents : [])
-      .filter((e: any) => e && (e.brand || e.model))
-      .slice(0, 12)
-      .map((e: any) => ({
-        brand: String(e.brand || "").slice(0, 60),
-        model: String(e.model || "").slice(0, 80),
-        note: e.note ? String(e.note).slice(0, 160) : undefined,
-      }));
+
+    // GPT returns equivalents in several shapes — normalise ALL of them:
+    //   "Juki DDL-8700"                              (string)
+    //   { brand:"Juki", model:"DDL-8700", note }     (canonical)
+    //   { name:"Juki DDL-8700" } / { value:"..." }   (alt keys)
+    // Also tolerate the array living under a couple of alternate top-level keys.
+    function splitBrandModel(s: string): { brand: string; model: string } {
+      const t = s.trim();
+      const parts = t.split(/\s+/);
+      if (parts.length === 1) return { brand: "", model: parts[0] };
+      return { brand: parts[0], model: parts.slice(1).join(" ") };
+    }
+    function normEquiv(e: any): { brand: string; model: string; note?: string } | null {
+      if (!e) return null;
+      if (typeof e === "string") {
+        const { brand, model } = splitBrandModel(e);
+        return model ? { brand, model } : null;
+      }
+      let brand = String(e.brand || e.manufacturer || "").trim();
+      let model = String(e.model || e.modelNumber || e.model_number || "").trim();
+      const note = e.note || e.description || undefined;
+      // If only a combined name/value was given, split it
+      if (!model) {
+        const combined = String(e.name || e.value || e.title || "").trim();
+        if (combined) { const s = splitBrandModel(combined); brand = brand || s.brand; model = s.model; }
+      }
+      if (!brand && !model) return null;
+      return { brand: brand.slice(0, 60), model: model.slice(0, 80), note: note ? String(note).slice(0, 160) : undefined };
+    }
+
+    const rawEquiv: any[] = Array.isArray(parsed.equivalents) ? parsed.equivalents
+      : Array.isArray(parsed.equivalent_models) ? parsed.equivalent_models
+      : Array.isArray(parsed.equivalentModels) ? parsed.equivalentModels
+      : Array.isArray(parsed.alternatives) ? parsed.alternatives
+      : [];
+    const equivalents = rawEquiv
+      .map(normEquiv)
+      .filter((e): e is { brand: string; model: string; note?: string } => !!e)
+      .slice(0, 12);
     const faq = (Array.isArray(parsed.faq) ? parsed.faq : [])
       .filter((f: any) => f && (f.q || f.a))
       .slice(0, 6)
