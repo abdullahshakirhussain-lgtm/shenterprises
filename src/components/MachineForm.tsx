@@ -80,21 +80,36 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
   }
   function removeEquiv(i: number) { setEquivalents(e => e.filter((_, idx) => idx !== i)); }
 
-  async function suggestEquivalents() {
-    if (!m.modelNumber && !m.name) { setError("Add a model number or name first, then suggest."); return; }
+  // One grounded GPT-4o pass fills description, SEO intro, equivalents, and FAQ.
+  // `mode`: "fill" only sets empty fields; "overwrite" replaces existing content.
+  async function generateSeoContent(mode: "fill" | "overwrite") {
+    if (!m.modelNumber && !m.name) { setError("Add a model number or name first, then generate."); return; }
+    if (mode === "overwrite" && !confirm("Replace the description, intro, equivalents and FAQ with fresh AI content?")) return;
     setSuggesting(true); setError("");
     try {
-      const res = await fetch("/api/admin/machines/suggest-equivalents", {
+      const res = await fetch("/api/admin/machines/generate-content", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand: m.brand, modelNumber: m.modelNumber, name: m.name, category: m.category }),
+        body: JSON.stringify({ brand: m.brand, modelNumber: m.modelNumber, name: m.name, category: m.category, specs }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Suggestion failed");
-      // Merge suggestions, skipping ones already present (by brand+model)
-      const have = new Set(equivalents.map(e => `${e.brand}|${e.model}`.toLowerCase()));
-      const added = (data.equivalents || []).filter((e: EquivRow) => !have.has(`${e.brand}|${e.model}`.toLowerCase()));
-      setEquivalents(prev => [...prev, ...added]);
-      if (added.length === 0) setError("No new equivalents suggested — you may already have them, or the AI wasn't confident.");
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+
+      // Description + intro: fill-empty vs overwrite
+      if (data.description && (mode === "overwrite" || !m.description)) up("description", data.description);
+      if (data.seoIntro && (mode === "overwrite" || !m.seoIntro)) up("seoIntro", data.seoIntro);
+
+      // Equivalents: overwrite replaces; fill merges new ones only
+      const incomingEq: EquivRow[] = data.equivalents || [];
+      if (mode === "overwrite") {
+        setEquivalents(incomingEq);
+      } else {
+        const have = new Set(equivalents.map(e => `${e.brand}|${e.model}`.toLowerCase()));
+        setEquivalents(prev => [...prev, ...incomingEq.filter(e => !have.has(`${e.brand}|${e.model}`.toLowerCase()))]);
+      }
+
+      // FAQ: overwrite replaces; fill only if empty
+      const incomingFaq: FaqRow[] = data.faq || [];
+      if (mode === "overwrite" || faq.length === 0) setFaq(incomingFaq);
     } catch (e: any) { setError(e.message); } finally { setSuggesting(false); }
   }
 
@@ -157,6 +172,25 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
 
       <div><label className="label">Name *</label><input required className="input" placeholder="e.g. Single Needle Direct Drive Lockstitch" value={m.name} onChange={e => up("name", e.target.value)} /></div>
 
+      {/* AI content generator — fills description, intro, equivalents, FAQ */}
+      <div className="rounded-lg border border-saffron-300 bg-saffron-50/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-semibold text-brand-900 text-sm">✨ Generate SEO content with AI</p>
+            <p className="text-xs text-brand-600">Fills the description, SEO intro, cross-brand equivalents &amp; FAQ from the name, category &amp; specs. Review before saving.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button type="button" onClick={() => generateSeoContent("fill")} disabled={suggesting} className="btn-primary text-sm disabled:opacity-50">
+              {suggesting ? "Generating…" : "Generate (fill blanks)"}
+            </button>
+            <button type="button" onClick={() => generateSeoContent("overwrite")} disabled={suggesting} className="btn-secondary text-sm disabled:opacity-50">
+              Regenerate all
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-brand-500 mt-2">Tip: add specs first for better grounding — the AI won&apos;t invent numbers you haven&apos;t entered.</p>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-3">
         <div><label className="label">Category</label><input className="input" placeholder="e.g. Single Needle Lockstitch" value={m.category ?? ""} onChange={e => up("category", e.target.value)} /></div>
         <div>
@@ -200,7 +234,7 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
       <div className="border border-brand-200 rounded-lg p-4 bg-brand-50/40">
         <div className="flex items-center justify-between mb-1">
           <label className="label mb-0">Equivalent models (other brands)</label>
-          <button type="button" onClick={suggestEquivalents} disabled={suggesting}
+          <button type="button" onClick={() => generateSeoContent("fill")} disabled={suggesting}
             className="text-xs px-2 py-1 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50">
             {suggesting ? "Thinking…" : "✨ Suggest with AI"}
           </button>
