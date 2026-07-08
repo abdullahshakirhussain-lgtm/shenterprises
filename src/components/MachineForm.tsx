@@ -3,6 +3,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type SpecRow = { key: string; value: string };
+type EquivRow = { brand: string; model: string; note?: string };
+type FaqRow = { q: string; a: string };
 type Machine = {
   id?: number;
   modelNumber: string;
@@ -15,6 +17,9 @@ type Machine = {
   description?: string | null;
   specs?: string | SpecRow[] | null;
   warrantyInfo?: string | null;
+  equivalents?: string | EquivRow[] | null;
+  faq?: string | FaqRow[] | null;
+  seoIntro?: string | null;
   active: boolean;
 };
 
@@ -24,6 +29,11 @@ function parseImages(v: string | string[] | null | undefined): string[] {
   try { const p = JSON.parse(v); return Array.isArray(p) ? p.filter(Boolean) : []; } catch { return []; }
 }
 function parseSpecs(v: string | SpecRow[] | null | undefined): SpecRow[] {
+  if (Array.isArray(v)) return v;
+  if (!v) return [];
+  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+}
+function parseJsonArray<T>(v: string | T[] | null | undefined): T[] {
   if (Array.isArray(v)) return v;
   if (!v) return [];
   try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
@@ -39,6 +49,9 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
   const [gallery, setGallery] = useState<string[]>(parseImages(initial?.images));
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [specs, setSpecs] = useState<SpecRow[]>(parseSpecs(initial?.specs));
+  const [equivalents, setEquivalents] = useState<EquivRow[]>(parseJsonArray<EquivRow>(initial?.equivalents));
+  const [faq, setFaq] = useState<FaqRow[]>(parseJsonArray<FaqRow>(initial?.faq));
+  const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -59,6 +72,38 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
     setSpecs(s => s.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
   }
   function removeSpec(i: number) { setSpecs(s => s.filter((_, idx) => idx !== i)); }
+
+  // Equivalents editor
+  function addEquiv() { setEquivalents(e => [...e, { brand: "", model: "", note: "" }]); }
+  function updateEquiv(i: number, field: keyof EquivRow, val: string) {
+    setEquivalents(e => e.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
+  }
+  function removeEquiv(i: number) { setEquivalents(e => e.filter((_, idx) => idx !== i)); }
+
+  async function suggestEquivalents() {
+    if (!m.modelNumber && !m.name) { setError("Add a model number or name first, then suggest."); return; }
+    setSuggesting(true); setError("");
+    try {
+      const res = await fetch("/api/admin/machines/suggest-equivalents", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand: m.brand, modelNumber: m.modelNumber, name: m.name, category: m.category }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Suggestion failed");
+      // Merge suggestions, skipping ones already present (by brand+model)
+      const have = new Set(equivalents.map(e => `${e.brand}|${e.model}`.toLowerCase()));
+      const added = (data.equivalents || []).filter((e: EquivRow) => !have.has(`${e.brand}|${e.model}`.toLowerCase()));
+      setEquivalents(prev => [...prev, ...added]);
+      if (added.length === 0) setError("No new equivalents suggested — you may already have them, or the AI wasn't confident.");
+    } catch (e: any) { setError(e.message); } finally { setSuggesting(false); }
+  }
+
+  // FAQ editor
+  function addFaq() { setFaq(f => [...f, { q: "", a: "" }]); }
+  function updateFaq(i: number, field: "q" | "a", val: string) {
+    setFaq(f => f.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
+  }
+  function removeFaq(i: number) { setFaq(f => f.filter((_, idx) => idx !== i)); }
 
   // Gallery
   function onGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -83,6 +128,8 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
         imageUrl,
         images: JSON.stringify(allGallery),
         specs: specs.filter(r => r.key || r.value),
+        equivalents: equivalents.filter(r => r.brand || r.model),
+        faq: faq.filter(r => r.q || r.a),
       };
       const url = m.id ? `/api/admin/machines/${m.id}` : "/api/admin/machines";
       const res = await fetch(url, { method: m.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -147,6 +194,65 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
       <div>
         <label className="label">Warranty / trust info</label>
         <textarea rows={2} className="input" placeholder="e.g. 1-year warranty. Authorized Prime dealer. Island-wide after-sales service." value={m.warrantyInfo ?? ""} onChange={e => up("warrantyInfo", e.target.value)} />
+      </div>
+
+      {/* Cross-brand equivalents — SEO engine */}
+      <div className="border border-brand-200 rounded-lg p-4 bg-brand-50/40">
+        <div className="flex items-center justify-between mb-1">
+          <label className="label mb-0">Equivalent models (other brands)</label>
+          <button type="button" onClick={suggestEquivalents} disabled={suggesting}
+            className="text-xs px-2 py-1 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50">
+            {suggesting ? "Thinking…" : "✨ Suggest with AI"}
+          </button>
+        </div>
+        <p className="text-xs text-brand-600 mb-3">
+          Same machine sold under other brands. These help buyers searching a competitor&apos;s model number find this listing.
+          AI only <strong>suggests</strong> — keep only the ones you know are accurate.
+        </p>
+        {equivalents.length === 0 ? (
+          <p className="text-xs italic text-brand-400">None yet. Add rows like “Juki → DDL-8700”, or click Suggest with AI.</p>
+        ) : (
+          <div className="space-y-2">
+            {equivalents.map((r, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <input className="input flex-1 text-sm py-1.5" placeholder="Brand (e.g. Juki)" value={r.brand} onChange={e => updateEquiv(i, "brand", e.target.value)} />
+                <input className="input flex-1 text-sm py-1.5" placeholder="Model (e.g. DDL-8700)" value={r.model} onChange={e => updateEquiv(i, "model", e.target.value)} />
+                <input className="input flex-1 text-sm py-1.5" placeholder="Note (optional)" value={r.note ?? ""} onChange={e => updateEquiv(i, "note", e.target.value)} />
+                <button type="button" onClick={() => removeEquiv(i)} className="text-red-500 hover:text-red-700 px-2">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button type="button" onClick={addEquiv} className="mt-2 text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200">+ Add equivalent</button>
+      </div>
+
+      {/* FAQ — powers FAQPage rich snippets */}
+      <div className="border border-brand-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-1">
+          <label className="label mb-0">FAQ (shows on page + Google rich snippets)</label>
+          <button type="button" onClick={addFaq} className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200">+ Add question</button>
+        </div>
+        <p className="text-xs text-brand-600 mb-3">Great for capturing search queries, e.g. “Is the Prime {m.modelNumber || "X"} the same as the Juki DDL-8700?”.</p>
+        {faq.length === 0 ? (
+          <p className="text-xs italic text-brand-400">No FAQs yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {faq.map((r, i) => (
+              <div key={i} className="space-y-1">
+                <div className="flex gap-2 items-center">
+                  <input className="input flex-1 text-sm py-1.5" placeholder="Question" value={r.q} onChange={e => updateFaq(i, "q", e.target.value)} />
+                  <button type="button" onClick={() => removeFaq(i)} className="text-red-500 hover:text-red-700 px-2">✕</button>
+                </div>
+                <textarea rows={2} className="input text-sm" placeholder="Answer" value={r.a} onChange={e => updateFaq(i, "a", e.target.value)} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="label">SEO intro paragraph <span className="text-brand-500 text-xs">(optional — keyword-rich lead shown at the top of the page)</span></label>
+        <textarea rows={3} className="input" placeholder="e.g. The Prime JK-8720 is a high-speed single-needle lockstitch industrial sewing machine — the direct equivalent of the Juki DDL-8700 — available in Sri Lanka with warranty and island-wide service." value={m.seoIntro ?? ""} onChange={e => up("seoIntro", e.target.value)} />
       </div>
 
       {/* Main image */}

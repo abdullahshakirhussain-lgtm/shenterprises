@@ -16,6 +16,36 @@ function serializeSpecs(specs: any): string | null {
   return null;
 }
 
+// Equivalents: [{ brand, model, note? }]
+function serializeEquivalents(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) {
+    const clean = v
+      .filter((r: any) => r && (r.brand || r.model))
+      .map((r: any) => ({
+        brand: String(r.brand || "").slice(0, 60),
+        model: String(r.model || "").slice(0, 80),
+        note: r.note ? String(r.note).slice(0, 160) : undefined,
+      }));
+    return clean.length ? JSON.stringify(clean) : null;
+  }
+  return null;
+}
+
+// FAQ: [{ q, a }]
+function serializeFaq(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) {
+    const clean = v
+      .filter((r: any) => r && (r.q || r.a))
+      .map((r: any) => ({ q: String(r.q || "").slice(0, 200), a: String(r.a || "").slice(0, 800) }));
+    return clean.length ? JSON.stringify(clean) : null;
+  }
+  return null;
+}
+
 async function uniqueSlug(base: string) {
   let s = base || "machine"; let i = 1;
   while (await prisma.machine.findUnique({ where: { slug: s } })) s = `${base}-${++i}`;
@@ -49,6 +79,9 @@ export async function POST(req: NextRequest) {
         description: b.description || null,
         specs: serializeSpecs(b.specs),
         warrantyInfo: b.warrantyInfo || null,
+        equivalents: serializeEquivalents(b.equivalents),
+        faq: serializeFaq(b.faq),
+        seoIntro: b.seoIntro || null,
         active: b.active !== false,
       },
     });

@@ -309,6 +309,11 @@ model Machine {
   description  String?
   specs        String?                   // JSON array of { key, value } spec rows
   warrantyInfo String?                   // trust / warranty text
+  // SEO: cross-brand equivalence. Same physical machine sold under other brands
+  // with different model numbers — captures competitor-brand searches.
+  equivalents  String?                   // JSON array of { brand, model, note? }
+  faq          String?                   // JSON array of { q, a } -> FAQPage schema
+  seoIntro     String?                   // optional keyword-rich intro paragraph
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

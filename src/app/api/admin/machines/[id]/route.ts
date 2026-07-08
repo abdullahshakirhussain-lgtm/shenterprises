@@ -13,6 +13,28 @@ function serializeSpecs(specs: any): string | null {
   }
   return null;
 }
+function serializeEquivalents(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) {
+    const clean = v
+      .filter((r: any) => r && (r.brand || r.model))
+      .map((r: any) => ({ brand: String(r.brand || "").slice(0, 60), model: String(r.model || "").slice(0, 80), note: r.note ? String(r.note).slice(0, 160) : undefined }));
+    return clean.length ? JSON.stringify(clean) : null;
+  }
+  return null;
+}
+function serializeFaq(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) {
+    const clean = v
+      .filter((r: any) => r && (r.q || r.a))
+      .map((r: any) => ({ q: String(r.q || "").slice(0, 200), a: String(r.a || "").slice(0, 800) }));
+    return clean.length ? JSON.stringify(clean) : null;
+  }
+  return null;
+}
 
 // PATCH — true partial update (only fields present in the body)
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -33,6 +55,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (b.description !== undefined) data.description = b.description || null;
     if (b.specs !== undefined)       data.specs = serializeSpecs(b.specs);
     if (b.warrantyInfo !== undefined) data.warrantyInfo = b.warrantyInfo || null;
+    if (b.equivalents !== undefined) data.equivalents = serializeEquivalents(b.equivalents);
+    if (b.faq !== undefined)         data.faq = serializeFaq(b.faq);
+    if (b.seoIntro !== undefined)    data.seoIntro = b.seoIntro || null;
     if (b.active !== undefined)      data.active = b.active !== false;
 
     const updated = await prisma.machine.update({ where: { id }, data });
