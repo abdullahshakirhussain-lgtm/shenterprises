@@ -12,7 +12,6 @@ import AnalyticsTracker from "@/components/AnalyticsTracker";
 import EasterEggs from "@/components/EasterEggs";
 import NavigationOverlay from "@/components/NavigationOverlay";
 import ScrollToTop from "@/components/ScrollToTop";
-import SignupNudge from "@/components/SignupNudge";
 import MetaPixel from "@/components/MetaPixel";
 import CartToast from "@/components/CartToast";
 import WhatsappFab from "@/components/WhatsappFab";
@@ -117,9 +116,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Suspense>
           <Suspense fallback={null}>
             <ScrollToTop />
-          </Suspense>
-          <Suspense fallback={null}>
-            <SignupNudge />
           </Suspense>
           <Suspense fallback={null}>
             <WhatsappFab />
