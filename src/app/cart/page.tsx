@@ -23,17 +23,20 @@ export default function CartPage() {
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-3">
             {items.map((i) => (
-              <div key={i.key} className="card p-3 flex gap-3 items-center">
-                <div className="w-20 h-20 bg-brand-50 rounded shrink-0 overflow-hidden">
+              <div key={i.key} className="card p-3 flex gap-3">
+                <Link href={`/product/${i.slug}`} className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-50 rounded shrink-0 overflow-hidden">
                   {i.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={i.imageUrl} alt={i.name} className="w-full h-full object-cover" />
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <Link href={`/product/${i.slug}`} className="font-medium hover:text-brand-700 line-clamp-2">{i.name}</Link>
+                </Link>
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/product/${i.slug}`} className="font-medium text-sm sm:text-base hover:text-brand-700 line-clamp-2">{i.name}</Link>
+                    <button onClick={() => remove(i.key)} className="text-red-500 hover:text-red-700 shrink-0 -mt-0.5 px-1" aria-label={t("remove")}>✕</button>
+                  </div>
                   {i.variants && i.variants.length > 0 && (
-                    <div className="text-xs text-brand-600 mt-0.5">
+                    <div className="text-xs text-brand-600">
                       {i.variants.map(v => {
                         const label =
                           v.type === "color" ? t("color") :
@@ -44,15 +47,18 @@ export default function CartPage() {
                       }).join(" · ")}
                     </div>
                   )}
-                  <div className="text-sm text-brand-700">{formatLKR(i.price)}</div>
+                  <div className="text-xs text-brand-500">{formatLKR(i.price)} each</div>
+
+                  {/* Bottom row: quantity stepper (left) + line total (right) */}
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <div className="inline-flex items-center rounded-lg border border-brand-200 overflow-hidden">
+                      <button onClick={() => setQty(i.key, i.quantity - 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Decrease">−</button>
+                      <span className="w-9 text-center text-sm font-semibold">{i.quantity}</span>
+                      <button onClick={() => setQty(i.key, i.quantity + 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Increase">+</button>
+                    </div>
+                    <div className="font-semibold text-sm sm:text-base text-brand-800 tabular-nums">{formatLKR(i.price * i.quantity)}</div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity - 1)}>−</button>
-                  <span className="w-8 text-center">{i.quantity}</span>
-                  <button className="btn-secondary px-2 py-1" onClick={() => setQty(i.key, i.quantity + 1)}>+</button>
-                </div>
-                <div className="w-24 text-right font-semibold">{formatLKR(i.price * i.quantity)}</div>
-                <button onClick={() => remove(i.key)} className="text-red-600 px-2" aria-label={t("remove")}>✕</button>
               </div>
             ))}
             <button onClick={clear} className="text-sm text-brand-600 underline">{t("clear_cart")}</button>
