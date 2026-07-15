@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMetaEvent, type MetaUserData } from "@/lib/metaEvents";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
+import { getOrCreateSessionId } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
   const fbp = req.cookies.get("_fbp")?.value || null;
   const fbc = req.cookies.get("_fbc")?.value || null;
 
+  // First-party visitor id -> external_id. This is the biggest match-quality
+  // lever for anonymous traffic (PageView/ViewContent/InitiateCheckout carry
+  // almost no other identifiers). Reads-or-creates the sh_sid cookie so even a
+  // first-hit event carries it. The browser pixel sends the SAME sh_sid via
+  // Advanced Matching, so after hashing both sides agree and dedup is intact.
+  const externalId = body?.userData?.externalId ?? getOrCreateSessionId();
+
   const userData: MetaUserData = {
     fbp,
     fbc,
@@ -40,7 +48,7 @@ export async function POST(req: NextRequest) {
     email: body?.userData?.email ?? null,
     phone: body?.userData?.phone ?? null,
     fullName: body?.userData?.fullName ?? null,
-    externalId: body?.userData?.externalId ?? null,
+    externalId,
   };
 
   const result = await sendMetaEvent({

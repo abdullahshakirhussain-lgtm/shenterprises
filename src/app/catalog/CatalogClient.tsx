@@ -49,8 +49,18 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) setCart(JSON.parse(raw));
     } catch {}
-    // Meta: catalog opened — a demand signal for the WhatsApp-first browse flow
-    pixelTrack("ViewContent", { content_name: "QuickCatalog", content_category: "catalog" });
+    // Meta: catalog opened — a demand signal for the WhatsApp-first browse flow.
+    // Include the catalog's product ids so this is a well-formed ViewContent
+    // (content_ids + content_type present) rather than an identifier-less event
+    // that Events Manager flags with "Update recommended".
+    const catalogIds = groups.flatMap(g => g.items.map(p => `SHE-${p.id}`)).slice(0, 100);
+    pixelTrack("ViewContent", {
+      content_name: "QuickCatalog",
+      content_category: "catalog",
+      content_ids: catalogIds,
+      content_type: "product",
+      currency: "LKR",
+    });
   }, []);
   useEffect(() => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch {}

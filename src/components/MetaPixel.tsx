@@ -43,7 +43,12 @@ export default function MetaPixel({ pixelId }: { pixelId: string }) {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${pixelId}');
+        // Advanced Matching: attach our first-party visitor id (sh_sid cookie) as
+        // external_id so every browser event carries a match key. Meta hashes it
+        // client-side to the same value our server CAPI sends (sha256 of sh_sid),
+        // so browser + server agree and the match quality lifts without any PII.
+        var shsid=(document.cookie.match(/(?:^|; )sh_sid=([^;]*)/)||[])[1];
+        fbq('init', '${pixelId}', shsid ? { external_id: decodeURIComponent(shsid) } : {});
         // PageView is fired by the React effect (deduped browser+CAPI),
         // not here, so the landing page isn't counted twice.
       `}
