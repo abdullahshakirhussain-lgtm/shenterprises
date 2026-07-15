@@ -321,6 +321,23 @@ model Machine {
   @@index([active])
 }
 
+/// A "leave your number, we'll call you back" enquiry from a machine page.
+/// Unlike AnalyticsSession (hash + last-4 only), this DELIBERATELY stores the
+/// full name + phone: the whole point is that the shop calls the customer back.
+model MachineLead {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phone       String
+  message     String?
+  machineId   Int?                       // machine enquired about (if known)
+  modelNumber String?                    // denormalised for quick eyeballing
+  handled     Boolean  @default(false)   // owner ticks off once called
+  createdAt   DateTime @default(now())
+
+  @@index([handled])
+  @@index([createdAt])
+}
+
 // ===== Customer profiling =====
 // One row per (browserId, optional userId). Built by the profile-builder job
 // every 15 min from existing AnalyticsEvent / Order / Cart / ChatSession data.

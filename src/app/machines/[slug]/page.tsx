@@ -4,7 +4,7 @@ import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
 import { safeJsonLd } from "@/components/JsonLd";
 import MachineContactButtons from "@/components/MachineContactButtons";
-import MachineGallery from "@/components/MachineGallery";
+import MachineLeadForm from "@/components/MachineLeadForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -66,6 +66,7 @@ export default async function MachinePage({ params }: { params: { slug: string }
 
   const [sitePhoneRaw, siteUrl] = [await getSetting("site_phone"), process.env.SITE_URL || "https://shenterprises.lk"];
   const phone = normalizePhone(sitePhoneRaw || "") || "";
+  const phoneDisplay = (sitePhoneRaw || "").trim();
   const gallery = [m.imageUrl, ...parseImages(m.images)].filter(Boolean) as string[];
   const specs = parseSpecs(m.specs);
   const equivalents = parseEquivalents(m.equivalents);
@@ -119,129 +120,186 @@ export default async function MachinePage({ params }: { params: { slug: string }
     })),
   } : null;
 
+  const hasPrice = m.price != null;
+  const priceLabel = hasPrice ? formatLKR(m.price as number) : "Enquire for price";
+  const priceSub = hasPrice
+    ? "Quoted complete — motor, table and stand included where applicable. Delivery and installation priced by district."
+    : "Machine prices move with exchange rates, so we quote by phone — always today's best figure, complete with motor, table and stand.";
+  const heroImage = gallery[0];
+
   return (
-    <div className="bg-ink text-cream min-h-screen">
+    <div className="bg-[#FAF7F2] text-[#1D1A16] font-sans min-h-screen pb-24 md:pb-0" style={{ overflowX: "clip" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(productLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbLd) }} />
       {faqLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }} />}
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <Link href="/machines" className="text-sm text-cream/60 hover:text-cream">← All machines</Link>
+      {/* Masthead strand — phone stays visible; not a nav */}
+      <div className="max-w-[1140px] mx-auto px-6 pt-6 flex items-baseline justify-between gap-4">
+        <Link href="/machines" className="text-[11.5px] font-extrabold tracking-[.22em] uppercase text-[#8A7E6E] hover:text-[#B9741F]">
+          ← SH Enterprises · Industrial Machines
+        </Link>
+        {phoneDisplay && (
+          <a href={`tel:+${phone}`} className="font-display text-[17px] font-medium text-[#1D1A16] whitespace-nowrap hover:text-[#B9741F]">{phoneDisplay}</a>
+        )}
+      </div>
+      <div className="max-w-[1140px] mx-auto px-6 mt-3.5">
+        <div className="h-px bg-[repeating-linear-gradient(90deg,#CBBFA9_0_9px,transparent_9px_20px)]" />
       </div>
 
-      {/* SEO intro lead — keyword-rich, natural */}
-      {m.seoIntro && (
-        <div className="mx-auto max-w-6xl px-4 pb-2">
-          <p className="text-cream/70 leading-relaxed max-w-3xl">{m.seoIntro}</p>
+      {/* HERO — editorial spread */}
+      <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(36px,6vw,72px)]">
+        <div className="flex flex-wrap gap-[clamp(28px,5vw,64px)] items-end">
+          <div className="flex-[1.1_1_400px] min-w-0">
+            <div className="flex items-baseline gap-3.5">
+              <span className="font-display italic text-[19px] text-[#B9741F]">№ 01</span>
+              <span className="text-[11.5px] font-extrabold tracking-[.2em] uppercase text-[#8A7E6E]">{m.brand}{m.category ? ` · ${m.category}` : ""}</span>
+            </div>
+            <h1 className="font-display font-normal text-[clamp(40px,8vw,92px)] leading-[.96] tracking-[-.03em] mt-3.5">
+              {m.brand} <span className="text-[#B9741F]">{m.modelNumber}</span>
+            </h1>
+            <p className="font-display italic font-light text-[clamp(20px,2.6vw,26px)] leading-[1.35] text-[#4A4238] mt-5 max-w-[26ch]">{m.name}</p>
+            {(m.description || m.seoIntro) && (
+              <p className="text-[15.5px] leading-[1.75] text-[#4A4238] mt-5 max-w-[52ch] whitespace-pre-line">{m.description || m.seoIntro}</p>
+            )}
+          </div>
+
+          {/* Single photograph, museum plate */}
+          <div className="flex-[1_1_400px] min-w-0">
+            <div className="relative p-2.5 bg-white border border-[#E4DAC8] shadow-[0_24px_60px_-30px_rgba(29,26,22,.25)]">
+              <div className="aspect-[4/3] bg-[#FDFBF7] overflow-hidden grid place-items-center">
+                {heroImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={heroImage} alt={`${m.brand} ${m.modelNumber} industrial sewing machine`} className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-6xl opacity-20">⚙️</span>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-baseline mt-3 px-1">
+              <span className="font-display italic text-[14.5px] text-[#6E6459]">PRiME {m.modelNumber}, photographed on white.</span>
+              <span className="text-[11px] font-extrabold tracking-[.16em] uppercase text-[#96590E]">In stock — Colombo</span>
+            </div>
+          </div>
         </div>
-      )}
+      </section>
 
-      <div className="mx-auto max-w-6xl px-4 pb-16 grid md:grid-cols-2 gap-8 lg:gap-12">
-        {/* Gallery */}
-        <MachineGallery images={gallery} alt={`${m.brand} ${m.modelNumber}`} />
-
-        {/* Info */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-400">{m.brand}</p>
-          <h1 className="font-display font-semibold text-3xl sm:text-4xl mt-1 leading-tight">
-            {m.name}
-          </h1>
-          <p className="mt-2 inline-block rounded-lg bg-white/10 border border-white/15 px-3 py-1 text-sm font-mono tracking-wide">
-            Model: <strong>{m.modelNumber}</strong>
-          </p>
-          {m.category && <p className="text-cream/60 text-sm mt-2">{m.category}</p>}
-
-          <p className="mt-5 text-2xl font-semibold text-saffron-300">
-            {m.price != null ? formatLKR(m.price) : "Enquire for price"}
-          </p>
-
-          {/* Contact CTAs — NO cart */}
-          <div className="mt-6">
+      {/* PRICE — typographic, not a card */}
+      <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(44px,7vw,84px)]">
+        <div className="flex flex-wrap gap-[clamp(28px,5vw,72px)] items-center border-y border-[#E4DAC8] py-[clamp(28px,4vw,44px)]">
+          <div className="flex-[1.2_1_340px] min-w-0">
+            <span className="text-[11.5px] font-extrabold tracking-[.2em] uppercase text-[#8A7E6E]">The price</span>
+            <div className="font-display font-normal text-[clamp(32px,5vw,54px)] tracking-[-.02em] leading-[1.1] mt-2.5">
+              {priceLabel}<span className="font-display italic font-light text-[#B9741F]">*</span>
+            </div>
+            <p className="text-sm font-semibold leading-[1.65] text-[#6E6459] mt-3.5 max-w-[48ch]">
+              <span className="font-display italic text-[#B9741F] text-base">*</span> {priceSub}
+            </p>
+          </div>
+          <div className="flex-[1_1_320px] min-w-0">
             <MachineContactButtons
               phone={phone}
+              phoneDisplay={phoneDisplay}
               brand={m.brand}
               modelNumber={m.modelNumber}
               machineId={m.id}
               machineName={m.name}
             />
-            <p className="text-xs text-cream/50 mt-2 text-center sm:text-left">
-              WhatsApp opens with the model number pre-filled. We&apos;ll share price, availability &amp; a demo video.
-            </p>
           </div>
-
-          {/* Trust block */}
-          <div className="mt-6 rounded-2xl bg-white/5 border border-white/10 p-5 space-y-2">
-            <p className="flex items-center gap-2 text-sm font-semibold text-saffron-300">
-              <span>✓</span> Authorized {m.brand} dealer
-            </p>
-            <p className="flex items-center gap-2 text-sm text-cream/80"><span className="text-saffron-400">✓</span> Warranty included</p>
-            <p className="flex items-center gap-2 text-sm text-cream/80"><span className="text-saffron-400">✓</span> Island-wide after-sales &amp; service</p>
-            {m.warrantyInfo && <p className="text-xs text-cream/60 pt-1 border-t border-white/10 mt-2">{m.warrantyInfo}</p>}
-          </div>
-
-          {/* Cross-brand equivalents — real buyer cross-reference + SEO */}
-          {equivalents.length > 0 && (
-            <div className="mt-6 rounded-2xl bg-white/5 border border-white/10 p-5">
-              <h2 className="text-sm font-bold uppercase tracking-[.15em] text-saffron-400 mb-1">Also known as / Equivalent to</h2>
-              <p className="text-xs text-cream/50 mb-3">
-                The {m.brand} {m.modelNumber} is the direct equivalent of these machines from other brands. If you use one of these, this is your replacement.
-              </p>
-              <ul className="space-y-1.5">
-                {equivalents.map((e, i) => (
-                  <li key={i} className="flex items-baseline gap-2 text-sm">
-                    <span className="text-saffron-400">↔</span>
-                    <span className="font-medium">{e.brand} {e.model}</span>
-                    {e.note && <span className="text-cream/50 text-xs">— {e.note}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
-      </div>
+      </section>
 
-      {/* Spec table + description */}
-      <div className="mx-auto max-w-6xl px-4 pb-20 grid md:grid-cols-2 gap-8">
-        {specs.length > 0 && (
-          <div>
-            <h2 className="font-display font-semibold text-2xl mb-4">Specifications</h2>
-            <table className="w-full text-sm">
-              <tbody>
-                {specs.map((s, i) => (
-                  <tr key={i} className="border-b border-white/10">
-                    <td className="py-2.5 pr-4 text-cream/60 align-top w-2/5">{s.key}</td>
-                    <td className="py-2.5 font-medium">{s.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* SPECIFICATIONS — ledger style */}
+      {specs.length > 0 && (
+        <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(52px,8vw,96px)]">
+          <div className="flex flex-wrap gap-[clamp(28px,5vw,72px)]">
+            <div className="flex-[0_1_280px] min-w-[240px]">
+              <span className="font-display italic text-[19px] text-[#B9741F]">№ 02</span>
+              <h2 className="font-display font-normal text-[clamp(30px,4vw,44px)] tracking-[-.02em] leading-[1.05] mt-2.5">The specifications, plainly.</h2>
+              <p className="text-[14.5px] font-semibold leading-[1.7] text-[#6E6459] mt-4">No marketing numbers — the sheet our own technicians work from.</p>
+            </div>
+            <div className="flex-[1.6_1_440px] min-w-0">
+              {specs.map((s, i) => (
+                <div key={i} className="flex items-baseline gap-4 py-3 border-b border-[#EAE2D3]">
+                  <span className="basis-[42%] shrink-0 text-xs font-extrabold tracking-[.1em] uppercase text-[#8A7E6E]">{s.key}</span>
+                  <span className="flex-1 h-px self-center bg-[repeating-linear-gradient(90deg,#DDD2BE_0_4px,transparent_4px_10px)]" />
+                  <span className="font-display text-[17px] font-medium text-[#1D1A16] text-right">{s.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-        {m.description && (
-          <div>
-            <h2 className="font-display font-semibold text-2xl mb-4">About this machine</h2>
-            <p className="text-cream/80 whitespace-pre-line leading-relaxed">{m.description}</p>
+        </section>
+      )}
+
+      {/* CROSS-BRAND EQUIVALENTS — buyer cross-reference + SEO */}
+      {equivalents.length > 0 && (
+        <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(52px,8vw,96px)]">
+          <div className="flex flex-wrap gap-[clamp(28px,5vw,72px)]">
+            <div className="flex-[0_1_280px] min-w-[240px]">
+              <span className="font-display italic text-[19px] text-[#B9741F]">№ 03</span>
+              <h2 className="font-display font-normal text-[clamp(30px,4vw,44px)] tracking-[-.02em] leading-[1.05] mt-2.5">Also known as.</h2>
+              <p className="text-[14.5px] font-semibold leading-[1.7] text-[#6E6459] mt-4">
+                The {m.brand} {m.modelNumber} is the same machine class as these. If you run one of them, this is your drop-in replacement.
+              </p>
+            </div>
+            <div className="flex-[1.6_1_440px] min-w-0">
+              {equivalents.map((e, i) => (
+                <div key={i} className="flex items-baseline gap-4 py-3 border-b border-[#EAE2D3]">
+                  <span className="text-[#B9741F]">↔</span>
+                  <span className="font-display text-[17px] font-medium">{e.brand} {e.model}</span>
+                  {e.note && <span className="text-[13px] text-[#8A7E6E] ml-auto text-right">{e.note}</span>}
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+        </section>
+      )}
 
       {/* FAQ — visible + FAQPage rich snippet */}
       {faq.length > 0 && (
-        <div className="mx-auto max-w-3xl px-4 pb-24">
-          <h2 className="font-display font-semibold text-2xl mb-5">Frequently asked questions</h2>
-          <div className="space-y-4">
-            {faq.map((f, i) => (
-              <details key={i} className="rounded-xl bg-white/5 border border-white/10 p-4 group">
-                <summary className="font-medium cursor-pointer list-none flex items-center justify-between">
-                  {f.q}
-                  <span className="text-saffron-400 group-open:rotate-45 transition-transform">+</span>
-                </summary>
-                <p className="text-cream/70 text-sm mt-3 leading-relaxed whitespace-pre-line">{f.a}</p>
-              </details>
-            ))}
+        <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(52px,8vw,96px)]">
+          <div className="flex flex-wrap gap-[clamp(28px,5vw,72px)]">
+            <div className="flex-[0_1_280px] min-w-[240px]">
+              <span className="font-display italic text-[19px] text-[#B9741F]">№ 04</span>
+              <h2 className="font-display font-normal text-[clamp(30px,4vw,44px)] tracking-[-.02em] leading-[1.05] mt-2.5">Questions, answered.</h2>
+            </div>
+            <div className="flex-[1.6_1_440px] min-w-0">
+              {faq.map((f, i) => (
+                <details key={i} className="border-b border-[#EAE2D3] py-4 group">
+                  <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-display text-[19px] font-medium text-[#1D1A16]">
+                    {f.q}
+                    <span className="text-[#B9741F] text-2xl leading-none group-open:rotate-45 transition-transform shrink-0">+</span>
+                  </summary>
+                  <p className="text-[15px] leading-[1.75] text-[#4A4238] mt-3 whitespace-pre-line">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* LEAD FORM — letterpress note */}
+      <section id="lead-form" className="max-w-[1140px] mx-auto px-6 pt-[clamp(52px,8vw,96px)] pb-[clamp(64px,9vw,110px)]">
+        <div className="border-[1.5px] border-[#1D1A16] bg-white relative">
+          <div className="absolute inset-2 border border-dashed border-[#D8CBB4] pointer-events-none" />
+          <div className="relative p-[clamp(30px,5vw,56px)] flex flex-wrap gap-[clamp(28px,5vw,64px)]">
+            <div className="flex-[1_1_320px] min-w-0">
+              <span className="font-display italic text-[19px] text-[#B9741F]">№ 05</span>
+              <h2 className="font-display font-normal text-[clamp(30px,4vw,44px)] tracking-[-.02em] leading-[1.08] mt-2.5">
+                Leave your number.<br /><span className="italic font-light text-[#B9741F]">We&apos;ll do the calling.</span>
+              </h2>
+              <p className="text-[14.5px] font-semibold leading-[1.7] text-[#6E6459] mt-4 max-w-[42ch]">
+                Today&apos;s best price for the {m.brand} {m.modelNumber}, by phone or straight to your WhatsApp — within one working hour. One call, no spam.
+              </p>
+              {m.warrantyInfo && (
+                <p className="text-[13px] text-[#8A7E6E] mt-4 pt-4 border-t border-[#EAE2D3] max-w-[42ch]">{m.warrantyInfo}</p>
+              )}
+            </div>
+            <div className="flex-[1.3_1_380px] min-w-0">
+              <MachineLeadForm machineId={m.id} modelNumber={m.modelNumber} brand={m.brand} />
+            </div>
           </div>
         </div>
-      )}
+      </section>
     </div>
   );
 }
