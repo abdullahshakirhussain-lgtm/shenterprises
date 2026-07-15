@@ -11,3 +11,4 @@ public/uploads/slips/*
 !public/uploads/slips/.gitkeep
 # Product images are tracked so they ship with the deploy
 !public/uploads/products/
+*.tsbuildinfo
