@@ -7,10 +7,11 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.SITE_URL || "http://localhost:3000";
-  const [products, categories, machines] = await Promise.all([
+  const [products, categories, machines, machineTypes] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.category.findMany({ select: { slug: true } }),
-    prisma.machine.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } })
+    prisma.machine.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
+    prisma.machineType.findMany({ select: { slug: true, updatedAt: true } })
   ]);
   return [
     { url: `${base}/`, priority: 1 },
@@ -18,6 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/machines`, priority: 0.8 },
     ...categories.map((c) => ({ url: `${base}/category/${c.slug}`, priority: 0.7 })),
     ...products.map((p) => ({ url: `${base}/product/${p.slug}`, lastModified: p.updatedAt, priority: 0.6 })),
+    // Type hubs are the head-term SEO pages — highest machine priority
+    ...machineTypes.map((t) => ({ url: `${base}/machines/${t.slug}`, lastModified: t.updatedAt, priority: 0.8 })),
     ...machines.map((m) => ({ url: `${base}/machines/${m.slug}`, lastModified: m.updatedAt, priority: 0.7 }))
   ];
 }

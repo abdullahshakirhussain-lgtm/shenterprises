@@ -321,6 +321,23 @@ model Machine {
   @@index([active])
 }
 
+/// A machine type ("Embroidery Machines") — the SEO hub layer. Machines link
+/// via Machine.category === MachineType.name (string join keeps bulk upload
+/// simple; the type PATCH API cascades renames). Each type gets a hub page at
+/// /machines/{slug} targeting head terms like "embroidery machine price sri
+/// lanka" — the real search volume, unlike house-brand model numbers.
+model MachineType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique   // join key to Machine.category
+  slug      String   @unique   // "embroidery-machines"
+  blurb     String?            // one-liner for the browse card
+  seoIntro  String?            // keyword-rich hub intro (competitor brands at class level)
+  faq       String?            // JSON [{q,a}] -> FAQPage schema
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// A "leave your number, we'll call you back" enquiry from a machine page.
 /// Unlike AnalyticsSession (hash + last-4 only), this DELIBERATELY stores the
 /// full name + phone: the whole point is that the shop calls the customer back.

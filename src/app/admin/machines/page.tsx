@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
 import Link from "next/link";
 import MachineDeleteButton from "./MachineDeleteButton";
+import ClassifyButton from "./ClassifyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,9 @@ export default async function AdminMachines() {
     <div className="container-x py-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl text-brand-900">Machines ({machines.length})</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/machines/types" className="btn-secondary">🗂 Types</Link>
+          <ClassifyButton />
           <Link href="/admin/machines/leads" className="btn-secondary">📞 Leads</Link>
           <Link href="/admin/machines/bulk" className="btn-secondary">⚡ Bulk from photos</Link>
           <Link href="/admin/machines/new" className="btn-primary">+ Add machine</Link>

@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type SpecRow = { key: string; value: string };
 type EquivRow = { brand: string; model: string; note?: string };
@@ -55,6 +56,16 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
   const [error, setError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Type dropdown options — admin-managed MachineTypes. The category string is
+  // the join key to the type's public hub page, so a dropdown prevents typos.
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/admin/machine-types")
+      .then(r => r.ok ? r.json() : [])
+      .then(list => Array.isArray(list) && setTypeOptions(list.map((t: any) => t.name)))
+      .catch(() => {});
+  }, []);
 
   function up<K extends keyof Machine>(k: K, v: Machine[K]) { setM({ ...m, [k]: v }); }
 
@@ -204,7 +215,19 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
-        <div><label className="label">Category</label><input className="input" placeholder="e.g. Single Needle Lockstitch" value={m.category ?? ""} onChange={e => up("category", e.target.value)} /></div>
+        <div>
+          <label className="label">Type <Link href="/admin/machines/types" target="_blank" className="text-xs text-brand-500 underline font-normal">manage types</Link></label>
+          {typeOptions.length > 0 ? (
+            <select className="input" value={m.category ?? ""} onChange={e => up("category", e.target.value || null)}>
+              <option value="">— No type —</option>
+              {/* keep a legacy/unknown category selectable so editing doesn't silently wipe it */}
+              {m.category && !typeOptions.includes(m.category) && <option value={m.category}>{m.category} (not a type)</option>}
+              {typeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          ) : (
+            <input className="input" placeholder="e.g. Embroidery Machines" value={m.category ?? ""} onChange={e => up("category", e.target.value)} />
+          )}
+        </div>
         <div>
           <label className="label">Price (LKR) <span className="text-brand-500 text-xs">— leave empty for “Enquire for price”</span></label>
           <input type="number" min="0" step="0.01" className="input" value={m.price ?? ""} onChange={e => up("price", e.target.value === "" ? null : parseFloat(e.target.value))} />
