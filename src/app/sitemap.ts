@@ -15,8 +15,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
   return [
     { url: `${base}/`, priority: 1 },
+    { url: `${base}/shop`, priority: 0.8 },
     { url: `${base}/offers`, priority: 0.8 },
     { url: `${base}/machines`, priority: 0.8 },
+    { url: `${base}/ai-helper`, priority: 0.5 },
     ...categories.map((c) => ({ url: `${base}/category/${c.slug}`, priority: 0.7 })),
     ...products.map((p) => ({ url: `${base}/product/${p.slug}`, lastModified: p.updatedAt, priority: 0.6 })),
     // Type hubs are the head-term SEO pages — highest machine priority

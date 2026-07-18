@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "AI Project Helper — Tell us what you're making",
   description:
     "Describe your sewing or craft project and our AI suggests exactly what threads, zippers, buttons and trims you'll need from SH Enterprises.",
+  alternates: { canonical: "/ai-helper" },
 };
 
 export default function AIHelperPage() {

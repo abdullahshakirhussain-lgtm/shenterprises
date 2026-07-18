@@ -59,6 +59,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     return {
       title,
       description: desc,
+      alternates: { canonical: `/machines/${type.slug}` },
       openGraph: { title: `${title} | SH Enterprises`, description: desc, type: "website" },
     };
   }
@@ -74,6 +75,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description: desc,
+    alternates: { canonical: `/machines/${m.slug}` },
     keywords: [
       `${m.brand} ${m.modelNumber}`,
       m.category || "",

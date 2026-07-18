@@ -5,7 +5,9 @@ import { getT } from "@/lib/i18n-server";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Shop all products" };
+// Canonical strips all filter/sort/pagination params (q/cat/sort/min/max/page)
+// so every /shop?… variant folds into the single master /shop URL.
+export const metadata: Metadata = { title: "Shop all products", alternates: { canonical: "/shop" } };
 
 type SP = { q?: string; cat?: string; sort?: string; min?: string; max?: string; page?: string };
 

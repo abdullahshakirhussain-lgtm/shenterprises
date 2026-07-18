@@ -6,7 +6,8 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Offers — Discounted Craft & Tailoring Supplies",
-  description: "Special discounts on threads, zippers, buttons and more at SH Enterprises."
+  description: "Special discounts on threads, zippers, buttons and more at SH Enterprises.",
+  alternates: { canonical: "/offers" }
 };
 
 export default async function OffersPage() {

@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   title: "Industrial Sewing & Embroidery Machines — Price Sri Lanka",
   description:
     "Authorised PRiME dealer in Sri Lanka. Single-needle lockstitch, overlock, flatlock, buttonhole, bartack & embroidery machines. Genuine warranty, island-wide delivery, in-house service. Call or WhatsApp for today's best price.",
+  // Canonical strips ?type= so the filtered variants fold into /machines.
+  alternates: { canonical: "/machines" },
 };
 
 export default async function MachinesPage({ searchParams }: { searchParams: { type?: string } }) {

@@ -3,8 +3,13 @@ import ProductCard from "@/components/ProductCard";
 import { smartSearch } from "@/lib/search";
 import { getT } from "@/lib/i18n-server";
 import { recordEvent } from "@/lib/analytics";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+// Search-results pages are ?q= driven with unbounded variants and no standalone
+// SEO value — noindex them (follow links) instead of minting a canonical per query.
+export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true } };
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q || "").trim();
