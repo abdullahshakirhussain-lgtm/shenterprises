@@ -102,7 +102,16 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         {/* Desktop nav */}
         <nav className="ml-auto hidden md:flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
-          <Link href="/machines" className="hover:text-saffron-700 text-ink-soft transition-colors">Machines</Link>
+          <Link
+            href="/machines"
+            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border font-bold transition-colors ${
+              pathname?.startsWith("/machines")
+                ? "bg-ink text-cream border-ink"
+                : "border-ink/20 text-ink hover:bg-ink hover:text-cream"
+            }`}
+          >
+            <span aria-hidden>⚙</span> Machines
+          </Link>
           <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
           <Link
             href="/ai-helper"
@@ -190,6 +199,18 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
               >
                 ✦ {t("shop_everything")}
               </Link>
+              {/* Machines — dark accent chip so the high-value line is a prominent,
+                  site-wide entry point, not lost among product categories. */}
+              <Link
+                href="/machines"
+                className={`shrink-0 inline-flex items-center gap-1 font-display text-sm font-semibold px-3.5 py-1.5 rounded-full border transition-all ${
+                  pathname?.startsWith("/machines")
+                    ? "bg-saffron-500 text-white border-saffron-500 shadow-sm"
+                    : "bg-ink text-cream border-ink hover:bg-ink-soft"
+                }`}
+              >
+                <span aria-hidden>⚙</span> Machines
+              </Link>
               {categories.map(c => {
                 const active = pathname === `/category/${c.slug}`;
                 return (
@@ -231,7 +252,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         <div className="md:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
           <div className="container-x py-4 space-y-1">
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
-            <Link href="/machines" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">Machines</Link>
+            <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><span aria-hidden>⚙</span> Machines</Link>
             <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
             <Link href="/ai-helper" className="block py-2.5 px-3 rounded-lg text-saffron-700 font-display font-semibold text-base hover:bg-saffron-100 transition-colors">✨ {t("ai_helper_short")}</Link>
             <Link href="/track" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("track_my_order")}</Link>

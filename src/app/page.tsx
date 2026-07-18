@@ -4,9 +4,11 @@ import { formatLKR } from "@/lib/utils";
 import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
+import MachinesShowcase from "@/components/MachinesShowcase";
 import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
 import { fetchOfferProducts, maxDiscountPercent } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
+import { normalizePhone } from "@/lib/userAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 }
 
 export default async function HomePage() {
-  const [banners, offers, allActiveIds, promoText, heroProducts] = await Promise.all([
+  const [banners, offers, allActiveIds, promoText, heroProducts, machineTypes, machinesWithImg, sitePhoneRaw] = await Promise.all([
     safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
     // Genuine sale price OR flagged on-offer — same rule as the /offers page
     safe(() => fetchOfferProducts(8), [] as any[]),
@@ -32,10 +34,39 @@ export default async function HomePage() {
       take: 3,
       select: { name: true, slug: true, imageUrl: true },
     }), [] as any[]),
+    // Machines showcase: type hubs (ordered) + all machines with photos
+    safe(() => prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }), [] as any[]),
+    safe(() => prisma.machine.findMany({
+      where: { active: true, imageUrl: { not: null } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, slug: true, brand: true, modelNumber: true, name: true, category: true, imageUrl: true },
+    }), [] as any[]),
+    safe(() => getSetting("site_phone"), null),
   ]);
 
   // Real biggest discount for the offers banner (no more hardcoded "40%")
   const maxOfferDiscount = maxDiscountPercent(offers);
+
+  // Featured machines: one flagship per type (ordered by type) for visual
+  // variety across the whole machines range; type chips carry live counts.
+  const countByType = new Map<string, number>();
+  for (const m of machinesWithImg) {
+    if (m.category) countByType.set(m.category, (countByType.get(m.category) || 0) + 1);
+  }
+  const featuredMachines = machineTypes
+    .map((t: any) => machinesWithImg.find((m: any) => m.category === t.name))
+    .filter(Boolean);
+  // Backfill with any leftover machines if we somehow have fewer than 6 cards.
+  if (featuredMachines.length < 6) {
+    for (const m of machinesWithImg) {
+      if (featuredMachines.length >= 8) break;
+      if (!featuredMachines.some((f: any) => f.id === m.id)) featuredMachines.push(m);
+    }
+  }
+  const showcaseTypes = machineTypes
+    .map((t: any) => ({ name: t.name, slug: t.slug, count: countByType.get(t.name) || 0 }))
+    .filter((t: any) => t.count > 0);
+  const machinePhone = normalizePhone(sitePhoneRaw || "") || "";
 
   const sampleIds = allActiveIds.length
     ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 12).map(p => p.id)
@@ -58,6 +89,15 @@ export default async function HomePage() {
 
       {/* Banner strip — admin-managed promo banners, secondary */}
       <BannerStrip banners={banners} />
+
+      {/* Industrial Machines — high-value line, given a bold dark band so it
+          stands out from the accessory catalog instead of blending in. */}
+      <MachinesShowcase
+        machines={featuredMachines as any}
+        types={showcaseTypes}
+        phone={machinePhone}
+        phoneDisplay={sitePhoneRaw || ""}
+      />
 
       {/* Category tiles removed — strip below the header already serves as nav.
           Keeps the homepage tight and reduces scroll length. */}
