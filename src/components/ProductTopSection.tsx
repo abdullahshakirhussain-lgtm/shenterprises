@@ -5,6 +5,7 @@ import { useLanguage } from "./LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import { pixelTrack } from "@/lib/pixel";
 import { contentId } from "@/lib/contentId";
+import SmartImage from "@/components/SmartImage";
 
 type Variant = {
   id: number;
@@ -236,11 +237,12 @@ export default function ProductTopSection({
       <div>
         <div className="aspect-square bg-brand-50 rounded-lg overflow-hidden relative">
           {activeImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <SmartImage
               src={activeImage}
               alt={product.name + (selColor ? ` (${vd(selColor)})` : "")}
-              className={`w-full h-full object-cover transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}
+              sizes="(max-width: 768px) 100vw, 480px"
+              priority
+              className={`transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}
             />
           ) : (
             <div className="w-full h-full grid place-items-center text-brand-300 text-7xl">🧵</div>
@@ -266,12 +268,11 @@ export default function ProductTopSection({
               <button
                 key={i}
                 onClick={() => setActiveImage(url)}
-                className={`w-16 h-16 rounded overflow-hidden border-2 transition ${
+                className={`relative w-16 h-16 rounded overflow-hidden border-2 transition ${
                   activeImage === url ? "border-brand-600" : "border-brand-200 hover:border-brand-400"
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-full object-cover" />
+                <SmartImage src={url} alt="" sizes="64px" />
               </button>
             ))}
           </div>
@@ -374,13 +375,12 @@ export default function ProductTopSection({
                   key={v.id}
                   title={vd(v)}
                   onClick={() => setSelColor(selColor?.id === v.id ? null : v)}
-                  className={`w-12 h-12 rounded overflow-hidden border-2 transition ${
+                  className={`relative w-12 h-12 rounded overflow-hidden border-2 transition ${
                     selColor?.id === v.id ? "border-brand-600 ring-2 ring-brand-400" : "border-brand-200 hover:border-brand-400"
                   }`}
                 >
                   {v.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.imageUrl} alt={vd(v)} className="w-full h-full object-cover" />
+                    <SmartImage src={v.imageUrl} alt={vd(v)} sizes="48px" />
                   ) : (
                     <span className="text-xs text-brand-700 p-1">{vd(v)}</span>
                   )}

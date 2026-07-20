@@ -5,6 +5,7 @@ import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import MachinesShowcase from "@/components/MachinesShowcase";
+import SmartImage from "@/components/SmartImage";
 import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
 import { fetchOfferProducts, maxDiscountPercent } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
@@ -221,8 +222,7 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
           <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{badge}</span>
         )}
         {p.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+          <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
         ) : (
           <span>🧵</span>
         )}

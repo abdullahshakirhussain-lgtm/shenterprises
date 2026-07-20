@@ -6,6 +6,7 @@ import { safeJsonLd } from "@/components/JsonLd";
 import MachineContactButtons from "@/components/MachineContactButtons";
 import MachineLeadForm from "@/components/MachineLeadForm";
 import MachineCard, { WA_ICON, TEL_ICON } from "@/components/MachineCard";
+import SmartImage from "@/components/SmartImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -372,10 +373,9 @@ async function MachineDetail({ slug }: { slug: string }) {
           {/* Single photograph, museum plate */}
           <div className="flex-[1_1_400px] min-w-0">
             <div className="relative p-2.5 bg-white border border-[#E4DAC8] shadow-[0_24px_60px_-30px_rgba(29,26,22,.25)]">
-              <div className="aspect-[4/3] bg-[#FDFBF7] overflow-hidden grid place-items-center">
+              <div className="relative aspect-[4/3] bg-[#FDFBF7] overflow-hidden grid place-items-center">
                 {heroImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={heroImage} alt={`${m.brand} ${m.modelNumber} industrial sewing machine`} className="w-full h-full object-contain" />
+                  <SmartImage src={heroImage} alt={`${m.brand} ${m.modelNumber} industrial sewing machine`} sizes="(max-width: 900px) 100vw, 560px" fit="contain" priority />
                 ) : (
                   <span className="text-6xl opacity-20">⚙️</span>
                 )}

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatLKR } from "@/lib/utils";
 import { pixelTrack } from "@/lib/pixel";
+import SmartImage from "@/components/SmartImage";
 
 type Variant = {
   id: number;
@@ -245,8 +246,9 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
               ) : cart.map(l => (
                 <div key={l.key} className="flex items-center gap-3 p-2 bg-cream/40 rounded-lg">
                   {l.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={l.imageUrl} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
+                    <div className="relative w-10 h-10 rounded overflow-hidden shrink-0">
+                      <SmartImage src={l.imageUrl} alt="" sizes="40px" />
+                    </div>
                   ) : (
                     <div className="w-10 h-10 rounded bg-brand-50 grid place-items-center text-lg shrink-0">🧵</div>
                   )}
@@ -393,10 +395,9 @@ function Row({
 }) {
   return (
     <li className={`flex items-center gap-3 px-2 py-2 rounded-lg transition-colors ${qty > 0 ? "bg-saffron-50/60" : "hover:bg-saffron-50"}`}>
-      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-brand-50 overflow-hidden shrink-0">
+      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-brand-50 overflow-hidden shrink-0">
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+          <SmartImage src={imageUrl} alt={title} sizes="56px" />
         ) : (
           <div className="w-full h-full grid place-items-center text-xl">🧵</div>
         )}

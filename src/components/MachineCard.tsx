@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatLKR } from "@/lib/utils";
+import SmartImage from "@/components/SmartImage";
 
 /**
  * Editorial machine card — shared by the /machines hub and the type hub pages.
@@ -25,10 +26,9 @@ export type MachineCardData = {
 export default function MachineCard({ m, waHref }: { m: MachineCardData; waHref: string }) {
   return (
     <div className="bg-white border border-[#E8E0D2] rounded-[18px] overflow-hidden flex flex-col transition-transform transition-shadow duration-300 hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(29,26,22,.09)]">
-      <Link href={`/machines/${m.slug}`} className="block aspect-[4/3] bg-[#FDFBF7] border-b border-[#F0EADD] grid place-items-center overflow-hidden">
+      <Link href={`/machines/${m.slug}`} className="relative block aspect-[4/3] bg-[#FDFBF7] border-b border-[#F0EADD] grid place-items-center overflow-hidden">
         {m.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={m.imageUrl} alt={`${m.brand} ${m.modelNumber} — ${m.name}`} className="w-full h-full object-contain" />
+          <SmartImage src={m.imageUrl} alt={`${m.brand} ${m.modelNumber} — ${m.name}`} sizes="(max-width: 640px) 100vw, 300px" fit="contain" />
         ) : (
           <span className="text-5xl opacity-20">⚙️</span>
         )}

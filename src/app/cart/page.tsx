@@ -3,6 +3,7 @@ import { useCart } from "@/components/CartProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import Link from "next/link";
+import SmartImage from "@/components/SmartImage";
 
 export default function CartPage() {
   const { items, subtotal, setQty, remove, clear } = useCart();
@@ -24,10 +25,9 @@ export default function CartPage() {
           <div className="md:col-span-2 space-y-3">
             {items.map((i) => (
               <div key={i.key} className="card p-3 flex gap-3">
-                <Link href={`/product/${i.slug}`} className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-50 rounded shrink-0 overflow-hidden">
+                <Link href={`/product/${i.slug}`} className="relative w-16 h-16 sm:w-20 sm:h-20 bg-brand-50 rounded shrink-0 overflow-hidden">
                   {i.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={i.imageUrl} alt={i.name} className="w-full h-full object-cover" />
+                    <SmartImage src={i.imageUrl} alt={i.name} sizes="80px" />
                   )}
                 </Link>
                 <div className="flex-1 min-w-0 flex flex-col gap-1">

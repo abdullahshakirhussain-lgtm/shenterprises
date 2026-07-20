@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useLanguage } from "./LanguageProvider";
+import SmartImage from "@/components/SmartImage";
 
 type HeroProduct = { name: string; slug: string; imageUrl: string | null };
 
@@ -137,10 +138,9 @@ function CollageCard({
 }) {
   return (
     <Link href={`/product/${product.slug}`} className={`${className} group`}>
-      <div className="w-full h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200 transition-transform group-hover:scale-[1.02] group-hover:rotate-0">
+      <div className="relative w-full h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200 transition-transform group-hover:scale-[1.02] group-hover:rotate-0">
         {product.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+          <SmartImage src={product.imageUrl} alt={product.name} sizes="(max-width: 768px) 45vw, 320px" priority />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-brand-50 to-saffron-100 grid place-items-center text-5xl">🧵</div>
         )}

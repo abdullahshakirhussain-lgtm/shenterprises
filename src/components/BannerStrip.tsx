@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import SmartImage from "@/components/SmartImage";
 
 type Banner = {
   id: number;
@@ -57,8 +58,7 @@ export default function BannerStrip({ banners }: { banners: Banner[] }) {
           <div key={b.id}
             className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
             aria-hidden={i !== idx}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={b.imageUrl} alt={b.headline || ""} className="w-full h-full object-cover" />
+            <SmartImage src={b.imageUrl} alt={b.headline || ""} sizes="(max-width: 1152px) 100vw, 1152px" />
             <div className="absolute inset-0 bg-gradient-to-r from-ink/65 via-ink/30 to-transparent" />
             <div className="absolute inset-0 z-10 flex items-center">
               <div className="px-6 sm:px-10 max-w-lg text-white">

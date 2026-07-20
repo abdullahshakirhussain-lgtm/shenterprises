@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
 import MachineCard, { WA_ICON, TEL_ICON } from "@/components/MachineCard";
+import SmartImage from "@/components/SmartImage";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -74,10 +75,9 @@ export default async function MachinesPage({ searchParams }: { searchParams: { t
         </div>
         <div className="flex-[1_1_380px] min-w-0">
           <div className="relative border-[1.5px] border-dashed border-[#D8CBB4] rounded-3xl p-3">
-            <div className="aspect-[4/3] bg-white border border-[#E8E0D2] rounded-2xl overflow-hidden grid place-items-center">
+            <div className="relative aspect-[4/3] bg-white border border-[#E8E0D2] rounded-2xl overflow-hidden grid place-items-center">
               {machinesAll.find(m => m.imageUrl)?.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={machinesAll.find(m => m.imageUrl)!.imageUrl!} alt="PRiME industrial sewing machine" className="w-full h-full object-contain" />
+                <SmartImage src={machinesAll.find(m => m.imageUrl)!.imageUrl!} alt="PRiME industrial sewing machine" sizes="(max-width: 640px) 100vw, 380px" fit="contain" priority />
               ) : (
                 <span className="text-7xl opacity-20">⚙️</span>
               )}

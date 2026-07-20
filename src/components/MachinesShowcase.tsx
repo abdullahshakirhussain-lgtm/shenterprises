@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MachineContactChooser from "@/components/MachineContactChooser";
+import SmartImage from "@/components/SmartImage";
 
 /**
  * Homepage "Industrial Machines" strip — deliberately minimal: just the topic,
@@ -47,10 +48,9 @@ export default function MachinesShowcase({
               href={`/machines/${m.slug}`}
               className="group shrink-0 w-[160px] sm:w-[180px] snap-start rounded-2xl bg-white/[.04] border border-white/10 hover:border-[#E0973F]/60 overflow-hidden transition-colors"
             >
-              <div className="aspect-square bg-[#FDFBF7] grid place-items-center overflow-hidden">
+              <div className="relative aspect-square bg-[#FDFBF7] grid place-items-center overflow-hidden">
                 {m.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.imageUrl} alt={`${m.brand} ${m.modelNumber} — ${m.name}`} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+                  <SmartImage src={m.imageUrl} alt={`${m.brand} ${m.modelNumber} — ${m.name}`} sizes="180px" fit="contain" className="transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                   <span className="text-5xl opacity-20">⚙️</span>
                 )}

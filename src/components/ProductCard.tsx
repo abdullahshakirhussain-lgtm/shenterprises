@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatLKR } from "@/lib/utils";
+import SmartImage from "@/components/SmartImage";
 
 type Variant = { type: string; name: string; price?: number | null; salePrice?: number | null };
 
@@ -43,8 +44,7 @@ export default function ProductCard({ p }: { p: Product }) {
     <div className="card group flex flex-col">
       <Link href={`/product/${p.slug}`} className="block relative aspect-square bg-brand-50 overflow-hidden">
         {p.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
+          <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" className="group-hover:scale-105 transition" />
         ) : (
           <div className="w-full h-full grid place-items-center text-brand-300 text-5xl">🧵</div>
         )}
