@@ -44,7 +44,7 @@ export default async function HomePage() {
     safe(() => prisma.machine.findMany({
       where: { active: true, imageUrl: { not: null } },
       orderBy: { createdAt: "desc" },
-      select: { id: true, slug: true, brand: true, modelNumber: true, name: true, category: true, imageUrl: true },
+      select: { id: true, slug: true, brand: true, modelNumber: true, name: true, category: true, imageUrl: true, homeOrder: true },
     }), [] as any[]),
     safe(() => getSetting("site_phone"), null),
   ]);
@@ -52,25 +52,25 @@ export default async function HomePage() {
   // Real biggest discount for the offers banner (no more hardcoded "40%")
   const maxOfferDiscount = maxDiscountPercent(offers);
 
-  // Featured machines: one flagship per type (ordered by type) for visual
-  // variety across the whole machines range; type chips carry live counts.
-  const countByType = new Map<string, number>();
+  // Homepage feature strip ordering:
+  //  1) Machines with a `homeOrder` set are PINNED to the front, ascending.
+  //  2) Remaining slots auto-fill with one machine per type (variety), then any
+  //     leftover newest machines — capped so the strip stays compact.
+  const FEATURE_CAP = 12;
+  const seen = new Set<number>();
+  const featuredMachines: any[] = [];
+  for (const m of [...machinesWithImg].filter((m: any) => m.homeOrder != null).sort((a: any, b: any) => a.homeOrder - b.homeOrder)) {
+    if (!seen.has(m.id)) { featuredMachines.push(m); seen.add(m.id); }
+  }
+  for (const t of machineTypes) {
+    if (featuredMachines.length >= FEATURE_CAP) break;
+    const rep = machinesWithImg.find((m: any) => m.category === t.name && !seen.has(m.id));
+    if (rep) { featuredMachines.push(rep); seen.add(rep.id); }
+  }
   for (const m of machinesWithImg) {
-    if (m.category) countByType.set(m.category, (countByType.get(m.category) || 0) + 1);
+    if (featuredMachines.length >= FEATURE_CAP) break;
+    if (!seen.has(m.id)) { featuredMachines.push(m); seen.add(m.id); }
   }
-  const featuredMachines = machineTypes
-    .map((t: any) => machinesWithImg.find((m: any) => m.category === t.name))
-    .filter(Boolean);
-  // Backfill with any leftover machines if we somehow have fewer than 6 cards.
-  if (featuredMachines.length < 6) {
-    for (const m of machinesWithImg) {
-      if (featuredMachines.length >= 8) break;
-      if (!featuredMachines.some((f: any) => f.id === m.id)) featuredMachines.push(m);
-    }
-  }
-  const showcaseTypes = machineTypes
-    .map((t: any) => ({ name: t.name, slug: t.slug, count: countByType.get(t.name) || 0 }))
-    .filter((t: any) => t.count > 0);
   const machinePhone = normalizePhone(sitePhoneRaw || "") || "";
 
   const sampleIds = allActiveIds.length
@@ -99,7 +99,6 @@ export default async function HomePage() {
           stands out from the accessory catalog instead of blending in. */}
       <MachinesShowcase
         machines={featuredMachines as any}
-        types={showcaseTypes}
         phone={machinePhone}
         phoneDisplay={sitePhoneRaw || ""}
       />

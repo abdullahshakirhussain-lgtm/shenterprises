@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
         equivalents: serializeEquivalents(b.equivalents),
         faq: serializeFaq(b.faq),
         seoIntro: b.seoIntro || null,
+        homeOrder: b.homeOrder != null && b.homeOrder !== "" ? parseInt(b.homeOrder) : null,
         active: b.active !== false,
       },
     });

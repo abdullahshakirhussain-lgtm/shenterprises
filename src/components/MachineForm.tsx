@@ -21,6 +21,7 @@ type Machine = {
   equivalents?: string | EquivRow[] | null;
   faq?: string | FaqRow[] | null;
   seoIntro?: string | null;
+  homeOrder?: number | null;
   active: boolean;
 };
 
@@ -232,6 +233,11 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
           <label className="label">Price (LKR) <span className="text-brand-500 text-xs">— leave empty for “Enquire for price”</span></label>
           <input type="number" min="0" step="0.01" className="input" value={m.price ?? ""} onChange={e => up("price", e.target.value === "" ? null : parseFloat(e.target.value))} />
         </div>
+      </div>
+
+      <div>
+        <label className="label">Homepage feature order <span className="text-brand-500 text-xs">— empty = not on the homepage strip; lower number shows further to the front</span></label>
+        <input type="number" className="input max-w-[220px]" placeholder="e.g. 1" value={m.homeOrder ?? ""} onChange={e => up("homeOrder", e.target.value === "" ? null : parseInt(e.target.value))} />
       </div>
 
       <div>

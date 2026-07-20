@@ -58,6 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (b.equivalents !== undefined) data.equivalents = serializeEquivalents(b.equivalents);
     if (b.faq !== undefined)         data.faq = serializeFaq(b.faq);
     if (b.seoIntro !== undefined)    data.seoIntro = b.seoIntro || null;
+    if (b.homeOrder !== undefined)   data.homeOrder = b.homeOrder === null || b.homeOrder === "" ? null : parseInt(b.homeOrder);
     if (b.active !== undefined)      data.active = b.active !== false;
 
     const updated = await prisma.machine.update({ where: { id }, data });

@@ -315,6 +315,10 @@ model Machine {
   faq          String?                   // JSON array of { q, a } -> FAQPage schema
   seoIntro     String?                   // optional keyword-rich intro paragraph
   active       Boolean  @default(true)
+  // Homepage feature strip: set a number to pin this machine to the front of the
+  // homepage machines row (lower = further left/front). Empty = not pinned (the
+  // strip then auto-fills it with one machine per type for variety).
+  homeOrder    Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
