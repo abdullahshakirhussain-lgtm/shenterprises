@@ -79,8 +79,7 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
         </div>
 
         {/* Right: collage — three offset product cards. Desktop only: on mobile it
-            stacked below the text and ate most of the screen, so it's hidden there
-            (and the images below drop `priority` so they never download on mobile). */}
+            stacked below the text and ate most of the screen, so it's hidden there. */}
         <div className="hidden md:block md:col-span-5 relative h-[260px] sm:h-[360px] md:h-[400px] mt-2 md:mt-0">
           {collage.length === 0 ? (
             <DecorativePanel />
@@ -142,7 +141,7 @@ function CollageCard({
     <Link href={`/product/${product.slug}`} className={`${className} group`}>
       <div className="relative w-full h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200 transition-transform group-hover:scale-[1.02] group-hover:rotate-0">
         {product.imageUrl ? (
-          <SmartImage src={product.imageUrl} alt={product.name} sizes="320px" />
+          <SmartImage src={product.imageUrl} alt={product.name} sizes="320px" priority />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-brand-50 to-saffron-100 grid place-items-center text-5xl">🧵</div>
         )}
