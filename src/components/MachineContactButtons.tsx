@@ -27,7 +27,7 @@ export default function MachineContactButtons({
 }) {
   const waText = encodeURIComponent(
     `Hi, I'm interested in the ${brand} ${modelNumber} industrial sewing machine. ` +
-    `Could you share the price and a demo video?`
+    `Could you share the price?`
   );
   const waHref = phone ? `https://wa.me/${phone}?text=${waText}` : `https://wa.me/?text=${waText}`;
   const telHref = phone ? `tel:+${phone}` : undefined;

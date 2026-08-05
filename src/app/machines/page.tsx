@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
 import MachineCard, { WA_ICON, TEL_ICON } from "@/components/MachineCard";
-import SmartImage from "@/components/SmartImage";
+import MachineHeroSlideshow from "@/components/MachineHeroSlideshow";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -43,6 +43,15 @@ export default async function MachinesPage({ searchParams }: { searchParams: { t
   const machines = activeType ? machinesAll.filter(m => (m.category || "") === activeType) : machinesAll;
   const gridHeading = activeType || "All machines";
 
+  // Hero slideshow — pinned (homeOrder) machines first, then newest. Each slide
+  // links to its own machine page.
+  const heroSlides = machinesAll
+    .filter(m => m.imageUrl)
+    .slice()
+    .sort((a, b) => (a.homeOrder ?? 9999) - (b.homeOrder ?? 9999))
+    .slice(0, 6)
+    .map(m => ({ slug: m.slug, imageUrl: m.imageUrl!, brand: m.brand, modelNumber: m.modelNumber, name: m.name }));
+
   return (
     <div className="bg-[#FAF7F2] text-[#1D1A16] font-sans pb-24 md:pb-0" style={{ overflowX: "clip" }}>
       {/* HERO */}
@@ -74,59 +83,31 @@ export default async function MachinesPage({ searchParams }: { searchParams: { t
           </div>
         </div>
         <div className="flex-[1_1_380px] min-w-0">
-          <div className="relative border-[1.5px] border-dashed border-[#D8CBB4] rounded-3xl p-3">
-            <div className="relative aspect-[4/3] bg-white border border-[#E8E0D2] rounded-2xl overflow-hidden grid place-items-center">
-              {machinesAll.find(m => m.imageUrl)?.imageUrl ? (
-                <SmartImage src={machinesAll.find(m => m.imageUrl)!.imageUrl!} alt="PRiME industrial sewing machine" sizes="(max-width: 640px) 100vw, 380px" fit="contain" priority />
-              ) : (
+          {heroSlides.length > 0 ? (
+            <MachineHeroSlideshow slides={heroSlides} />
+          ) : (
+            <div className="relative border-[1.5px] border-dashed border-[#D8CBB4] rounded-3xl p-3">
+              <div className="aspect-[4/3] bg-white border border-[#E8E0D2] rounded-2xl grid place-items-center">
                 <span className="text-7xl opacity-20">⚙️</span>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* TRUST STRIP */}
-      <section className="max-w-[1200px] mx-auto px-5 mt-7">
-        <div className="bg-white border border-[#E8E0D2] rounded-[20px] relative overflow-hidden grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-[repeating-linear-gradient(90deg,#E0973F_0_12px,transparent_12px_26px)]" />
-          {[
-            { big: "27 yrs", small: "Supplying Sri Lankan tailors since 1998" },
-            { big: "1-year", small: "Genuine warranty on every machine" },
-            { big: "Island-wide", small: "Delivery in 2–4 working days" },
-            { big: "In-house", small: "Technicians & spare parts in Colombo" },
-          ].map((t, i) => (
-            <div key={i} className="px-6 py-[22px] flex flex-col gap-1 border-r border-dashed border-[#E8E0D2] last:border-r-0">
-              <span className="font-display font-semibold text-[28px] text-[#B9741F]">{t.big}</span>
-              <span className="text-[13px] font-bold text-[#6E6459]">{t.small}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* BROWSE BY TYPE — each card is an SEO hub page (/machines/{slug}) */}
+      {/* BROWSE BY TYPE — compact chip row; each links to its SEO hub page */}
       {types.length > 0 && (
-        <section className="max-w-[1200px] mx-auto px-5 pt-16 pb-2.5">
-          <div className="flex items-baseline justify-between gap-4 flex-wrap mb-[22px]">
-            <div>
-              <h2 className="font-display font-semibold text-[clamp(28px,3.4vw,38px)] tracking-[-.01em]">Browse by machine type</h2>
-              <p className="text-[15px] font-semibold text-[#6E6459] mt-2">Not sure which type? Call us — we&apos;ll match the machine to your fabric and volume.</p>
-            </div>
-            <a href={tel} className="text-[14.5px] font-extrabold whitespace-nowrap text-[#B9741F] hover:text-[#96590E]">Ask an expert →</a>
-          </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3.5">
+        <section className="max-w-[1200px] mx-auto px-5 pt-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] font-extrabold uppercase tracking-[.12em] text-[#8A7E6E] mr-1">Browse by type</span>
             {types.map((ty) => (
               <Link
                 key={ty.id}
                 href={`/machines/${ty.slug}`}
-                className="bg-white border border-[#E8E0D2] hover:border-[#EFD9B4] rounded-[18px] p-[22px] flex flex-col gap-2.5 transition-transform hover:-translate-y-1"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#E4DAC8] bg-white hover:border-[#E0973F] hover:bg-[#FBF1E2] text-[#1D1A16] text-[13.5px] font-semibold px-3.5 py-1.5 transition-colors"
               >
-                <svg width="64" height="18" viewBox="0 0 64 18" fill="none" stroke="#E0973F" strokeWidth="2.4" strokeLinecap="round"><path d="M2 9h60" /></svg>
-                <span className="text-[17px] font-extrabold text-[#1D1A16]">{ty.name}</span>
-                {ty.blurb && <span className="text-[13.5px] font-semibold text-[#6E6459] leading-[1.55]">{ty.blurb}</span>}
-                <span className="mt-auto pt-2 text-[13px] font-extrabold text-[#B9741F] flex items-center gap-1.5">
-                  {ty.count} model{ty.count === 1 ? "" : "s"} <span className="text-[15px]">→</span>
-                </span>
+                {ty.name}
+                <span className="text-[#B9741F] text-[11px] font-extrabold">{ty.count}</span>
               </Link>
             ))}
           </div>
@@ -135,7 +116,7 @@ export default async function MachinesPage({ searchParams }: { searchParams: { t
 
       {/* MACHINES GRID */}
       <section className="max-w-[1200px] mx-auto px-5 pt-14 pb-2.5">
-        <div className="flex items-baseline justify-between gap-4 flex-wrap mb-5.5">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap mb-[22px]">
           <h2 className="font-display font-semibold text-[clamp(28px,3.4vw,38px)] tracking-[-.01em]">{gridHeading}</h2>
           {activeType && <Link href="/machines" className="text-[14.5px] font-extrabold whitespace-nowrap text-[#B9741F] hover:text-[#96590E]">Clear filter →</Link>}
         </div>
