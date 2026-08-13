@@ -4,9 +4,10 @@ import { calculateDeliveryFee } from "@/lib/koombiyo";
 import { generateOrderNumber } from "@/lib/utils";
 import { z } from "zod";
 import { getOrCreateSessionId, recordEvent, attachPhoneToSession } from "@/lib/analytics";
-import { getCurrentUser } from "@/lib/userAuth";
+import { getCurrentUser, normalizePhone } from "@/lib/userAuth";
 import { applyCoupon } from "@/lib/coupons";
 import { getSetting } from "@/lib/settings";
+import { sendSms } from "@/lib/sms";
 
 const schema = z.object({
   fullName: z.string().min(1),
@@ -188,6 +189,20 @@ export async function POST(req: NextRequest) {
     // Owned analytics — link this buyer's phone (hash + last4 only) to their
     // session so prior anonymous browsing ties to a real, repeat customer.
     attachPhoneToSession(sid, body.phone).catch(() => {});
+
+    // Order confirmation SMS with a link to the receipt. Best-effort and NOT
+    // awaited — a slow/failed gateway must never block or fail the order.
+    try {
+      const smsPhone = normalizePhone(body.phone) || "";
+      if (smsPhone) {
+        const base = process.env.SITE_URL || "https://shenterprises.lk";
+        const pay = body.paymentMethod === "cod" ? "COD" : "Bank deposit";
+        const msg = `SH Enterprises: Order ${order.orderNumber} confirmed. Total Rs ${Math.round(total).toLocaleString("en-US")} (${pay}). Receipt: ${base}/order/${order.orderNumber}`;
+        sendSms(smsPhone, msg).then(r => { if (!r.ok) console.warn("[checkout] confirmation SMS failed:", r.error); }).catch(() => {});
+      }
+    } catch (e: any) {
+      console.warn("[checkout] confirmation SMS error:", e?.message);
+    }
 
     if (couponCode) {
       await prisma.coupon.update({ where: { code: couponCode }, data: { usedCount: { increment: 1 } } });
