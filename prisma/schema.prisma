@@ -134,6 +134,7 @@ model Order {
   user            User?    @relation(fields: [userId], references: [id])
   fullName        String
   phone           String
+  phone2          String?          // optional second contact number
   email           String?
   addressLine1    String
   addressLine2    String?

@@ -9,9 +9,13 @@ import { applyCoupon } from "@/lib/coupons";
 import { getSetting } from "@/lib/settings";
 import { sendSms } from "@/lib/sms";
 
+// Sri Lankan local format: starts with 0, exactly 10 digits, nothing else.
+const LOCAL_PHONE = /^0\d{9}$/;
+
 const schema = z.object({
   fullName: z.string().min(1),
-  phone: z.string().min(6),
+  phone: z.string().regex(LOCAL_PHONE, "Enter a valid 10-digit phone number starting with 0"),
+  phone2: z.string().regex(LOCAL_PHONE, "Second phone must be a 10-digit number starting with 0").optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   addressLine1: z.string().min(1),
   addressLine2: z.string().optional(),
@@ -161,6 +165,7 @@ export async function POST(req: NextRequest) {
         userId: user?.id ?? null,
         fullName: body.fullName,
         phone: body.phone,
+        phone2: body.phone2 || null,
         email: body.email || null,
         addressLine1: body.addressLine1,
         addressLine2: body.addressLine2 || null,

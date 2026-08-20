@@ -57,6 +57,7 @@ export default async function OrderDetail({ params }: { params: { id: string } }
           <h2 className="font-semibold mb-2">Customer</h2>
           <div className="text-sm">{o.fullName}</div>
           <div className="text-sm">{o.phone}</div>
+          {o.phone2 && <div className="text-sm">{o.phone2} <span className="text-brand-400 text-xs">(alt)</span></div>}
           {o.email && <div className="text-sm">{o.email}</div>}
           <hr className="my-2" />
           <div className="text-sm">{o.addressLine1}</div>

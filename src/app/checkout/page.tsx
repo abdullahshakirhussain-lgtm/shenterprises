@@ -21,6 +21,15 @@ type Me = {
   districtName?: string | null;
 } | null;
 
+// Stored user phones are 94XXXXXXXXX; the checkout form wants local 0XXXXXXXXX
+// so the strict "starts with 0, 10 digits" rule accepts a prefilled number.
+function toLocalPhone(p?: string | null): string {
+  const d = String(p || "").replace(/\D/g, "");
+  if (d.startsWith("94") && d.length === 11) return "0" + d.slice(2);
+  if (d.length === 9) return "0" + d;
+  return d.slice(0, 10);
+}
+
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const { t } = useLanguage();
@@ -36,7 +45,7 @@ export default function CheckoutPage() {
 
   const [me, setMe] = useState<Me>(null);
   const [accountBannerDismissed, setAccountBannerDismissed] = useState(false);
-  const [form, setForm] = useState({ fullName: "", phone: "", email: "", addressLine1: "", addressLine2: "", notes: "" });
+  const [form, setForm] = useState({ fullName: "", phone: "", phone2: "", email: "", addressLine1: "", addressLine2: "", notes: "" });
 
   // Coupon state
   const [couponInput, setCouponInput] = useState("");
@@ -52,7 +61,7 @@ export default function CheckoutPage() {
         setForm((f) => ({
           ...f,
           fullName: d.user.fullName || f.fullName,
-          phone: d.user.phone || f.phone,
+          phone: toLocalPhone(d.user.phone) || f.phone,
           email: d.user.email || f.email,
           addressLine1: d.user.addressLine1 || f.addressLine1,
           addressLine2: d.user.addressLine2 || f.addressLine2,
@@ -134,6 +143,9 @@ export default function CheckoutPage() {
     e.preventDefault();
     setError("");
     if (items.length === 0) { setError("Cart is empty."); return; }
+    // Phone must be exactly 10 digits starting with 0 (blocks the 9-digit case).
+    if (!/^0\d{9}$/.test(form.phone)) { setError("Enter a valid 10-digit phone number starting with 0."); return; }
+    if (form.phone2 && !/^0\d{9}$/.test(form.phone2)) { setError("The second phone number must be 10 digits starting with 0."); return; }
     if (!districtName) { setError("Please select a district."); return; }
     if (paymentMethod === "bank" && !slipFile) { setError("Please upload your bank deposit slip."); return; }
 
@@ -215,7 +227,23 @@ export default function CheckoutPage() {
             <h2 className="font-semibold text-lg mb-4">{t("contact_delivery")}</h2>
             <div className="grid sm:grid-cols-2 gap-3">
               <div><label className="label">{t("full_name")} *</label><input required className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></div>
-              <div><label className="label">{t("phone")} *</label><input required className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div>
+                <label className="label">{t("phone")} *</label>
+                {/* Digits only, max 10 — strips letters/spaces/symbols as they type */}
+                <input required type="tel" inputMode="numeric" maxLength={10} placeholder="07XXXXXXXX" className="input" value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+                {form.phone.length > 0 && !/^0\d{9}$/.test(form.phone) && (
+                  <p className="text-xs text-red-600 mt-1">Must be 10 digits starting with 0.</p>
+                )}
+              </div>
+              <div>
+                <label className="label">Second phone <span className="text-brand-500 text-xs">(optional)</span></label>
+                <input type="tel" inputMode="numeric" maxLength={10} placeholder="07XXXXXXXX" className="input" value={form.phone2}
+                  onChange={(e) => setForm({ ...form, phone2: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+                {form.phone2.length > 0 && !/^0\d{9}$/.test(form.phone2) && (
+                  <p className="text-xs text-red-600 mt-1">Must be 10 digits starting with 0.</p>
+                )}
+              </div>
               <div className="sm:col-span-2"><label className="label">{t("email")}</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
               <div className="sm:col-span-2"><label className="label">{t("address_line1")} *</label><input required className="input" value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></div>
               <div className="sm:col-span-2"><label className="label">{t("address_line2")}</label><input className="input" value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></div>
