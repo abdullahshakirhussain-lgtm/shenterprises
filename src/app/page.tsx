@@ -6,7 +6,7 @@ import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import MachinesShowcase from "@/components/MachinesShowcase";
 import SmartImage from "@/components/SmartImage";
-import JsonLd, { organizationSchema, websiteSchema } from "@/components/JsonLd";
+import JsonLd, { organizationSchema, websiteSchema, localBusinessSchema } from "@/components/JsonLd";
 import { fetchOfferProducts, maxDiscountPercent } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
@@ -86,6 +86,7 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={organizationSchema(siteUrl)} />
+      <JsonLd data={localBusinessSchema(siteUrl)} />
       <JsonLd data={websiteSchema(siteUrl)} />
 
       {promoText && <PromoStrip text={promoText} href="/offers" />}

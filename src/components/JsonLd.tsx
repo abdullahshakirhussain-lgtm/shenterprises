@@ -49,6 +49,48 @@ export function organizationSchema(siteUrl: string) {
   };
 }
 
+/**
+ * LocalBusiness (Store) — the physical Colombo shop. Feeds "sewing/craft
+ * supplies in Colombo / Sri Lanka" answers in Google and AI search engines,
+ * which lean on NAP (name/address/phone), hours and area served. Geo lat/lng is
+ * intentionally omitted so the postal address (authoritative, geocodable) drives
+ * the map pin rather than a guessed coordinate.
+ */
+export function localBusinessSchema(siteUrl: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "@id": `${siteUrl}/#store`,
+    name: "SH Enterprises",
+    url: siteUrl,
+    image: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/logo.png`,
+    description:
+      "Craft, tailoring & industrial sewing supplies in Colombo, Sri Lanka — threads, zippers, buttons, elastics, trims, and industrial sewing machines. Island-wide delivery.",
+    telephone: "+94779792906",
+    priceRange: "$$",
+    currenciesAccepted: "LKR",
+    paymentAccepted: "Cash on delivery, Bank deposit",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "218 2/6, 2nd Cross Street",
+      addressLocality: "Colombo 11",
+      addressRegion: "Western Province",
+      postalCode: "01100",
+      addressCountry: "LK",
+    },
+    areaServed: { "@type": "Country", name: "Sri Lanka" },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        opens: "09:00",
+        closes: "18:00",
+      },
+    ],
+  };
+}
+
 export function websiteSchema(siteUrl: string) {
   return {
     "@context": "https://schema.org",
