@@ -219,9 +219,11 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
   return (
     <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-saffron-300 shadow-sm overflow-hidden">
       <div className="img relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
-        {badge && (
+        {p.outOfStock ? (
+          <span className="absolute top-2 left-2 rounded-full bg-ink text-cream text-[11px] font-bold px-2.5 py-1 z-10 shadow">Out of stock</span>
+        ) : badge ? (
           <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{badge}</span>
-        )}
+        ) : null}
         {p.imageUrl ? (
           <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
         ) : (
@@ -241,19 +243,23 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
             {colors.length > 1 && <div className="text-ink-mute">{colors.length} colors</div>}
           </div>
         )}
-        <p className="mt-2 flex items-baseline gap-2">
-          {noBaseNoVariants ? (
-            <span className="text-sm text-ink-mute">See options</span>
-          ) : (
-            <>
-              {showFrom && <span className="text-xs text-ink-mute">From</span>}
-              <span className="font-display font-bold text-saffron-700 text-lg">{formatLKR(effective)}</span>
-              {!showFrom && validBase != null && p.salePrice && (
-                <span className="text-ink-mute text-sm line-through">{formatLKR(p.price)}</span>
-              )}
-            </>
-          )}
-        </p>
+        {p.outOfStock ? (
+          <p className="mt-2 text-sm font-semibold text-red-600">Out of stock</p>
+        ) : (
+          <p className="mt-2 flex items-baseline gap-2">
+            {noBaseNoVariants ? (
+              <span className="text-sm text-ink-mute">See options</span>
+            ) : (
+              <>
+                {showFrom && <span className="text-xs text-ink-mute">From</span>}
+                <span className="font-display font-bold text-saffron-700 text-lg">{formatLKR(effective)}</span>
+                {!showFrom && validBase != null && p.salePrice && (
+                  <span className="text-ink-mute text-sm line-through">{formatLKR(p.price)}</span>
+                )}
+              </>
+            )}
+          </p>
+        )}
       </div>
     </Link>
   );

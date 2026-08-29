@@ -48,11 +48,13 @@ export default function ProductCard({ p }: { p: Product }) {
         ) : (
           <div className="w-full h-full grid place-items-center text-brand-300 text-5xl">🧵</div>
         )}
-        {p.onOffer && p.salePrice && (
+        {p.outOfStock ? (
+          <span className="absolute top-2 left-2 bg-ink text-cream text-xs font-bold px-2 py-1 rounded">Out of stock</span>
+        ) : p.onOffer && p.salePrice ? (
           <span className="absolute top-2 left-2 bg-brand-600 text-white text-xs px-2 py-1 rounded">
             -{Math.round(((p.price - p.salePrice) / p.price) * 100)}%
           </span>
-        )}
+        ) : null}
       </Link>
       <div className="p-3 flex flex-col flex-1 gap-2">
         <Link href={`/product/${p.slug}`} className="font-medium text-sm line-clamp-2 hover:text-brand-700">
@@ -81,20 +83,24 @@ export default function ProductCard({ p }: { p: Product }) {
         )}
 
         <div className="mt-auto">
-          <div className="flex items-baseline gap-2">
-            {noBaseNoVariants ? (
-              <span className="text-xs text-brand-500">See options</span>
-            ) : (
-              <>
-                {showFrom && <span className="text-xs text-brand-600">From</span>}
-                <span className="font-semibold text-brand-700">{formatLKR(effective)}</span>
-                {!showFrom && validBase != null && p.salePrice && (
-                  <span className="text-xs line-through text-brand-400">{formatLKR(p.price)}</span>
-                )}
-              </>
-            )}
-          </div>
-          {p.outOfStock && <div className="text-xs text-red-600 mt-1">Out of stock</div>}
+          {p.outOfStock ? (
+            // Out of stock — never show a price (product-level).
+            <div className="text-sm font-semibold text-red-600">Out of stock</div>
+          ) : (
+            <div className="flex items-baseline gap-2">
+              {noBaseNoVariants ? (
+                <span className="text-xs text-brand-500">See options</span>
+              ) : (
+                <>
+                  {showFrom && <span className="text-xs text-brand-600">From</span>}
+                  <span className="font-semibold text-brand-700">{formatLKR(effective)}</span>
+                  {!showFrom && validBase != null && p.salePrice && (
+                    <span className="text-xs line-through text-brand-400">{formatLKR(p.price)}</span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

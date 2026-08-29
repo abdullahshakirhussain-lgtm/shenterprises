@@ -13,7 +13,10 @@ export const metadata = {
 export default async function CatalogPage() {
   const [productsRaw, shopPhoneRaw] = await Promise.all([
     prisma.product.findMany({
-      where: { active: true },
+      // Out-of-stock products are hidden from the quick catalog entirely.
+      // (force-dynamic + this live query means new active products appear here
+      // automatically — no manual step.)
+      where: { active: true, outOfStock: false },
       orderBy: [
         { category: { sortOrder: "asc" } },
         { name: "asc" },
@@ -31,7 +34,7 @@ export default async function CatalogPage() {
         category: { select: { name: true, slug: true } },
         // Only pack + size variants — colors and lengths are handled by the customer in WhatsApp chat
         variants: {
-          where: { type: { in: ["pack", "size"] } },
+          where: { type: { in: ["pack", "size"] }, outOfStock: false },
           select: { id: true, type: true, name: true, price: true, salePrice: true },
           orderBy: { sortOrder: "asc" },
         },

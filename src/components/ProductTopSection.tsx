@@ -294,19 +294,22 @@ export default function ProductTopSection({
             <span className="text-brand-700"> {avgRating.toFixed(1)} ({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
           </div>
         )}
-        <div className="mt-3 flex items-baseline gap-3">
-          {showFromPrice ? (
-            <>
-              <span className="text-sm text-brand-600">From</span>
-              <span className="text-2xl font-semibold text-brand-700">{formatLKR(fromPrice)}</span>
-            </>
-          ) : (
-            <>
-              <span className="text-2xl font-semibold text-brand-700">{formatLKR(effective)}</span>
-              {showStrikethrough && <span className="line-through text-brand-400">{formatLKR(regular)}</span>}
-            </>
-          )}
-        </div>
+        {/* Never show a price for an out-of-stock product or selected variant. */}
+        {!isOutOfStock && (
+          <div className="mt-3 flex items-baseline gap-3">
+            {showFromPrice ? (
+              <>
+                <span className="text-sm text-brand-600">From</span>
+                <span className="text-2xl font-semibold text-brand-700">{formatLKR(fromPrice)}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl font-semibold text-brand-700">{formatLKR(effective)}</span>
+                {showStrikethrough && <span className="line-through text-brand-400">{formatLKR(regular)}</span>}
+              </>
+            )}
+          </div>
+        )}
         {product.sku && <div className="mt-1 text-xs text-brand-600">SKU: {product.sku}</div>}
         {isOutOfStock ? (
           <div className="mt-2 inline-block text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-0.5">
@@ -327,7 +330,7 @@ export default function ProductTopSection({
               onChange={e => setSelSize(sizeVariants.find(v => v.id === parseInt(e.target.value)) || null)}
             >
               <option value="">Select size…</option>
-              {sizeVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
+              {sizeVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
             </select>
           </div>
         )}
@@ -342,7 +345,7 @@ export default function ProductTopSection({
               onChange={e => setSelLength(lengthVariants.find(v => v.id === parseInt(e.target.value)) || null)}
             >
               <option value="">Select length…</option>
-              {lengthVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
+              {lengthVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
             </select>
           </div>
         )}
@@ -357,7 +360,7 @@ export default function ProductTopSection({
               onChange={e => setSelPack(packVariants.find(v => v.id === parseInt(e.target.value)) || null)}
             >
               <option value="">Choose pack…</option>
-              {packVariants.map(v => <option key={v.id} value={v.id}>{vd(v)}</option>)}
+              {packVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
             </select>
             <p className="text-xs text-brand-500 mt-1">Bigger packs usually have a better per-unit price.</p>
           </div>
@@ -373,16 +376,23 @@ export default function ProductTopSection({
               {colorVariants.map(v => (
                 <button
                   key={v.id}
-                  title={vd(v)}
+                  title={v.outOfStock ? `${vd(v)} (out of stock)` : vd(v)}
+                  disabled={v.outOfStock}
                   onClick={() => setSelColor(selColor?.id === v.id ? null : v)}
                   className={`relative w-12 h-12 rounded overflow-hidden border-2 transition ${
-                    selColor?.id === v.id ? "border-brand-600 ring-2 ring-brand-400" : "border-brand-200 hover:border-brand-400"
+                    v.outOfStock ? "border-brand-200 opacity-50 cursor-not-allowed"
+                    : selColor?.id === v.id ? "border-brand-600 ring-2 ring-brand-400" : "border-brand-200 hover:border-brand-400"
                   }`}
                 >
                   {v.imageUrl ? (
                     <SmartImage src={v.imageUrl} alt={vd(v)} sizes="48px" />
                   ) : (
                     <span className="text-xs text-brand-700 p-1">{vd(v)}</span>
+                  )}
+                  {v.outOfStock && (
+                    <span className="absolute inset-0 grid place-items-center bg-white/40">
+                      <span className="text-[8px] font-bold text-red-700 bg-white/90 px-1 rounded leading-tight">Out</span>
+                    </span>
                   )}
                 </button>
               ))}
