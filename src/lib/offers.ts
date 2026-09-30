@@ -12,14 +12,6 @@ export function isOfferProduct(p: { onOffer: boolean; price: number; salePrice: 
   return !!p.onOffer;
 }
 
-/** Real discount percentage for a product, or 0 when there's no genuine markdown. */
-export function discountPercent(p: { price: number; salePrice: number | null }): number {
-  if (p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price) {
-    return Math.round(((p.price - p.salePrice) / p.price) * 100);
-  }
-  return 0;
-}
-
 /**
  * Fetch all offer products (active + qualifying), newest-edited first.
  * Prisma can't compare two columns in a WHERE, so we cast a wide net at the DB
