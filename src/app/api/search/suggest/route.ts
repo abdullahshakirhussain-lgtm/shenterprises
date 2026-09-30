@@ -1,8 +1,7 @@
 import { listingPrice } from "@/lib/commerce";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
-import { smartSearch } from "@/lib/search";
-import { prisma } from "@/lib/prisma";
+import { smartSearch, productsByIds } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest) {
     // Fetch variant prices for these products so we can show the right label
     // when the base price is 0/empty but variants are priced.
     const ids = results.map(r => r.id);
-    const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true }, include: { variants: true } });
+    const products = await productsByIds(ids);
     return NextResponse.json({
       results: results.filter(p => products.some(full => full.id === p.id)).map(p => {
         const full = products.find(full => full.id === p.id)!;

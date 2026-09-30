@@ -1,6 +1,7 @@
 import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 import { formatLKR } from "@/lib/utils";
 import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
@@ -29,25 +30,25 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 
 export default async function HomePage() {
   const [banners, offers, allActiveIds, promoText, heroProducts, machineTypes, machinesWithImg, sitePhoneRaw] = await Promise.all([
-    safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
+    safe(() => memo("home:banners", () => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } })), [] as any[]),
     // Genuine sale price OR flagged on-offer — same rule as the /offers page
-    safe(() => fetchOfferProducts(8), [] as any[]),
-    safe(() => prisma.product.findMany({ where: { active: true }, orderBy: [{ featured: "desc" }, { createdAt: "desc" }], take: 12, select: { id: true } }), [] as { id: number }[]),
+    safe(() => memo("home:offers", () => fetchOfferProducts(8)), [] as any[]),
+    safe(() => memo("home:ids", () => prisma.product.findMany({ where: { active: true }, orderBy: [{ featured: "desc" }, { createdAt: "desc" }], take: 12, select: { id: true } })), [] as { id: number }[]),
     safe(() => getSetting("promo_strip_text"), null),
     // Featured products for hero collage — prefer featured > on-offer > any with an image
-    safe(() => prisma.product.findMany({
+    safe(() => memo("home:hero", () => prisma.product.findMany({
       where: { active: true, imageUrl: { not: null } },
       orderBy: [{ featured: "desc" }, { onOffer: "desc" }, { updatedAt: "desc" }],
       take: 3,
       select: { name: true, slug: true, imageUrl: true },
-    }), [] as any[]),
+    })), [] as any[]),
     // Machines showcase: type hubs (ordered) + all machines with photos
-    safe(() => prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }), [] as any[]),
-    safe(() => prisma.machine.findMany({
+    safe(() => memo("machineTypes", () => prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })), [] as any[]),
+    safe(() => memo("home:machines", () => prisma.machine.findMany({
       where: { active: true, imageUrl: { not: null } },
       orderBy: { createdAt: "desc" },
       select: { id: true, slug: true, brand: true, modelNumber: true, name: true, category: true, imageUrl: true, homeOrder: true },
-    }), [] as any[]),
+    })), [] as any[]),
     safe(() => getSetting("site_phone"), null),
   ]);
 
@@ -79,7 +80,7 @@ export default async function HomePage() {
     ? allActiveIds.map(p => p.id)
     : [];
   const shopAllPreview = sampleIds.length
-    ? await safe(() => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } }), [] as any[])
+    ? await safe(() => memo("home:preview:" + sampleIds.join(","), () => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } })), [] as any[])
     : [];
 
   const siteUrl = process.env.SITE_URL || "https://shenterprises.lk";

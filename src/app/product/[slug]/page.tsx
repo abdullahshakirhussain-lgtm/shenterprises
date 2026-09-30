@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 import { notFound } from "next/navigation";
 import { safeJSON } from "@/lib/utils";
 import ProductTopSection from "@/components/ProductTopSection";
@@ -12,9 +13,21 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+// One cached load shared by generateMetadata and the page (see lib/memo.ts).
+function loadProduct(slug: string) {
+  return memo("product:" + slug, () => prisma.product.findUnique({
+    where: { slug },
+    include: {
+      category: true,
+      reviews: { where: { approved: true }, orderBy: { createdAt: "desc" } },
+      variants: { orderBy: [{ type: "asc" }, { sortOrder: "asc" }] }
+    }
+  }));
+}
+
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const params = await props.params;
-  const p = await prisma.product.findUnique({ where: { slug: params.slug } });
+  const p = await loadProduct(params.slug);
   if (!p) return { title: "Product not found" };
   return {
     title: p.metaTitle || p.name,
@@ -31,22 +44,15 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const p = await prisma.product.findUnique({
-    where: { slug: params.slug },
-    include: {
-      category: true,
-      reviews: { where: { approved: true }, orderBy: { createdAt: "desc" } },
-      variants: { orderBy: [{ type: "asc" }, { sortOrder: "asc" }] }
-    }
-  });
+  const p = await loadProduct(params.slug);
   if (!p || !p.active) notFound();
 
-  const related = p.categoryId ? await prisma.product.findMany({
+  const related = p.categoryId ? await memo("related:" + p.id, () => prisma.product.findMany({
     where: { categoryId: p.categoryId, active: true, id: { not: p.id } },
     orderBy: { createdAt: "desc" },
     take: 4,
     include: { variants: true },
-  }) : [];
+  })) : [];
 
   const images = [p.imageUrl, ...safeJSON<string[]>(p.images, [])].filter(Boolean) as string[];
   const effective = p.salePrice ?? p.price;

@@ -1,6 +1,7 @@
 import ProductCard from "@/components/ProductCard";
 import { getT } from "@/lib/i18n-server";
 import { fetchOfferProducts } from "@/lib/offers";
+import { memo } from "@/lib/memo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function OffersPage() {
   // Any product with a genuine sale price OR flagged on-offer.
-  const items = await fetchOfferProducts();
+  const items = await memo("offers:all", () => fetchOfferProducts());
   const t = await getT();
   return (
     <div className="container-x py-8">

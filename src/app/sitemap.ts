@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 
 // Generate the sitemap at request time, not at build time.
 // Otherwise prerendering 66 pages concurrently exhausts the Supabase pooler's 15-connection limit.
@@ -7,12 +8,12 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.SITE_URL || "https://shenterprises.lk";
-  const [products, categories, machines, machineTypes] = await Promise.all([
+  const [products, categories, machines, machineTypes] = await memo("sitemap", () => Promise.all([
     prisma.product.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.category.findMany({ select: { slug: true } }),
     prisma.machine.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.machineType.findMany({ select: { slug: true, updatedAt: true } })
-  ]);
+  ]));
   return [
     { url: `${base}/`, priority: 1 },
     { url: `${base}/shop`, priority: 0.8 },

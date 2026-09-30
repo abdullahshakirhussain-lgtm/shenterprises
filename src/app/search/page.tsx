@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
-import { smartSearch } from "@/lib/search";
+import { smartSearch, productsByIds } from "@/lib/search";
 import { getT } from "@/lib/i18n-server";
 import { recordEvent } from "@/lib/analytics";
 import type { Metadata } from "next";
@@ -24,13 +23,7 @@ export default async function SearchPage(props: { searchParams: Promise<{ q?: st
   }
 
   const items = slim.length
-    ? await prisma.product.findMany({
-        where: { id: { in: slim.map(p => p.id) } },
-        include: { variants: true },
-      }).then(rows => {
-        const byId = new Map(rows.map(r => [r.id, r]));
-        return slim.map(s => byId.get(s.id)).filter(Boolean) as any[];
-      })
+    ? await productsByIds(slim.map(p => p.id)) as any[]
     : [];
 
   return (

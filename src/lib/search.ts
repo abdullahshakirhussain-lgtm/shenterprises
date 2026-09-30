@@ -1,6 +1,24 @@
 import { prisma } from "./prisma";
 import { getSetting } from "./settings";
 import { translateQueryToEnglish } from "./translate";
+import { memo } from "./memo";
+
+// Every active product (with variants) held in memory — ~200 rows — so a search
+// keystroke is matched in-process instead of a multi-OR ILIKE query to Sydney.
+// Invalidated on any product/variant/category write (lib/prisma.ts).
+function getSearchIndex() {
+  return memo("search:index", () => prisma.product.findMany({
+    where: { active: true },
+    include: { variants: true, category: { select: { name: true } } },
+  }));
+}
+
+/** Active products (with variants) for the given ids, in the given order. */
+export async function productsByIds(ids: number[]) {
+  const byId = new Map((await getSearchIndex()).map(p => [p.id, p]));
+  return ids.map(id => byId.get(id)).filter(<T,>(p: T | undefined): p is T => !!p);
+}
+
 
 export type SearchProduct = {
   id: number;
@@ -90,7 +108,7 @@ function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"
  * Smart product search with relevance scoring.
  *  1. Translate non-English → English
  *  2. Expand synonyms
- *  3. SQL: cast a wide net (any token in name/desc/sku/category)
+ *  3. Match every token group against the in-memory index (name/desc/sku/category)
  *  4. JS: score every match by WHERE the hit happened
  *  5. Sort by score; fall back to fuzzy if zero hits
  */
@@ -103,29 +121,11 @@ export async function smartSearch(q: string, limit = 60): Promise<SearchProduct[
   const synonyms = await getSynonyms();
   const expandedTokens = tokens.map(t => expandToken(t, synonyms));
 
-  const where: any = {
-    active: true,
-    AND: expandedTokens.map(variants => ({
-      OR: variants.flatMap(v => ([
-        { name:        { contains: v, mode: "insensitive" as const } },
-        { description: { contains: v, mode: "insensitive" as const } },
-        { sku:         { contains: v, mode: "insensitive" as const } },
-        { category:    { name: { contains: v, mode: "insensitive" as const } } },
-      ]))
-    }))
-  };
-
-  // Fetch a wider pool so scoring has enough to choose from
-  const candidates = await prisma.product.findMany({
-    where,
-    take: Math.max(limit * 3, 120),
-    select: {
-      id: true, name: true, slug: true, price: true, salePrice: true,
-      imageUrl: true, onOffer: true, stock: true, unitQty: true, unitType: true,
-      description: true, sku: true, featured: true,
-      category: { select: { name: true } },
-    },
-  });
+  // Same match rule the SQL used: every token group must hit name, description,
+  // SKU or category name (case-insensitive substring).
+  const has = (s: string | null | undefined, v: string) => !!s && s.toLowerCase().includes(v.toLowerCase());
+  const candidates = (await getSearchIndex()).filter(p => expandedTokens.every(variants =>
+    variants.some(v => has(p.name, v) || has(p.description, v) || has(p.sku, v) || has(p.category?.name, v))));
 
   // Score and sort by relevance
   const scored = candidates

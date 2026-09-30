@@ -2,6 +2,7 @@ import SmartImage from "@/components/SmartImage";
 import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 import { formatLKR } from "@/lib/utils";
 import { getT } from "@/lib/i18n-server";
 import type { Metadata } from "next";
@@ -42,7 +43,9 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
   if (sort === "price-desc") orderBy = { price: "desc" };
   if (sort === "name") orderBy = { name: "asc" };
 
-  const categories = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+  const categories = await memo("categories", () => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }));
+  // Cached per filter/sort/page combination (see lib/memo.ts).
+  const { total, products } = await memo("shop:" + JSON.stringify([q, cat, sort, min, max, page]), async () => {
   let total: number, products;
   if (sort.startsWith("price-") || Number.isFinite(min) || Number.isFinite(max)) {
     const candidates = await prisma.product.findMany({ where, orderBy, select: { id: true, price: true, salePrice: true, outOfStock: true, variants: { select: { type: true, price: true, salePrice: true, outOfStock: true } } } });
@@ -59,6 +62,8 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
       prisma.product.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { variants: true } }),
     ]);
   }
+  return { total, products };
+  });
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const t = await getT();
@@ -146,18 +151,20 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.map(p => <ShopProductCard key={p.id} p={p} />)}
+            {products.map((p, i) => <ShopProductCard key={p.id} p={p} priority={i < 4} />)}
           </div>
+          {/* Prev/Next prefetch the full neighbouring page (cheap now that listing
+              data is cached), so paging renders instantly. */}
           {totalPages > 1 && (
             <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
               {page > 1 && (
-                <Link href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">{t("prev")}</Link>
+                <Link prefetch href={`/shop${qs({ page: String(page - 1) })}`} className="btn-secondary text-sm">{t("prev")}</Link>
               )}
               <span className="text-sm text-brand-700 px-3">
                 {t("page_of")} <strong>{page}</strong> {t("of")} {totalPages}
               </span>
               {page < totalPages && (
-                <Link href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">{t("next")}</Link>
+                <Link prefetch href={`/shop${qs({ page: String(page + 1) })}`} className="btn-secondary text-sm">{t("next")}</Link>
               )}
             </div>
           )}
@@ -167,7 +174,7 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
   );
 }
 
-function ShopProductCard({ p }: { p: any }) {
+function ShopProductCard({ p, priority = false }: { p: any; priority?: boolean }) {
   const quote = listingPrice(p);
   const available = quote.available;
   const effective = quote.min;
@@ -189,7 +196,7 @@ function ShopProductCard({ p }: { p: any }) {
         )}
         {p.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
+          <SmartImage src={p.imageUrl} alt={p.name} priority={priority} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
         ) : (
           <span>🧵</span>
         )}

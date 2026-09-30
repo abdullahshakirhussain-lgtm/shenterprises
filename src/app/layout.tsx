@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 import { getSettings } from "@/lib/settings";
 import { CartProvider } from "@/components/CartProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
 // never crashes the whole site over a transient Supabase pooler drop.
 async function safeCategories() {
   try {
-    return await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+    return await memo("categories", () => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }));
   } catch (e) {
     console.warn("[layout] category fetch failed, returning empty list:", (e as any)?.message);
     return [];

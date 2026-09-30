@@ -7,6 +7,9 @@ function startWorker() {
  worker.on("exit", () => { if (!stopping) setTimeout(startWorker, 5000); });
 }
 startWorker();
-function stop() { stopping = true; web.kill("SIGTERM"); worker?.kill("SIGTERM"); }
+// One-shot: rebuild the optimized-image cache the deploy just wiped (see scripts/warm-images.ts).
+const warm = spawn(process.execPath, ["--import", "tsx", "scripts/warm-images.ts"], { stdio: "inherit", env: { ...process.env, SH_WORKER: "1" } });
+warm.on("error", () => {});
+function stop() { stopping = true; web.kill("SIGTERM"); worker?.kill("SIGTERM"); warm.kill("SIGTERM"); }
 process.on("SIGTERM", stop); process.on("SIGINT", stop);
-web.on("exit", code => { stopping = true; worker?.kill("SIGTERM"); process.exitCode = code || 0; });
+web.on("exit", code => { stopping = true; worker?.kill("SIGTERM"); warm.kill("SIGTERM"); process.exitCode = code || 0; });

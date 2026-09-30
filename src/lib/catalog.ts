@@ -1,6 +1,11 @@
 import { prisma } from "./prisma";
 import { isAvailable } from "./commerce";
-export async function catalogPage(search = "", cursor?: number) {
+import { memo } from "./memo";
+// Cached per search/cursor (see lib/memo.ts).
+export function catalogPage(search = "", cursor?: number) {
+ return memo("catalog:" + JSON.stringify([search, cursor ?? null]), () => loadCatalogPage(search, cursor));
+}
+async function loadCatalogPage(search: string, cursor?: number) {
  const pageSize = 48;
  const rows = await prisma.product.findMany({
  where: { active: true, outOfStock: false, ...(search ? { name: { contains: search.slice(0,100), mode: "insensitive" as const } } : {}),

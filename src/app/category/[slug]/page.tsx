@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { memo } from "@/lib/memo";
 import ProductCard from "@/components/ProductCard";
 import { notFound } from "next/navigation";
 import { getT, getServerLang } from "@/lib/i18n-server";
@@ -8,9 +9,17 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+// One cached load shared by generateMetadata and the page (see lib/memo.ts).
+function loadCategory(slug: string) {
+  return memo("category:" + slug, () => prisma.category.findUnique({
+    where: { slug },
+    include: { products: { where: { active: true }, orderBy: { createdAt: "desc" }, include: { variants: true } } }
+  }));
+}
+
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const params = await props.params;
-  const cat = await prisma.category.findUnique({ where: { slug: params.slug } });
+  const cat = await loadCategory(params.slug);
   if (!cat) return { title: "Category not found" };
   return {
     title: `${cat.name} — Buy ${cat.name} Online in Sri Lanka`,
@@ -21,10 +30,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function CategoryPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const cat = await prisma.category.findUnique({
-    where: { slug: params.slug },
-    include: { products: { where: { active: true }, orderBy: { createdAt: "desc" }, include: { variants: true } } }
-  });
+  const cat = await loadCategory(params.slug);
   if (!cat) notFound();
 
   const t = await getT();

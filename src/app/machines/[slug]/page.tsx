@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
 import { getSetting } from "@/lib/settings";
+import { memo } from "@/lib/memo";
 import { normalizePhone } from "@/lib/userAuth";
 import { safeJsonLd } from "@/components/JsonLd";
 import MachineContactButtons from "@/components/MachineContactButtons";
@@ -47,10 +48,14 @@ function machineTitle(m: { name: string; brand: string; modelNumber: string }): 
   return `${phrase} Price Sri Lanka | ${m.brand} ${m.modelNumber}`;
 }
 
+// Cached loads shared by generateMetadata and the page (see lib/memo.ts).
+const loadType = (slug: string) => memo("machineType:" + slug, () => prisma.machineType.findUnique({ where: { slug } }));
+const loadMachine = (slug: string) => memo("machine:" + slug, () => prisma.machine.findUnique({ where: { slug } }));
+
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const params = await props.params;
   // Type hub metadata
-  const type = await prisma.machineType.findUnique({ where: { slug: params.slug } });
+  const type = await loadType(params.slug);
   if (type) {
     const title = `${type.name} — Price Sri Lanka`;
     const desc = (
@@ -67,7 +72,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   }
 
   // Machine detail metadata — type phrase leads, model number follows.
-  const m = await prisma.machine.findUnique({ where: { slug: params.slug } });
+  const m = await loadMachine(params.slug);
   if (!m) return { title: "Machine not found" };
   const title = machineTitle(m);
   const desc = (
@@ -95,7 +100,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function MachineOrTypePage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const type = await prisma.machineType.findUnique({ where: { slug: params.slug } });
+  const type = await loadType(params.slug);
   if (type) return <TypeHub type={type} />;
   return <MachineDetail slug={params.slug} />;
 }
@@ -104,7 +109,7 @@ export default async function MachineOrTypePage(props: { params: Promise<{ slug:
 
 async function TypeHub({ type }: { type: MachineType }) {
   const [machines, sitePhoneRaw] = await Promise.all([
-    prisma.machine.findMany({ where: { active: true, category: type.name }, orderBy: { createdAt: "desc" } }),
+    memo("machines:type:" + type.name, () => prisma.machine.findMany({ where: { active: true, category: type.name }, orderBy: { createdAt: "desc" } })),
     getSetting("site_phone"),
   ]);
   const phone = normalizePhone(sitePhoneRaw || "") || "";
@@ -262,12 +267,12 @@ async function TypeHub({ type }: { type: MachineType }) {
 /* ========================= MACHINE DETAIL ========================= */
 
 async function MachineDetail({ slug }: { slug: string }) {
-  const m: Machine | null = await prisma.machine.findUnique({ where: { slug } });
+  const m: Machine | null = await loadMachine(slug);
   if (!m || !m.active) notFound();
 
   const [sitePhoneRaw, machineType] = await Promise.all([
     getSetting("site_phone"),
-    m.category ? prisma.machineType.findUnique({ where: { name: m.category } }) : Promise.resolve(null),
+    m.category ? memo("machineType:name:" + m.category, () => prisma.machineType.findUnique({ where: { name: m.category! } })) : Promise.resolve(null),
   ]);
   const siteUrl = process.env.SITE_URL || "https://shenterprises.lk";
   const phone = normalizePhone(sitePhoneRaw || "") || "";

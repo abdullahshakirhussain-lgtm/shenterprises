@@ -236,3 +236,14 @@ h1, h2, h3, .font-display, .font-serif {
   transform: translateY(-50%); transition: left .5s ease; font-size: 18px;
 }
 .thread-btn:hover::after { left: calc(100% + 30px); }
+
+/* Image placeholder (SmartImage): soft shimmer until the product photo loads. */
+.img-skeleton {
+  background: linear-gradient(100deg, rgba(120, 90, 60, 0.06) 30%, rgba(120, 90, 60, 0.13) 50%, rgba(120, 90, 60, 0.06) 70%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .img-skeleton { animation: img-shimmer 1.3s ease-in-out infinite; }
+  @keyframes img-shimmer { to { background-position: 0 0; } }
+}

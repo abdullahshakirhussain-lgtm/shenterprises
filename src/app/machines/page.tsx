@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
+import { memo } from "@/lib/memo";
 import { normalizePhone } from "@/lib/userAuth";
 import MachineCard, { WA_ICON, TEL_ICON } from "@/components/MachineCard";
 import MachineHeroSlideshow from "@/components/MachineHeroSlideshow";
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
 export default async function MachinesPage(props: { searchParams: Promise<{ type?: string }> }) {
   const searchParams = await props.searchParams;
   const [machinesAll, machineTypes, sitePhoneRaw] = await Promise.all([
-    prisma.machine.findMany({ where: { active: true }, orderBy: { createdAt: "desc" } }),
-    prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    memo("machines:all", () => prisma.machine.findMany({ where: { active: true }, orderBy: { createdAt: "desc" } })),
+    memo("machineTypes", () => prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })),
     getSetting("site_phone"),
   ]);
   const phone = normalizePhone(sitePhoneRaw || "") || "";
