@@ -177,15 +177,6 @@ export default function EasterEggs() {
       });
     });
 
-    /* ---------- 6. offers banner hover 2s → ribbon bow ---------- */
-    const ob = $("#offers-banner") as HTMLElement | null;
-    const bow = $("#bow") as HTMLElement | null;
-    let bowT: any;
-    if (ob && bow) {
-      ob.addEventListener("mouseenter", () => { bowT = setTimeout(() => { bow.classList.add("on"); say("🎀 All wrapped up!"); }, 2000); });
-      ob.addEventListener("mouseleave", () => clearTimeout(bowT));
-    }
-
     /* ---------- 7. trust icons flip ---------- */
     $$<HTMLElement>(".egg-trust").forEach(b => {
       const ic = $(".ti", b) as HTMLElement | null;

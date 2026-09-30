@@ -34,8 +34,3 @@ export async function fetchOfferProducts(limit?: number) {
   const filtered = rows.filter(isOfferProduct);
   return typeof limit === "number" ? filtered.slice(0, limit) : filtered;
 }
-
-/** Largest genuine discount % across a set of products (for the homepage banner). */
-export function maxDiscountPercent(products: { price: number; salePrice: number | null }[]): number {
-  return products.reduce((max, p) => Math.max(max, discountPercent(p)), 0);
-}

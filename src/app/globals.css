@@ -211,9 +211,6 @@ h1, h2, h3, .font-display, .font-serif {
 }
 .patch.on { transform: scale(1) rotate(-12deg); }
 
-/* ====== Ribbon bow ====== */
-#bow { display: inline-block; opacity: 0; transform: scale(.4) rotate(-20deg); transition: .5s cubic-bezier(.2,1.6,.4,1); }
-#bow.on { opacity: 1; transform: scale(1) rotate(0); }
 
 /* ====== Idle needle ====== */
 #idle {

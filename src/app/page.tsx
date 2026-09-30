@@ -9,7 +9,7 @@ import PromoStrip from "@/components/PromoStrip";
 import MachinesShowcase from "@/components/MachinesShowcase";
 import SmartImage from "@/components/SmartImage";
 import JsonLd, { organizationSchema, websiteSchema, localBusinessSchema } from "@/components/JsonLd";
-import { fetchOfferProducts, maxDiscountPercent } from "@/lib/offers";
+import { fetchOfferProducts } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
 import type { Metadata } from "next";
@@ -51,9 +51,6 @@ export default async function HomePage() {
     })), [] as any[]),
     safe(() => getSetting("site_phone"), null),
   ]);
-
-  // Real biggest discount for the offers banner (no more hardcoded "40%")
-  const maxOfferDiscount = maxDiscountPercent(offers);
 
   // Homepage feature strip ordering:
   //  1) Machines with a `homeOrder` set are PINNED to the front, ascending.
@@ -124,24 +121,6 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
               {offers.map(p => <HomeProductCard key={p.id} p={p} badge="SALE" badgeColor="bg-saffron-500" />)}
             </div>
-          </section>
-
-          <section className="mx-auto max-w-6xl px-4 py-4 md:py-6">
-            <Link id="offers-banner" href="/offers" className="tile block rounded-3xl bg-ink text-cream shadow-lg overflow-hidden reveal relative">
-              <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-saffron-500/30 blur-3xl" />
-              <div className="relative px-6 sm:px-10 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-300">Limited time</p>
-                  <h2 className="font-display font-semibold text-3xl sm:text-4xl mt-2 flex items-center gap-3 justify-center sm:justify-start">
-                    {maxOfferDiscount > 0 ? `Up to ${maxOfferDiscount}% off` : "Special offers"} <span id="bow">🎀</span>
-                  </h2>
-                  <p className="text-cream/80 mt-2 max-w-md">Stock up on threads, zippers and trims while the festive deals last.</p>
-                </div>
-                <span className="inline-flex items-center gap-2 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white font-bold px-6 py-3.5 shrink-0 transition-colors">
-                  Shop the sale →
-                </span>
-              </div>
-            </Link>
           </section>
 
           <div className="cut reveal"><span>✂</span></div>
