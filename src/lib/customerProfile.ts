@@ -1,13 +1,9 @@
 /**
  * Customer Profile builder — Phase 1 of the customer-profiling system.
  *
- * Reads existing data (AnalyticsEvent, Order, Cart, ChatSession) and writes
+ * Reads existing data (AnalyticsEvent, Order, Cart) and writes
  * one row per (browserId, userId?) into CustomerProfile. Pure heuristics for
  * now — no ML. Designed to be rebuilt incrementally every 15 min via cron.
- *
- * The interest vector is the unit-normalised average of embeddings of products
- * a customer has viewed/added/ordered. Used later for personalised recs and
- * "customers like you bought" via pgvector cosine similarity.
  */
 
 import { prisma } from "./prisma";
@@ -32,7 +28,6 @@ export type ProfileInputs = {
   events: Array<{ type: string; productId: number | null; value: number | null; createdAt: Date }>;
   orders: Array<{ total: number; createdAt: Date; itemProductIds: number[]; usedCoupon: boolean }>;
   carts: Array<{ abandoned: boolean; total: number }>;
-  chatSessionsCount: number;
   productsViewed: number[];
   productsAddedToCart: number[];
   productsOrdered: number[];
@@ -97,8 +92,8 @@ export function classify(inputs: ProfileInputs): { type: CustomerType; confidenc
     return { type: "student", confidence: 0.5 };
   }
 
-  // No orders but high engagement (many chat sessions or product views) = casual browser
-  if (orderCount === 0 && (inputs.chatSessionsCount >= 1 || inputs.productsViewed.length >= 3)) {
+  // No orders but high engagement (many product views) = casual browser
+  if (orderCount === 0 && inputs.productsViewed.length >= 3) {
     return { type: "casual_browser", confidence: 0.55 };
   }
 
@@ -115,17 +110,15 @@ export function classify(inputs: ProfileInputs): { type: CustomerType; confidenc
 // =====================================================================
 
 function calcEngagementScore(inputs: ProfileInputs): number {
-  // Cap-and-mix: page views, cart adds, chat sessions, orders, all weighted
+  // Cap-and-mix: page views, cart adds, orders, all weighted
   const pageViews = inputs.events.filter(e => e.type === "page_view").length;
   const adds      = inputs.productsAddedToCart.length;
-  const chats     = inputs.chatSessionsCount;
   const orders    = inputs.orders.length;
 
   // Asymptotic curve — diminishing returns past saturation
   const score =
     Math.min(20, pageViews * 0.5) +
     Math.min(20, adds * 4) +
-    Math.min(15, chats * 5) +
     Math.min(45, orders * 12);
   return Math.min(100, score);
 }
@@ -168,72 +161,6 @@ export function computeScores(inputs: ProfileInputs): ProfileScores {
     topCategories: [], // populated by the builder once it knows the catalog
     topPriceRange: null,
   };
-}
-
-// =====================================================================
-// Interest vector — average of product embeddings the customer engaged with
-// =====================================================================
-
-/**
- * Average a list of vectors element-wise and L2-normalise the result.
- * Returns null when there are no vectors to average.
- */
-function averageVectors(vectors: number[][]): number[] | null {
-  if (vectors.length === 0) return null;
-  const dim = vectors[0].length;
-  const sum = new Array<number>(dim).fill(0);
-  for (const v of vectors) {
-    for (let i = 0; i < dim; i++) sum[i] += v[i];
-  }
-  for (let i = 0; i < dim; i++) sum[i] /= vectors.length;
-  // L2 normalise
-  let norm = 0;
-  for (let i = 0; i < dim; i++) norm += sum[i] * sum[i];
-  norm = Math.sqrt(norm);
-  if (norm > 0) for (let i = 0; i < dim; i++) sum[i] /= norm;
-  return sum;
-}
-
-/**
- * Fetch a customer's interest vector from the engagement product list.
- * Weighted: ordered products count 3×, added 2×, viewed 1×.
- * Returns null if no embeddings are found.
- */
-export async function computeInterestVector(
-  productsViewed: number[],
-  productsAdded: number[],
-  productsOrdered: number[]
-): Promise<number[] | null> {
-  const allIds = Array.from(new Set([...productsViewed, ...productsAdded, ...productsOrdered]));
-  if (allIds.length === 0) return null;
-
-  type Row = { id: number; vec: string | null };
-  let rows: Row[] = [];
-  try {
-    rows = await prisma.$queryRawUnsafe<Row[]>(
-      `SELECT id, embedding::text AS vec FROM "Product" WHERE id = ANY($1::int[]) AND embedding IS NOT NULL`,
-      allIds
-    );
-  } catch {
-    return null;
-  }
-
-  const byId = new Map<number, number[]>();
-  for (const r of rows) {
-    if (!r.vec) continue;
-    // Parse "[0.012,-0.087,...]"
-    const stripped = r.vec.replace(/^\[|\]$/g, "");
-    const parts = stripped.split(",").map(Number);
-    if (parts.some(Number.isNaN)) continue;
-    byId.set(r.id, parts);
-  }
-
-  const weighted: number[][] = [];
-  for (const id of productsViewed)   { const v = byId.get(id); if (v) weighted.push(v); }
-  for (const id of productsAdded)    { const v = byId.get(id); if (v) { weighted.push(v); weighted.push(v); } }
-  for (const id of productsOrdered)  { const v = byId.get(id); if (v) { weighted.push(v); weighted.push(v); weighted.push(v); } }
-
-  return averageVectors(weighted);
 }
 
 // =====================================================================
@@ -314,18 +241,7 @@ export async function rebuildProfile(browserId: string, userId?: number | null):
     select: { abandoned: true, total: true },
   });
 
-  // 4) Chat sessions
-  let chatSessionsCount = 0;
-  try {
-    chatSessionsCount = await prisma.chatSession.count({
-      where: {
-        startedAt: { gte: since },
-        OR: [{ browserId }, ...(userId ? [{ userId }] : [])],
-      },
-    });
-  } catch {}
-
-  // 5) Product engagement breakdown
+  // 4) Product engagement breakdown
   const productsViewed = Array.from(
     new Set(events.filter(e => e.type === "page_view" && e.productId).map(e => e.productId as number))
   );
@@ -342,7 +258,6 @@ export async function rebuildProfile(browserId: string, userId?: number | null):
     events,
     orders,
     carts,
-    chatSessionsCount,
     productsViewed,
     productsAddedToCart,
     productsOrdered,
@@ -361,13 +276,10 @@ export async function rebuildProfile(browserId: string, userId?: number | null):
   if (
     events.length === 0 &&
     orders.length === 0 &&
-    chatSessionsCount === 0 &&
     productsViewed.length === 0
   ) {
     return { ok: false };
   }
-
-  const interestVec = await computeInterestVector(productsViewed, productsAddedToCart, productsOrdered);
 
   // Upsert
   await prisma.customerProfile.upsert({
@@ -405,17 +317,6 @@ export async function rebuildProfile(browserId: string, userId?: number | null):
       topPriceRange: scores.topPriceRange,
     },
   });
-
-  // Write the interest vector via raw SQL (Prisma can't serialize vector)
-  if (interestVec) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE "CustomerProfile" SET "interestVector" = $1::vector WHERE "browserId" = $2`,
-        `[${interestVec.join(",")}]`,
-        browserId
-      );
-    } catch {}
-  }
 
   return { ok: true, type: scores.customerType };
 }

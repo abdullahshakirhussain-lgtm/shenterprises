@@ -63,12 +63,6 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
             >
               {t("shop_everything")}
             </Link>
-            <Link
-              href="/ai-helper"
-              className="inline-flex items-center gap-2 rounded-xl bg-white border-2 border-saffron-300 hover:border-saffron-500 text-saffron-700 text-sm sm:text-base font-bold px-5 sm:px-7 py-3 sm:py-3.5 transition-colors"
-            >
-              ✨ {t("try_ai_helper")}
-            </Link>
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-ink-soft">

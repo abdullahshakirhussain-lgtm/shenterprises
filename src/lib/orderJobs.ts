@@ -7,6 +7,7 @@ import { attachPhoneToSession } from "./analytics";
 
 // Durable jobs are saved with the order. Leases allow safe retry after a process restart.
 // SMS is at-least-once: a crash after gateway acceptance can cause a repeated message.
+// Retired kinds (e.g. the removed AI-helper "attribution") fall through and are marked complete.
 export async function drainOrderJobs(orderId?: number) {
  const now = new Date();
  const jobs = await prisma.orderJob.findMany({
@@ -38,12 +39,6 @@ export async function drainOrderJobs(orderId?: number) {
  content_ids: order.items.map(i => contentId({ sku: i.product.sku, id: i.productId })), num_items: order.items.reduce((sum, i) => sum + i.quantity, 0) },
  });
  if (!result.ok) throw new Error("Conversion delivery unavailable");
- } else if (job.kind === "attribution" && order.userId) {
- const sessions = await prisma.chatSession.findMany({ where: { userId: order.userId, orderId: null, startedAt: { gte: new Date(order.createdAt.getTime() - 7 * 86400000) } }, select: { id: true }, take: 30 });
- const sessionIds = sessions.map(s => s.id);
- await prisma.chatSuggestion.updateMany({ where: { sessionId: { in: sessionIds }, productId: { in: order.items.map(i => i.productId) }, inOrderId: null }, data: { inOrderId: order.id } });
- const match = await prisma.chatSuggestion.findFirst({ where: { sessionId: { in: sessionIds }, inOrderId: order.id }, select: { sessionId: true }, orderBy: { createdAt: "desc" } });
- if (match) await prisma.chatSession.updateMany({ where: { id: match.sessionId, orderId: null }, data: { orderId: order.id, attributedAt: new Date() } });
  } else if (job.kind === "analytics" && order.sessionId) {
  await prisma.$transaction(async tx => {
  await tx.analyticsSession.upsert({ where: { id: order.sessionId! }, update: { lastSeen: new Date() }, create: { id: order.sessionId!, source: order.source || "direct" } });

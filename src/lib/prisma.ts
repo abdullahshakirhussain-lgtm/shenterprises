@@ -38,7 +38,7 @@ function createClient() {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           const result = await query(args);
-          if (WRITE_OPS.has(operation) && CATALOG_MODELS.has(model)) invalidateCatalog();
+          if (WRITE_OPS.has(operation) && CATALOG_MODELS.has(model)) { invalidateCatalog(); scheduleRewarm(); }
           return result;
         },
       },
@@ -47,5 +47,38 @@ function createClient() {
 }
 
 export const prisma = globalForPrisma.prisma ?? createClient();
+
+// After a catalog change, re-render the busiest pages in the background so the
+// first shopper after an admin save still gets a cached (fast) page. Debounced
+// so a burst of edits triggers one pass; a newer change restarts the pass.
+// Web process only — the worker never serves pages.
+let rewarmTimer: ReturnType<typeof setTimeout> | undefined;
+let rewarmRun = 0;
+function scheduleRewarm() {
+  if (process.env.SH_WORKER || process.env.NODE_ENV !== "production") return;
+  clearTimeout(rewarmTimer);
+  rewarmTimer = setTimeout(() => void rewarm(++rewarmRun).catch(() => {}), 1500);
+}
+async function rewarm(run: number) {
+  const base = `http://127.0.0.1:${process.env.PORT || "3000"}`;
+  const [categories, products, machines, types] = await Promise.all([
+    prisma.category.findMany({ select: { slug: true } }),
+    prisma.product.findMany({ where: { active: true }, select: { slug: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.machine.findMany({ where: { active: true }, select: { slug: true } }),
+    prisma.machineType.findMany({ select: { slug: true } }),
+  ]);
+  const paths = [
+    "/", "/shop", "/shop?page=2", "/shop?page=3", "/catalog", "/machines", "/offers",
+    ...categories.map(c => "/category/" + c.slug),
+    ...types.map(t => "/machines/" + t.slug),
+    ...products.map(p => "/product/" + p.slug), // recently edited first
+    ...machines.map(m => "/machines/" + m.slug),
+  ];
+  for (const path of paths) {
+    if (run !== rewarmRun) return;
+    // x-forwarded-proto: the middleware otherwise redirects plain-http requests.
+    await fetch(base + path, { headers: { "x-forwarded-proto": "https" } }).then(r => r.arrayBuffer()).catch(() => {});
+  }
+}
 
 globalForPrisma.prisma = prisma;

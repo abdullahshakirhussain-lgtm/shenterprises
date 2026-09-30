@@ -80,8 +80,8 @@ model Product {
   active      Boolean   @default(true)
   metaTitle   String?
   metaDesc    String?
-  // pgvector embedding for semantic search (managed via raw SQL — Prisma treats this
-  // type as opaque so it can't be SELECTed directly by the client, only via $queryRaw)
+  // RETIRED (AI helper removed Sep 2026): no longer written or read. Column kept
+  // so historical data isn't dropped; remove only via a reviewed migration.
   embedding   Unsupported("vector(1536)")?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -399,7 +399,7 @@ model CustomerProfile {
   preferredLanguage      String?
   deviceClass            String?
 
-  // Interest vector — averaged embedding of products they've viewed/added/ordered
+  // RETIRED (AI helper removed Sep 2026): no longer computed. Kept to avoid data loss.
   interestVector         Unsupported("vector(1536)")?
 
   updatedAt              DateTime @updatedAt
@@ -414,6 +414,9 @@ model CustomerProfile {
 // (add-to-cart, ordered) and explicit (thumbs, star rating) signals. Used to
 // build the AI Insights admin page and (later) feed the model with what works.
 
+// RETIRED (AI helper removed Sep 2026): ChatSession / ChatSuggestion are no longer
+// written or read by the app. Tables are kept so historical data isn't dropped;
+// remove only via a reviewed migration.
 model ChatSession {
   id                String   @id @default(cuid())
   // Anonymous browser fingerprint OR authenticated user id (or both)

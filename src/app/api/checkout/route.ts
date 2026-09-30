@@ -123,7 +123,6 @@ export async function POST(req: NextRequest) {
     await db.orderJob.createMany({ data: [
       { orderId: order.id, kind: "sms" },
       { orderId: order.id, kind: "analytics" },
-      ...(user ? [{ orderId: order.id, kind: "attribution" }] : []),
       ...(process.env.META_CAPI_ACCESS_TOKEN ? [{ orderId: order.id, kind: "meta", context }] : []),
     ] });
     return order;

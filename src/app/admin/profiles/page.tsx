@@ -64,7 +64,7 @@ export default async function ProfilesPage() {
         <RebuildButton />
       </div>
       <p className="text-brand-700 text-sm mb-6 max-w-2xl">
-        Each profile aggregates one visitor&apos;s entire history — page views, cart events, chat sessions, orders.
+        Each profile aggregates one visitor&apos;s entire history — page views, cart events, orders.
         Used to power personalised recommendations and (later) situational pricing.
         Rebuilds every 15 min via cron, or click <em>Rebuild now</em>.
       </p>

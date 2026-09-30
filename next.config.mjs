@@ -28,6 +28,10 @@ const nextConfig = {
   // Note: per-file Cache-Control headers are set inside the /uploads/[...path]
   // route handler so 404s aren't cached as immutable (which previously caused
   // failed image loads to stick across reloads).
+  // The AI helper was removed (Sep 2026); send old links and search results to the shop.
+  async redirects() {
+    return [{ source: "/ai-helper/:path*", destination: "/shop", permanent: true }];
+  },
   async headers() {
     return [
       {

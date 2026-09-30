@@ -114,13 +114,6 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
             <span aria-hidden>⚙</span> Machines
           </Link>
           <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
-          <Link
-            href="/ai-helper"
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-saffron-500 to-saffron-600 text-white text-xs font-bold hover:from-saffron-600 hover:to-saffron-700 transition-all shadow-sm hover:shadow"
-            title="AI project helper"
-          >
-            ✨ {t("ai_helper_short")}
-          </Link>
           <Link href="/track" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("track_my_order")}</Link>
           {me ? (
             <Link href="/account" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("hi")}, {me.fullName.split(" ")[0]}</Link>
@@ -255,7 +248,6 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
             <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><span aria-hidden>⚙</span> Machines</Link>
             <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
-            <Link href="/ai-helper" className="block py-2.5 px-3 rounded-lg text-saffron-700 font-display font-semibold text-base hover:bg-saffron-100 transition-colors">✨ {t("ai_helper_short")}</Link>
             <Link href="/track" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("track_my_order")}</Link>
             {me ? (
               <Link href="/account" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("hi")}, {me.fullName.split(" ")[0]}</Link>

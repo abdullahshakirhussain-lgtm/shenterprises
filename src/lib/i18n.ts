@@ -33,8 +33,6 @@ export const translations = {
 
     // Hero / homepage CTAs
     shop_everything: "Shop everything",
-    try_ai_helper: "Try the AI Helper",
-    ai_helper_short: "AI Helper",
     menu: "Menu",
 
     // Reviews
@@ -224,8 +222,6 @@ export const translations = {
     only_x_left: "තොගයේ ඉතුරු {n}ක් පමණි",
 
     shop_everything: "සියල්ල සාප්පු",
-    try_ai_helper: "AI සහායක අත්හදන්න",
-    ai_helper_short: "AI සහායක",
     menu: "මෙනුව",
 
     reviews: "සමාලෝචන",
@@ -403,8 +399,6 @@ export const translations = {
     only_x_left: "கையிருப்பில் {n} மட்டுமே",
 
     shop_everything: "அனைத்தும் ஷாப்",
-    try_ai_helper: "AI உதவியாளரை முயற்சி",
-    ai_helper_short: "AI உதவியாளர்",
     menu: "மெனு",
 
     reviews: "விமர்சனங்கள்",
