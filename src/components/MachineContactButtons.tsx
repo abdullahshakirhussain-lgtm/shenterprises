@@ -1,5 +1,6 @@
 "use client";
 import { pixelTrack } from "@/lib/pixel";
+import OpenStatus from "@/components/OpenStatus";
 
 /**
  * Call + WhatsApp CTAs for a machine detail page, in the editorial "letterpress"
@@ -83,10 +84,11 @@ export default function MachineContactButtons({
         <a href="#lead-form" className="self-start mt-1.5 text-sm font-extrabold text-[#B9741F] border-b-[1.5px] border-dashed border-[#D8A45C] pb-0.5 hover:text-[#96590E]">
           or leave your number — we call back within the hour
         </a>
-        <span className="flex items-center gap-2 text-[13px] font-semibold text-[#6E6459] mt-1">
-          <span className="w-2 h-2 rounded-full bg-[#1F9D55] animate-pulse" />
-          Open now · Mon–Sat, 9.00–18.00
-        </span>
+        <OpenStatus
+          className="flex items-center gap-2 text-[13px] font-semibold text-[#6E6459] mt-1"
+          openText="Open now · Mon–Sat, 9.00–18.00"
+          closedText="Closed now · open Mon–Sat, 9.00–18.00"
+        />
       </div>
 
       {/* Sticky mobile contact bar */}

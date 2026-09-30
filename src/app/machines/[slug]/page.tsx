@@ -362,23 +362,23 @@ async function MachineDetail({ slug }: { slug: string }) {
 
       {/* HERO — editorial spread */}
       <section className="max-w-[1140px] mx-auto px-6 pt-[clamp(36px,6vw,72px)]">
-        <div className="flex flex-wrap gap-[clamp(28px,5vw,64px)] items-end">
-          <div className="flex-[1.1_1_400px] min-w-0">
+        {/* Grid so phones read title → photo → description (the photo used to sit
+            ~800px down, under the full description); desktop keeps text left, photo right. */}
+        <div className="grid md:grid-cols-[1.1fr_1fr] md:gap-x-[clamp(28px,5vw,64px)]">
+          <div className="min-w-0 md:col-start-1 md:row-start-1 md:self-end">
             <div className="flex items-baseline gap-3.5">
               <span className="font-display italic text-[19px] text-[#B9741F]">№ 01</span>
               <span className="text-[11.5px] font-extrabold tracking-[.2em] uppercase text-[#8A7E6E]">{m.brand}{m.category ? ` · ${m.category}` : ""}</span>
             </div>
-            <h1 className="font-display font-normal text-[clamp(40px,8vw,92px)] leading-[.96] tracking-[-.03em] mt-3.5">
+            {/* Long model numbers (e.g. 1206/1208/1212CT) get a smaller size and may wrap, so they never run off-screen */}
+            <h1 className={`font-display font-normal leading-[.96] tracking-[-.03em] mt-3.5 [overflow-wrap:anywhere] ${m.modelNumber.length > 12 ? "text-[clamp(30px,6.4vw,72px)]" : "text-[clamp(40px,8vw,92px)]"}`}>
               {m.brand} <span className="text-[#B9741F]">{m.modelNumber}</span>
             </h1>
             <p className="font-display italic font-light text-[clamp(20px,2.6vw,26px)] leading-[1.35] text-[#4A4238] mt-5 max-w-[26ch]">{m.name}</p>
-            {(m.description || m.seoIntro) && (
-              <p className="text-[15.5px] leading-[1.75] text-[#4A4238] mt-5 max-w-[52ch] whitespace-pre-line">{m.description || m.seoIntro}</p>
-            )}
           </div>
 
           {/* Single photograph, museum plate */}
-          <div className="flex-[1_1_400px] min-w-0">
+          <div className="min-w-0 mt-7 md:mt-0 md:col-start-2 md:row-start-1 md:row-span-2 md:self-center">
             <div className="relative p-2.5 bg-white border border-[#E4DAC8] shadow-[0_24px_60px_-30px_rgba(29,26,22,.25)]">
               <div className="relative aspect-[4/3] bg-[#FDFBF7] overflow-hidden grid place-items-center">
                 {heroImage ? (
@@ -389,10 +389,14 @@ async function MachineDetail({ slug }: { slug: string }) {
               </div>
             </div>
             <div className="flex justify-between items-baseline mt-3 px-1">
-              <span className="font-display italic text-[14.5px] text-[#6E6459]">PRiME {m.modelNumber}, photographed on white.</span>
-              <span className="text-[11px] font-extrabold tracking-[.16em] uppercase text-[#96590E]">In stock — Colombo</span>
+              <span className="font-display italic text-[14.5px] text-[#6E6459]">{m.brand} {m.modelNumber}</span>
+              <span className="text-[11px] font-extrabold tracking-[.16em] uppercase text-[#96590E]">Enquire for availability</span>
             </div>
           </div>
+
+          {(m.description || m.seoIntro) && (
+            <p className="min-w-0 text-[15.5px] leading-[1.75] text-[#4A4238] mt-6 md:mt-5 max-w-[52ch] whitespace-pre-line md:col-start-1 md:row-start-2 md:self-start">{m.description || m.seoIntro}</p>
+          )}
         </div>
       </section>
 

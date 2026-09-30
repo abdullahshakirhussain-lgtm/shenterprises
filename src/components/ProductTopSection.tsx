@@ -188,6 +188,23 @@ export default function ProductTopSection({
     !!(selColor?.outOfStock || selSize?.outOfStock || selLength?.outOfStock || selPack?.outOfStock);
   const isOutOfStock = !isAvailable({ ...product, variants }) || selectedOutOfStock;
 
+  const someOptionsOut = !isOutOfStock && variants.some(v => v.outOfStock);
+
+  // Tapping the button before every option is chosen names what is missing and
+  // scrolls to it, instead of a greyed-out button that explains nothing.
+  const [nudge, setNudge] = useState(false);
+  const missing = [
+    needsSize && { id: "opt-size", name: "size" },
+    needsLength && { id: "opt-length", name: "length" },
+    needsPack && { id: "opt-pack", name: "pack" },
+    needsColor && { id: "opt-color", name: "colour" },
+  ].filter(Boolean) as { id: string; name: string }[];
+  const missingLabel = lang === "en" && missing.length ? `Select ${missing.map(m => m.name).join(" & ")}` : t("choose_options");
+  function showMissing() {
+    setNudge(true);
+    if (missing[0]) document.getElementById(missing[0].id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function addToCart() {
     if (!ready || isOutOfStock || effective <= 0) return;
     const sel: CartVariant[] = [];
@@ -311,61 +328,29 @@ export default function ProductTopSection({
             {selectedOutOfStock && !product.outOfStock ? "This option is out of stock" : t("out_of_stock")}
           </div>
         ) : (
-          <div className="mt-2 text-sm text-green-700">In stock</div>
+          <div className="mt-2 text-sm text-green-700">
+            In stock{someOptionsOut && <span className="text-brand-600"> · some options are out of stock</span>}
+          </div>
         )}
-        {product.description && <p className="mt-4 text-brand-800 whitespace-pre-line">{product.description}</p>}
 
-        {/* Size selector */}
+        {/* Size / length / pack — every option visible as a button; unavailable ones are crossed out */}
         {sizeVariants.length > 0 && (
-          <div className="mt-4">
-            <label className="text-sm font-medium text-brand-900 block mb-1">Size</label>
-            <select
-              className="input max-w-xs"
-              value={selSize?.id ?? ""}
-              onChange={e => setSelSize(sizeVariants.find(v => v.id === parseInt(e.target.value)) || null)}
-            >
-              <option value="">Select size…</option>
-              {sizeVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
-            </select>
-          </div>
+          <OptionChips id="opt-size" label={"Size"} options={sizeVariants} selected={selSize} onSelect={setSelSize} display={vd} missing={nudge && !selSize} />
         )}
 
-        {/* Length selector */}
         {lengthVariants.length > 0 && (
-          <div className="mt-4">
-            <label className="text-sm font-medium text-brand-900 block mb-1">Length</label>
-            <select
-              className="input max-w-xs"
-              value={selLength?.id ?? ""}
-              onChange={e => setSelLength(lengthVariants.find(v => v.id === parseInt(e.target.value)) || null)}
-            >
-              <option value="">Select length…</option>
-              {lengthVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
-            </select>
-          </div>
+          <OptionChips id="opt-length" label={"Length"} options={lengthVariants} selected={selLength} onSelect={setSelLength} display={vd} missing={nudge && !selLength} />
         )}
 
-        {/* Pack / Unit selector */}
         {packVariants.length > 0 && (
-          <div className="mt-4">
-            <label className="text-sm font-medium text-brand-900 block mb-1">{t("pack_size")}</label>
-            <select
-              className="input max-w-xs"
-              value={selPack?.id ?? ""}
-              onChange={e => setSelPack(packVariants.find(v => v.id === parseInt(e.target.value)) || null)}
-            >
-              <option value="">Choose pack…</option>
-              {packVariants.map(v => <option key={v.id} value={v.id} disabled={v.outOfStock}>{vd(v)}{v.outOfStock ? " — Out of stock" : ""}</option>)}
-            </select>
-            <p className="text-xs text-brand-500 mt-1">Bigger packs usually have a better per-unit price.</p>
-          </div>
+          <OptionChips id="opt-pack" label={t("pack_size")} options={packVariants} selected={selPack} onSelect={setSelPack} display={vd} missing={nudge && !selPack} hint="Bigger packs usually have a better per-unit price." />
         )}
 
         {/* Color swatches */}
         {colorVariants.length > 0 && (
-          <div className="mt-4">
-            <label className="text-sm font-medium text-brand-900 block mb-1">
-              {t("color")} {selColor && <span className="text-brand-600 font-normal">— {vd(selColor)}</span>}
+          <div className="mt-4 scroll-mt-28" id="opt-color">
+            <label className={`text-sm font-medium block mb-1 ${nudge && !selColor ? "text-red-700" : "text-brand-900"}`}>
+              {t("color")}{nudge && !selColor && " — please choose"} {selColor && <span className="text-brand-600 font-normal">— {vd(selColor)}</span>}
             </label>
             <div className="flex flex-wrap gap-2 mt-1">
               {colorVariants.map(v => (
@@ -427,14 +412,14 @@ export default function ProductTopSection({
           </div>
 
           <button
-            disabled={!ready || isOutOfStock}
-            onClick={addToCart}
+            disabled={isOutOfStock}
+            onClick={ready ? addToCart : showMissing}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {added
               ? `${t("added")}${qty > 1 ? ` (${qty})` : ""}`
               : !ready
-                ? t("choose_options")
+                ? missingLabel
                 : isOutOfStock
                   ? t("out_of_stock")
                   : `${t("add_to_cart")}${qty > 1 ? ` (${qty})` : ""}`
@@ -447,7 +432,55 @@ export default function ProductTopSection({
           <div>✓ {t("bank_accepted")}</div>
           <div>✓ {t("islandwide_delivery")}</div>
         </div>
+
+        {/* Description sits below the buy controls so options + Add to cart stay near the top on phones */}
+        {product.description && <p className="mt-6 text-brand-800 whitespace-pre-line">{product.description}</p>}
       </div>
+    </div>
+  );
+}
+
+/** One option group (size / length / pack) as tappable buttons — every choice and its availability is visible at a glance. */
+function OptionChips({ id, label, options, selected, onSelect, display, missing, hint }: {
+  id: string;
+  label: string;
+  options: Variant[];
+  selected: Variant | null;
+  onSelect: (v: Variant | null) => void;
+  display: (v: Variant) => string;
+  missing: boolean;
+  hint?: string;
+}) {
+  return (
+    <div className="mt-4 scroll-mt-28" id={id}>
+      <div className={`text-sm font-medium mb-1.5 ${missing ? "text-red-700" : "text-brand-900"}`}>
+        {label}{missing && " — please choose"}
+        {selected && <span className="text-brand-600 font-normal"> — {display(selected)}</span>}
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+        {options.map(v => {
+          const active = selected?.id === v.id;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              disabled={v.outOfStock}
+              aria-pressed={active}
+              title={v.outOfStock ? `${display(v)} (out of stock)` : display(v)}
+              onClick={() => onSelect(active ? null : v)}
+              className={`min-h-[44px] px-4 rounded-lg border-2 text-sm font-semibold transition ${
+                v.outOfStock ? "border-brand-100 bg-brand-50 text-brand-400 line-through cursor-not-allowed"
+                : active ? "border-brand-600 bg-brand-600 text-white"
+                : "border-brand-200 bg-white text-brand-900 hover:border-brand-400"
+              }`}
+            >
+              {display(v)}
+            </button>
+          );
+        })}
+      </div>
+      {options.some(v => v.outOfStock) && <p className="text-xs text-brand-500 mt-1.5">Crossed-out options are out of stock.</p>}
+      {hint && <p className="text-xs text-brand-500 mt-1">{hint}</p>}
     </div>
   );
 }

@@ -20,7 +20,11 @@ async function loadCatalogPage(search: string, cursor?: number) {
  for(const p of page.filter(isAvailable)){
  const slug=p.category?.slug||"other";
  if(!groups.has(slug))groups.set(slug,{slug,name:p.category?.name||"Other",items:[]});
- groups.get(slug)!.items.push({...p,variants:p.variants.filter(v=>["pack","size"].includes(v.type)&&!v.outOfStock)});
+ // Pack/size always get their own rows. Colour/length are normally agreed in the
+ // WhatsApp chat — but when any option in that group has its own price, the
+ // whole group is listed too, so the catalog never quotes the wrong amount.
+ const priced=new Set(p.variants.filter(v=>!v.outOfStock&&(v.price!=null||v.salePrice!=null)).map(v=>v.type));
+ groups.get(slug)!.items.push({...p,variants:p.variants.filter(v=>!v.outOfStock&&(["pack","size"].includes(v.type)||priced.has(v.type)))});
  }
  return {groups:[...groups.values()],nextCursor:rows.length>pageSize?page[page.length-1].id:null};
 }

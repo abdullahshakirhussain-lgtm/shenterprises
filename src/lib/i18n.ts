@@ -33,6 +33,7 @@ export const translations = {
 
     // Hero / homepage CTAs
     shop_everything: "Shop everything",
+    categories: "Categories",
     menu: "Menu",
 
     // Reviews
@@ -222,6 +223,7 @@ export const translations = {
     only_x_left: "තොගයේ ඉතුරු {n}ක් පමණි",
 
     shop_everything: "සියල්ල සාප්පු",
+    categories: "ප්‍රවර්ග",
     menu: "මෙනුව",
 
     reviews: "සමාලෝචන",
@@ -399,6 +401,7 @@ export const translations = {
     only_x_left: "கையிருப்பில் {n} மட்டுமே",
 
     shop_everything: "அனைத்தும் ஷாப்",
+    categories: "வகைகள்",
     menu: "மெனு",
 
     reviews: "விமர்சனங்கள்",

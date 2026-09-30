@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
+import OpenStatus from "@/components/OpenStatus";
 import { memo } from "@/lib/memo";
 import { normalizePhone } from "@/lib/userAuth";
 import MachineCard, { WA_ICON, TEL_ICON } from "@/components/MachineCard";
@@ -79,10 +80,11 @@ export default async function MachinesPage(props: { searchParams: Promise<{ type
               WhatsApp us
             </a>
           </div>
-          <div className="flex items-center gap-2 mt-4 text-[13.5px] font-semibold text-[#6E6459]">
-            <span className="w-2 h-2 rounded-full bg-[#1F9D55] animate-pulse" />
-            Open now · replies within the hour, Mon–Sat 9.00–18.00
-          </div>
+          <OpenStatus
+            className="flex items-center gap-2 mt-4 text-[13.5px] font-semibold text-[#6E6459]"
+            openText="Open now · replies within the hour, Mon–Sat 9.00–18.00"
+            closedText="Closed now · we reply first thing — open Mon–Sat 9.00–18.00"
+          />
         </div>
         <div className="flex-[1_1_380px] min-w-0">
           {heroSlides.length > 0 ? (

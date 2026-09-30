@@ -1,6 +1,10 @@
-// Pre-builds optimized product images after each deploy.
+// Post-deploy warm-up: (1) page + search caches, (2) optimized product images.
 //
-// next/image resizes originals (often ~3MB PNGs) on first request and caches the
+// (1) The web process keeps catalog data in memory (src/lib/memo.ts), which starts
+// empty after a deploy — the first visitor to each page, and the first search,
+// would wait on the database. We request them once so shoppers never do.
+//
+// (2) next/image resizes originals (often ~3MB PNGs) on first request and caches the
 // result on the container's disk — which every Railway deploy wipes. Without
 // this, the first shopper to view each image waits ~1–2s per photo. We request
 // each image once, at the widths browsers actually pick, so shoppers always get
@@ -33,10 +37,29 @@ function parseImages(json: string | null): string[] {
 async function main() {
   if (!(await waitForWeb())) return console.warn("[warm-images] web server not reachable; skipped");
   const [products, machines] = await Promise.all([
-    prisma.product.findMany({ where: { active: true }, select: { imageUrl: true, images: true, variants: { select: { imageUrl: true } } }, orderBy: { createdAt: "desc" } }),
-    prisma.machine.findMany({ where: { active: true }, select: { imageUrl: true } }),
+    prisma.product.findMany({ where: { active: true }, select: { slug: true, imageUrl: true, images: true, variants: { select: { imageUrl: true } } }, orderBy: { createdAt: "desc" } }),
+    prisma.machine.findMany({ where: { active: true }, select: { slug: true, imageUrl: true } }),
+  ]);
+  const [categories, types] = await Promise.all([
+    prisma.category.findMany({ select: { slug: true } }),
+    prisma.machineType.findMany({ select: { slug: true } }),
   ]);
   await prisma.$disconnect();
+
+  // (1) Pages + search, busiest first. x-forwarded-proto: the middleware
+  // otherwise redirects plain-http requests to https.
+  const pages = [
+    "/", "/shop", "/api/search/suggest?q=th", "/catalog", "/machines", "/offers", "/shop?page=2", "/shop?page=3",
+    ...categories.map(c => "/category/" + c.slug),
+    ...types.map(t => "/machines/" + t.slug),
+    ...products.map(p => "/product/" + p.slug),
+    ...machines.map(m => "/machines/" + m.slug),
+  ];
+  const pagesStarted = Date.now();
+  for (const path of pages) {
+    await fetch(BASE + path, { headers: { "x-forwarded-proto": "https" } }).then(r => r.arrayBuffer()).catch(() => {});
+  }
+  console.log(`[warm-up] ${pages.length} pages ready in ${Math.round((Date.now() - pagesStarted) / 1000)}s`);
 
   const jobs: string[] = [];
   const add = (src: string | null | undefined, widths: number[]) => {

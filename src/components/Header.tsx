@@ -243,11 +243,22 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
 
       {/* Mobile drawer menu */}
       {open && (
-        <div className="lg:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
+        <div className="lg:hidden border-t border-saffron-200/40 bg-cream shadow-inner max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain">
           <div className="container-x py-4 space-y-1">
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
             <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><span aria-hidden>⚙</span> Machines</Link>
             <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
+            {/* Product categories — previously only reachable via the sideways-scrolling strip */}
+            {categories.length > 0 && (
+              <div className="py-2 my-1 border-y border-saffron-200/50">
+                <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[.18em] text-ink-mute">{t("categories")}</p>
+                <div className="grid grid-cols-2 gap-x-2">
+                  {categories.map(c => (
+                    <Link key={c.slug} href={`/category/${c.slug}`} className="block py-2.5 px-3 rounded-lg text-ink-soft font-semibold text-[15px] hover:bg-saffron-100 transition-colors">{catName(c)}</Link>
+                  ))}
+                </div>
+              </div>
+            )}
             <Link href="/track" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("track_my_order")}</Link>
             {me ? (
               <Link href="/account" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("hi")}, {me.fullName.split(" ")[0]}</Link>

@@ -68,7 +68,7 @@ async function rewarm(run: number) {
     prisma.machineType.findMany({ select: { slug: true } }),
   ]);
   const paths = [
-    "/", "/shop", "/shop?page=2", "/shop?page=3", "/catalog", "/machines", "/offers",
+    "/", "/shop", "/api/search/suggest?q=th", "/shop?page=2", "/shop?page=3", "/catalog", "/machines", "/offers",
     ...categories.map(c => "/category/" + c.slug),
     ...types.map(t => "/machines/" + t.slug),
     ...products.map(p => "/product/" + p.slug), // recently edited first

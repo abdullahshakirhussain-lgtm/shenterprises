@@ -32,7 +32,8 @@ type Group = { name: string; slug: string; items: Product[] };
 type CartLine = {
   key: string;
   productId: number;
-  variantId: number | null;
+  variantId: number | null; // legacy single-variant lines saved before variantIds existed
+  variantIds?: number[];
   name: string;
   variantLabel: string | null;
   unitPrice: number;
@@ -182,7 +183,7 @@ export default function CatalogClient({ groups: initialGroups, shopPhone, nextCu
     if (target) target.opener = null;
     try {
       const response = await fetch("/api/cart/validate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ catalog: true, items: cart.map(line => ({ key: line.key, productId: line.productId, variantIds: line.variantId ? [line.variantId] : [] })) }) });
+        body: JSON.stringify({ catalog: true, items: cart.map(line => ({ key: line.key, productId: line.productId, variantIds: line.variantIds ?? (line.variantId ? [line.variantId] : []) })) }) });
       if (!response.ok) throw new Error("Unable to check current availability. Please try again.");
       const data = await response.json();
       if (data.items.some((line: any) => !line.available)) throw new Error("An item is now unavailable. Please review your list.");
@@ -379,8 +380,12 @@ function ProductRow({
   onAdd: (l: Omit<CartLine, "quantity">) => void;
   onSetQty: (key: string, qty: number) => void;
 }) {
-  const packs = product.variants.filter(v => v.type === "pack");
-  const sizes = product.variants.filter(v => v.type === "size");
+  // One row per combination of the listed option groups (pack × size × any
+  // separately-priced colour/length), so each row carries its exact price.
+  const TYPE_LABEL: Record<string, string> = { pack: "Pack", size: "Size", color: "Colour", length: "Length" };
+  const groupsByType = ["pack", "size", "length", "color"]
+    .map(type => product.variants.filter(v => v.type === type))
+    .filter(g => g.length > 0);
 
   function variantEffective(v: Variant): number | null {
     if (v.salePrice != null && v.salePrice > 0) return v.salePrice;
@@ -391,7 +396,7 @@ function ProductRow({
   const basePrice = (product.salePrice ?? product.price) > 0 ? (product.salePrice ?? product.price) : null;
   const unitLabel = product.unitQty && product.unitType ? `${product.unitQty} ${product.unitType}` : null;
 
-  if (packs.length === 0 && sizes.length === 0) {
+  if (groupsByType.length === 0) {
     if (basePrice == null) return null;
     const key = `${product.id}`;
     return (
@@ -416,17 +421,20 @@ function ProductRow({
     );
   }
 
-  const variants = [...packs, ...sizes];
+  const combos = groupsByType.reduce<Variant[][]>((acc, g) => acc.flatMap(c => g.map(v => [...c, v])), [[]]);
   return (
     <>
-      {variants.map(v => {
-        const vp = variantEffective(v) ?? basePrice;
+      {combos.map(combo => {
+        // Same rule as checkout: priced options are summed; otherwise the base price.
+        const pricedParts = combo.map(variantEffective).filter((n): n is number => n != null);
+        const vp = pricedParts.length ? pricedParts.reduce((a, b) => a + b, 0) : basePrice;
         if (vp == null) return null;
-        const label = `${v.type === "pack" ? "Pack" : "Size"}: ${v.name}`;
-        const key = `${product.id}-${v.id}`;
+        const label = combo.map(v => `${TYPE_LABEL[v.type] || v.type}: ${v.name}`).join(" · ");
+        const ids = combo.map(v => v.id);
+        const key = `${product.id}-${ids.join("-")}`;
         return (
           <Row
-            key={v.id}
+            key={key}
             imageUrl={product.imageUrl}
             title={product.name}
             subtitle={label}
@@ -435,7 +443,8 @@ function ProductRow({
             onAdd={() => onAdd({
               key,
               productId: product.id,
-              variantId: v.id,
+              variantId: null,
+              variantIds: ids,
               name: product.name,
               variantLabel: label,
               unitPrice: vp,
