@@ -3,13 +3,12 @@ import { useEffect } from "react";
 
 /**
  * Site-wide easter eggs:
- *  - Loading curtain (first of session only)
  *  - SEW theme swap (typed anywhere)
  *  - Idle 15s needle + heart
  *  - Scroll reveal observer
  *  - Logo tape measure (handled by Header click → fires CustomEvent("sh:logo"))
  *  - Toast helper
- *  - Page-specific eggs (collage, scissors tile, product image 5×, offers bow, trust flip)
+ *  - Page-specific eggs (collage, scissors tile, product image 5×, trust flip)
  *    bind via class hooks on the home page elements.
  */
 export default function EasterEggs() {
@@ -28,24 +27,6 @@ export default function EasterEggs() {
       toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
     }
 
-    /* ---------- 1. loading curtain ---------- */
-    const loader = $("#loader") as HTMLElement | null;
-    if (loader) {
-      function revealLoader() {
-        loader!.classList.add("done");
-        setTimeout(() => loader!.classList.add("hide"), 800);
-      }
-      if (sessionStorage.getItem("sh_loaded")) {
-        loader.classList.add("done", "hide");
-      } else {
-        sessionStorage.setItem("sh_loaded", "1");
-        const onLoad = () => setTimeout(revealLoader, 1300);
-        if (document.readyState === "complete") onLoad();
-        else window.addEventListener("load", onLoad);
-        setTimeout(revealLoader, 2600);
-      }
-    }
-
     /* ---------- scroll reveal ----------
        Content is visible by default. We tag elements with .reveal-init to start
        hidden, observe them, then add .in to fade them in. If the observer fails
@@ -55,7 +36,11 @@ export default function EasterEggs() {
       const els = $$<HTMLElement>(".reveal, .stitch-underline");
       els.forEach(el => {
         if (el.classList.contains("in") || el.classList.contains("reveal-init")) return;
-        // Mark as initially hidden, then observe
+        // Already on screen: leave it visible — hiding then fading in content the
+        // shopper can already see only delays the page (hurts Speed Index/LCP).
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) { el.classList.add("in"); return; }
+        // Below the fold: mark as initially hidden, then observe
         el.classList.add("reveal-init");
         if (io) io.observe(el);
         else el.classList.add("in"); // fallback: just show
@@ -248,18 +233,6 @@ export default function EasterEggs() {
 
   return (
     <>
-      {/* Loading curtain */}
-      <div id="loader">
-        <div className="panel left" />
-        <div className="panel right" />
-        <div className="center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="spool">🧵</div>
-            <svg className="stitchline" viewBox="0 0 200 20"><line x1="0" y1="10" x2="200" y2="10" /></svg>
-            <p className="font-serif text-brand-700 font-semibold text-sm tracking-wide">Stitching things together…</p>
-          </div>
-        </div>
-      </div>
       <div id="toast" />
       <div id="idle">🪡<span style={{ fontSize: 18 }}>❤️</span></div>
     </>
