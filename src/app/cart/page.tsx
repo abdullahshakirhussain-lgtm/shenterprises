@@ -47,16 +47,16 @@ export default function CartPage() {
                       }).join(" · ")}
                     </div>
                   )}
-                  <div className="text-xs text-brand-500">{formatLKR(i.price)} each</div>
+                  <div className="text-xs text-brand-500">{i.unavailable ? "Out of stock — review or remove this item" : formatLKR(i.price) + " each"}</div>
 
                   {/* Bottom row: quantity stepper (left) + line total (right) */}
                   <div className="mt-1 flex items-center justify-between gap-2">
                     <div className="inline-flex items-center rounded-lg border border-brand-200 overflow-hidden">
-                      <button onClick={() => setQty(i.key, i.quantity - 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Decrease">−</button>
+                      <button onClick={() => setQty(i.key, i.quantity - 1)} className="w-11 h-11 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Decrease">−</button>
                       <span className="w-9 text-center text-sm font-semibold">{i.quantity}</span>
-                      <button onClick={() => setQty(i.key, i.quantity + 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Increase">+</button>
+                      <button onClick={() => setQty(i.key, i.quantity + 1)} className="w-11 h-11 text-lg font-bold text-brand-700 hover:bg-brand-50" aria-label="Increase">+</button>
                     </div>
-                    <div className="font-semibold text-sm sm:text-base text-brand-800 tabular-nums">{formatLKR(i.price * i.quantity)}</div>
+                    <div className="font-semibold text-sm sm:text-base text-brand-800 tabular-nums">{i.unavailable ? "Out of stock" : formatLKR(i.price * i.quantity)}</div>
                   </div>
                 </div>
               </div>

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE, verifyAdminToken } from "./lib/auth";
+import { ADMIN_COOKIE, verifyAdminToken } from "./lib/authTokens";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const origin = req.headers.get("origin");
+    const expected = new URL(process.env.SITE_URL || "https://shenterprises.lk").origin;
+    const own = req.nextUrl.origin;
+    if (origin && origin !== expected && origin !== own) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // Force HTTPS in production — required for secure cookies to work
   if (process.env.NODE_ENV === "production") {

@@ -134,7 +134,7 @@ function ToolsAccessories({ className }: IconProps) {
   );
 }
 
-const ICONS: Record<string, (p: IconProps) => JSX.Element> = {
+const ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
   threads: Threads,
   zippers: Zippers,
   buttons: Buttons,

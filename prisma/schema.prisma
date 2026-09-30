@@ -128,6 +128,9 @@ model Customer {
 model Order {
   id              Int      @id @default(autoincrement())
   orderNumber     String   @unique
+  checkoutKey     String?  @unique
+  checkoutHash    String?
+  jobs            OrderJob[]
   customerId      Int?
   customer        Customer? @relation(fields: [customerId], references: [id])
   userId          Int?
@@ -281,6 +284,7 @@ model AnalyticsEvent {
   createdAt DateTime @default(now())
 
   @@index([sessionId])
+  @@index([type, createdAt, sessionId])
   @@index([type])
   @@index([createdAt])
 }
@@ -461,4 +465,37 @@ model ChatSuggestion {
   @@index([sessionId])
   @@index([productId])
   @@index([createdAt])
+}
+
+// Additive delivery queue: existing order history is never rewritten or deleted.
+model OrderJob {
+  id Int @id @default(autoincrement())
+  orderId Int
+  order Order @relation(fields: [orderId], references: [id])
+  kind String
+  context String?
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  lockedAt DateTime?
+  completedAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  @@unique([orderId, kind])
+  @@index([completedAt, nextAttemptAt])
+}
+
+// New slips are served only to their uploading browser or an administrator.
+model BankSlip {
+ id String @id
+ sessionId String
+ contentType String
+ body Bytes
+ createdAt DateTime @default(now())
+ @@index([sessionId])
+}
+
+model RateLimitBucket {
+ id String @id
+ count Int
+ resetAt DateTime
 }

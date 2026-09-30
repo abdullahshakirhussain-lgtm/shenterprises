@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/requestBody";
 import { NextRequest, NextResponse } from "next/server";
 import { recordEvent } from "@/lib/analytics";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
@@ -6,7 +7,7 @@ import { rateLimit, clientIp } from "@/lib/rateLimit";
 // endpoint can't be used to write arbitrary junk rows.
 const ALLOWED_TYPES = new Set([
   "page_view", "ping", "product_view", "search", "add_to_cart",
-  "remove_from_cart", "begin_checkout", "purchase", "whatsapp_click",
+  "remove_from_cart", "begin_checkout", "whatsapp_click",
   "machine_call",
 ]);
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     const rl = rateLimit(`analytics:${clientIp(req)}`, 120, 60);
     if (!rl.ok) return NextResponse.json({ ok: false }, { status: 200 });
 
-    const body = await req.json();
+    const body = await readJson(req);
     const type = String(body.type || "ping");
     if (!ALLOWED_TYPES.has(type)) return NextResponse.json({ ok: false }, { status: 200 });
 
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
 
     await recordEvent({
       type,
+      referrer: typeof body.referrer === "string" ? body.referrer.slice(0, 1000) : undefined,
       path: typeof body.path === "string" ? body.path.slice(0, 300) : undefined,
       productId: Number.isInteger(body.productId) ? body.productId : undefined,
       quantity: Number.isInteger(body.quantity) ? body.quantity : undefined,

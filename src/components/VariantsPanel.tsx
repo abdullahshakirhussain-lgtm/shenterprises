@@ -498,7 +498,7 @@ export default function VariantsPanel({
               <input type="file" accept="image/*" onChange={handleCropImageChange} className="input"
                 placeholder={usingProductImage ? "Upload a different image (optional)" : ""} />
               {usingProductImage && (
-                <p className="text-xs text-brand-500 mt-1">Optional — upload a different image only if the product image doesn't show all color variants.</p>
+                <p className="text-xs text-brand-500 mt-1">Optional — upload a different image only if the product image doesn&apos;t show all color variants.</p>
               )}
             </div>
 
@@ -603,7 +603,7 @@ export default function VariantsPanel({
         <div className="space-y-4">
           {sizeVariants.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
+              <p className="text-xs text-brand-500">Leave price empty to use the product&apos;s base price. The highest-priced selected variant wins.</p>
               {sizeVariants.map(v => (
                 <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
               ))}
@@ -631,7 +631,7 @@ export default function VariantsPanel({
         <div className="space-y-4">
           {lengthVariants.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-brand-500">Leave price empty to use the product's base price. The highest-priced selected variant wins.</p>
+              <p className="text-xs text-brand-500">Leave price empty to use the product&apos;s base price. The highest-priced selected variant wins.</p>
               {lengthVariants.map(v => (
                 <VariantRow key={v.id} variant={v} onDelete={deleteVariant} onPriceChange={updateVariantPrice} onImageChange={updateVariantImage} onOutOfStockChange={updateVariantOutOfStock} showImage />
               ))}

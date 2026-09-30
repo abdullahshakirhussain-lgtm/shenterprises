@@ -12,7 +12,8 @@ const RANGES = [
 
 function n(v: any): number { return typeof v === "bigint" ? Number(v) : Number(v || 0); }
 
-export default async function AdminAnalytics({ searchParams }: { searchParams: { days?: string } }) {
+export default async function AdminAnalytics(props: { searchParams: Promise<{ days?: string }> }) {
+  const searchParams = await props.searchParams;
   const days = [7, 30, 90].includes(parseInt(searchParams.days || "")) ? parseInt(searchParams.days!) : 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
@@ -38,19 +39,15 @@ export default async function AdminAnalytics({ searchParams }: { searchParams: {
 
   // ---- Pairings: products seen together within the same session ----
   const pairRows: any[] = await prisma.$queryRawUnsafe(
-    `SELECT a."productId" AS p1, b."productId" AS p2,
-            COUNT(DISTINCT a."sessionId") AS cnt
-     FROM "AnalyticsEvent" a
-     JOIN "AnalyticsEvent" b
-       ON a."sessionId" = b."sessionId" AND a."productId" < b."productId"
-     WHERE a."productId" IS NOT NULL AND b."productId" IS NOT NULL
-       AND a.type IN ('product_view','add_to_cart')
-       AND b.type IN ('product_view','add_to_cart')
-       AND a."createdAt" >= $1 AND b."createdAt" >= $1
-     GROUP BY a."productId", b."productId"
-     HAVING COUNT(DISTINCT a."sessionId") >= 2
-     ORDER BY cnt DESC
-     LIMIT 12`,
+    `WITH seen AS (
+       SELECT DISTINCT "sessionId", "productId"
+       FROM "AnalyticsEvent"
+       WHERE "productId" IS NOT NULL AND type IN ('product_view','add_to_cart') AND "createdAt" >= $1
+     )
+     SELECT a."productId" AS p1, b."productId" AS p2, COUNT(*) AS cnt
+     FROM seen a JOIN seen b ON a."sessionId" = b."sessionId" AND a."productId" < b."productId"
+     GROUP BY a."productId", b."productId" HAVING COUNT(*) >= 2
+     ORDER BY cnt DESC LIMIT 12`,
     since
   );
 
@@ -85,7 +82,7 @@ export default async function AdminAnalytics({ searchParams }: { searchParams: {
     : [];
   const nameOf = (id: number) => products.find(p => p.id === id)?.name || `#${id}`;
 
-  const totalSessions = sessions.length;
+  const totalSessions = sourcesRaw.reduce((sum, source) => sum + source._count._all, 0);
 
   return (
     <div className="container-x py-6 space-y-6">

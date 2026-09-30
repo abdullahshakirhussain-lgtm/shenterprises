@@ -47,7 +47,8 @@ function machineTitle(m: { name: string; brand: string; modelNumber: string }): 
   return `${phrase} Price Sri Lanka | ${m.brand} ${m.modelNumber}`;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   // Type hub metadata
   const type = await prisma.machineType.findUnique({ where: { slug: params.slug } });
   if (type) {
@@ -92,7 +93,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function MachineOrTypePage({ params }: { params: { slug: string } }) {
+export default async function MachineOrTypePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const type = await prisma.machineType.findUnique({ where: { slug: params.slug } });
   if (type) return <TypeHub type={type} />;
   return <MachineDetail slug={params.slug} />;

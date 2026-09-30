@@ -1,8 +1,9 @@
+import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { formatLKR } from "@/lib/utils";
 import SmartImage from "@/components/SmartImage";
 
-type Variant = { type: string; name: string; price?: number | null; salePrice?: number | null };
+type Variant = { type: string; name: string; price?: number | null; salePrice?: number | null; outOfStock?: boolean };
 
 type Product = {
   id: number;
@@ -20,21 +21,15 @@ type Product = {
 };
 
 export default function ProductCard({ p }: { p: Product }) {
-  const baseEffective = p.salePrice ?? p.price;
-  const validBase = baseEffective > 0 ? baseEffective : null;
-  const variantPrices = (p.variants || [])
-    .map(v => (v.salePrice ?? v.price))
-    .filter((n): n is number => n != null && n > 0);
-  const hasVariantPricing = variantPrices.length > 0;
-  const priceCandidates = [...(validBase != null ? [validBase] : []), ...variantPrices];
-  const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
-  // "From" when there are multiple distinct prices, OR base is missing but variants exist
-  const distinct = new Set(priceCandidates).size;
-  const showFrom = distinct > 1;
-  const noBaseNoVariants = priceCandidates.length === 0;
+  const quote = listingPrice(p);
+  const available = quote.available;
+  const effective = quote.min;
+  const showFrom = quote.from;
+  const noBaseNoVariants = effective <= 0;
+  const validBase = p.price > 0 ? p.price : null;
+  const variants = (p.variants || []).filter((v: any) => !v.outOfStock);
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
 
-  const variants = p.variants || [];
   const sizes = variants.filter(v => v.type === "size");
   const lengths = variants.filter(v => v.type === "length");
   const colors = variants.filter(v => v.type === "color");
@@ -48,7 +43,7 @@ export default function ProductCard({ p }: { p: Product }) {
         ) : (
           <div className="w-full h-full grid place-items-center text-brand-300 text-5xl">🧵</div>
         )}
-        {p.outOfStock ? (
+        {!available ? (
           <span className="absolute top-2 left-2 bg-ink text-cream text-xs font-bold px-2 py-1 rounded">Out of stock</span>
         ) : p.onOffer && p.salePrice ? (
           <span className="absolute top-2 left-2 bg-brand-600 text-white text-xs px-2 py-1 rounded">
@@ -83,7 +78,7 @@ export default function ProductCard({ p }: { p: Product }) {
         )}
 
         <div className="mt-auto">
-          {p.outOfStock ? (
+          {!available ? (
             // Out of stock — never show a price (product-level).
             <div className="text-sm font-semibold text-red-600">Out of stock</div>
           ) : (
@@ -94,7 +89,7 @@ export default function ProductCard({ p }: { p: Product }) {
                 <>
                   {showFrom && <span className="text-xs text-brand-600">From</span>}
                   <span className="font-semibold text-brand-700">{formatLKR(effective)}</span>
-                  {!showFrom && validBase != null && p.salePrice && (
+                  {!showFrom && effective === p.salePrice && validBase != null && p.salePrice && (
                     <span className="text-xs line-through text-brand-400">{formatLKR(p.price)}</span>
                   )}
                 </>

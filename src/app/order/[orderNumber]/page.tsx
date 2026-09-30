@@ -7,11 +7,13 @@ import OrderReceipt from "@/components/OrderReceipt";
 export const dynamic = "force-dynamic";
 
 // Private receipt — never index it.
-export function generateMetadata({ params }: { params: { orderNumber: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ orderNumber: string }> }): Promise<Metadata> {
+  const params = await props.params;
   return { title: `Order ${params.orderNumber.toUpperCase()}`, robots: { index: false, follow: false } };
 }
 
-export default async function OrderPage({ params }: { params: { orderNumber: string } }) {
+export default async function OrderPage(props: { params: Promise<{ orderNumber: string }> }) {
+  const params = await props.params;
   const order = await getPublicOrder(params.orderNumber);
   if (!order) notFound();
 
@@ -20,7 +22,7 @@ export default async function OrderPage({ params }: { params: { orderNumber: str
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-5">
           <div className="text-4xl mb-2">✓</div>
-          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600">Order confirmed</p>
+          <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600">Order received</p>
           <h1 className="font-display text-2xl sm:text-3xl text-ink mt-1">Your receipt</h1>
         </div>
 

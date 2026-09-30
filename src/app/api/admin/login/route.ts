@@ -1,3 +1,5 @@
+import { readJson } from "@/lib/requestBody";
+import { persistentRateLimit } from "@/lib/persistentRateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -6,6 +8,7 @@ import { rateLimit, rateLimitReset, clientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await persistentRateLimit("admin-login:" + clientIp(req), 12, 300)).ok) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
     // Throttle: max 8 attempts per IP per 5 minutes
     const ip = clientIp(req);
     const rlKey = `admin-login:${ip}`;
@@ -17,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username, password } = await req.json();
+    const { username, password } = await readJson(req);
     if (!username || !password) return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
     const admin = await prisma.admin.findUnique({ where: { username: String(username) } });
     if (!admin) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
@@ -36,6 +39,6 @@ export async function POST(req: NextRequest) {
     });
     return res;
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to complete this request. Please try again." }, { status: 500 });
   }
 }

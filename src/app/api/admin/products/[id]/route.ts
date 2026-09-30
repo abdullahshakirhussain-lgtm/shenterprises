@@ -5,7 +5,8 @@ import { embed, productEmbeddingText, upsertProductEmbedding } from "@/lib/embed
 // Fields whose changes should trigger an embedding refresh (anything that changes meaning)
 const EMBED_RELEVANT = new Set(["name", "description", "sku", "categoryId", "active"]);
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const b = await req.json();
     const id = parseInt(params.id);
@@ -53,7 +54,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const id = parseInt(params.id);
     const orderCount = await prisma.orderItem.count({ where: { productId: id } });

@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/requestBody";
 import { NextRequest, NextResponse } from "next/server";
 import { sendMetaEvent, type MetaUserData } from "@/lib/metaEvents";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
@@ -21,12 +22,13 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`meta-event:${clientIp(req)}`, 60, 60);
   if (!rl.ok) return NextResponse.json({ ok: false }, { status: 429 });
 
+  if (Number(req.headers.get("content-length") || 0) > 16000) return NextResponse.json({ ok: false }, { status: 413 });
   let body: any;
-  try { body = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
+  try { body = await readJson(req); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
 
   const eventName = String(body?.eventName || "");
   const eventId = String(body?.eventId || "");
-  if (!eventName || !eventId) return NextResponse.json({ ok: false }, { status: 400 });
+  if (!["PageView", "ViewContent", "AddToCart", "InitiateCheckout", "Lead", "Contact", "ContactWhatsApp", "Search"].includes(eventName) || !/^[a-zA-Z0-9:_-]{1,128}$/.test(eventId)) return NextResponse.json({ ok: false }, { status: 400 });
 
   // Cookies set by the Meta pixel (_fbp) and our fbclid capture (_fbc)
   const fbp = req.cookies.get("_fbp")?.value || null;
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
   // almost no other identifiers). Reads-or-creates the sh_sid cookie so even a
   // first-hit event carries it. The browser pixel sends the SAME sh_sid via
   // Advanced Matching, so after hashing both sides agree and dedup is intact.
-  const externalId = body?.userData?.externalId ?? getOrCreateSessionId();
+  const externalId = (await getOrCreateSessionId());
 
   const userData: MetaUserData = {
     fbp,
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
   const result = await sendMetaEvent({
     event_name: eventName,
     event_id: eventId,
-    event_source_url: typeof body?.eventSourceUrl === "string" ? body.eventSourceUrl : undefined,
+    event_source_url: typeof body?.eventSourceUrl === "string" && body.eventSourceUrl.startsWith((process.env.SITE_URL || "https://shenterprises.lk") + "/") ? body.eventSourceUrl.split("?")[0] : undefined,
     action_source: "website",
     user_data: userData,
     custom_data: body?.customData && typeof body.customData === "object" ? body.customData : undefined,

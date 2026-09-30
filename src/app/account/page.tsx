@@ -18,7 +18,7 @@ export default async function AccountPage() {
     getSetting("account_discount_percent")
   ]);
   const effective = user.discountRate > 0 ? user.discountRate : parseFloat(globalRate || "0");
-  const t = getT();
+  const t = await getT();
 
   return (
     <div className="container-x py-8 grid lg:grid-cols-3 gap-6">

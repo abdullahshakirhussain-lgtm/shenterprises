@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import SmartImage from "./SmartImage";
 import Link from "next/link";
 
 type Suggestion = {
@@ -8,6 +9,7 @@ type Suggestion = {
   name: string;
   slug: string;
   price: number;
+  outOfStock?: boolean;
   fromPrice?: boolean;
   imageUrl: string | null;
   unitLabel: string | null;
@@ -105,10 +107,10 @@ export default function SearchBox({
                 activeIdx === i ? "bg-brand-50" : ""
               }`}
             >
-              <div className="w-10 h-10 rounded bg-brand-50 grid place-items-center overflow-hidden shrink-0">
+              <div className="relative w-10 h-10 rounded bg-brand-50 grid place-items-center overflow-hidden shrink-0">
                 {r.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <SmartImage src={r.imageUrl} alt="" sizes="40px" />
                 ) : (
                   <span>🧵</span>
                 )}
@@ -119,7 +121,7 @@ export default function SearchBox({
                   {r.unitLabel && <span className="text-muted"> — {r.unitLabel}</span>}
                 </div>
                 <div className="text-xs text-brand-700 font-semibold">
-                  {r.price > 0
+                  {r.outOfStock ? "Out of stock" : r.price > 0
                     ? (r.fromPrice ? `From ${fmt(r.price)}` : fmt(r.price))
                     : <span className="text-brand-500 font-normal">Variants priced individually</span>}
                 </div>

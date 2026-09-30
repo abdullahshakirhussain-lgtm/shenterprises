@@ -11,10 +11,11 @@ export const dynamic = "force-dynamic";
 // SEO value — noindex them (follow links) instead of minting a canonical per query.
 export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true } };
 
-export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
+export default async function SearchPage(props: { searchParams: Promise<{ q?: string }> }) {
+  const searchParams = await props.searchParams;
   const q = (searchParams.q || "").trim();
   const slim = q ? await smartSearch(q, 60) : [];
-  const t = getT();
+  const t = await getT();
 
   // Owned analytics — log the search query + how many results it returned.
   // Server-side so it captures every real search-results view. Best-effort.

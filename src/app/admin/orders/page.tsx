@@ -4,7 +4,8 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrders({ searchParams }: { searchParams: { status?: string } }) {
+export default async function AdminOrders(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams;
   const status = searchParams.status;
   const orders = await prisma.order.findMany({
     where: status ? { status } : undefined,

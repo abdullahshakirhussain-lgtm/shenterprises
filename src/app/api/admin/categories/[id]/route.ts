@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { translateToSinhalaAndTamil } from "@/lib/translate";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const b = await req.json();
     const data: any = { name: b.name };
@@ -14,7 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json(updated);
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
 }
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await prisma.product.updateMany({ where: { categoryId: parseInt(params.id) }, data: { categoryId: null } });
     await prisma.category.delete({ where: { id: parseInt(params.id) } });

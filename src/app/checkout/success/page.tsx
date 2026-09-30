@@ -6,7 +6,8 @@ import OrderReceipt from "@/components/OrderReceipt";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Order placed", robots: { index: false, follow: false } };
 
-export default async function SuccessPage({ searchParams }: { searchParams: { order?: string } }) {
+export default async function SuccessPage(props: { searchParams: Promise<{ order?: string }> }) {
+  const searchParams = await props.searchParams;
   const order = searchParams.order ? await getPublicOrder(searchParams.order) : null;
 
   return (

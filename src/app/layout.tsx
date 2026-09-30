@@ -27,7 +27,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.SITE_URL || "https://shenterprises.lk"),
   title: { default: "SH Enterprises — Craft & Tailoring Supplies in Sri Lanka", template: "%s | SH Enterprises" },
   description:
     "Buy quality threads, zippers, scissors, elastics, ribbons, buttons and more craft & tailoring supplies online. Island-wide delivery across Sri Lanka. Cash on delivery available.",
@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     safeSettings(["site_phone", "site_email", "site_address"])
   ]);
 
-  const lang = getServerLang();
+  const lang = await getServerLang();
 
   // Read at RUNTIME (not build-time inlined) so it survives Railway build caching.
   // Accept either name so no Railway change is needed.

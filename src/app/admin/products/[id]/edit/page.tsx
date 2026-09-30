@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditProduct({ params }: { params: { id: string } }) {
+export default async function EditProduct(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = parseInt(params.id);
   const [p, categories, variants] = await Promise.all([
     prisma.product.findUnique({ where: { id } }),

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import { notFound } from "next/navigation";
@@ -7,7 +8,8 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const cat = await prisma.category.findUnique({ where: { slug: params.slug } });
   if (!cat) return { title: "Category not found" };
   return {
@@ -17,21 +19,22 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
+export default async function CategoryPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const cat = await prisma.category.findUnique({
     where: { slug: params.slug },
     include: { products: { where: { active: true }, orderBy: { createdAt: "desc" }, include: { variants: true } } }
   });
   if (!cat) notFound();
 
-  const t = getT();
-  const lang = getServerLang();
+  const t = await getT();
+  const lang = await getServerLang();
   const displayName = localizedName(cat as any, lang);
 
   return (
     <div className="container-x py-8">
       <nav className="text-sm text-brand-700 mb-2">
-        <a href="/">{t("breadcrumb_home")}</a> / <span>{displayName}</span>
+        <Link href="/">{t("breadcrumb_home")}</Link> / <span>{displayName}</span>
       </nav>
       <h1 className="font-display text-3xl text-brand-900 mb-6">{displayName}</h1>
       {cat.products.length === 0 ? (

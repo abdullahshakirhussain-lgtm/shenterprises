@@ -75,7 +75,7 @@ export default function DiscountsPanel({
       <section className="card p-5">
         <h2 className="font-semibold mb-1">New customer order discounts</h2>
         <p className="text-sm text-brand-600 mb-4">
-          Set a discount percent for a customer's 1st order, 2nd order, etc. Stacks on top of the member discount.
+          Set a discount percent for a customer&apos;s 1st order, 2nd order, etc. Stacks on top of the member discount.
           Remove a tier by clicking ✕, or set it to 0% to effectively disable it.
         </p>
 
@@ -122,7 +122,7 @@ export default function DiscountsPanel({
           <button onClick={addTier} className="btn-secondary">Add tier</button>
         </div>
         <p className="text-xs text-brand-500 mt-2">
-          Example: Order 1 = 15%, Order 2 = 10% means the customer's first order gets 15% off, second gets 10% off, and all subsequent orders only get the member discount.
+          Example: Order 1 = 15%, Order 2 = 10% means the customer&apos;s first order gets 15% off, second gets 10% off, and all subsequent orders only get the member discount.
         </p>
       </section>
 

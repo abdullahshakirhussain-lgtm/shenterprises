@@ -25,7 +25,8 @@ export async function sendSms(phone: string, message: string): Promise<SmsResult
 
   // Dev fallback — log to console if creds aren't set so local development still works
   if (!userId || !apiKey || !senderId) {
-    console.log(`[SMS:mock] to=${phone}  ${message}`);
+    if (process.env.NODE_ENV === "production") return { ok: false, provider: "notify.lk", error: "SMS is not configured" };
+    console.log("[SMS:mock] Delivery skipped in development.");
     return { ok: true, provider: "mock" };
   }
 

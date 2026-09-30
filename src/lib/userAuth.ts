@@ -14,7 +14,9 @@ const secret = () => new TextEncoder().encode(secretString());
 export const USER_COOKIE = "sh_user";
 
 export async function signUserToken(payload: { sub: string; phone: string }) {
-  return await new SignJWT(payload)
+  return await new SignJWT({ ...payload, role: "customer" })
+    .setIssuer("shenterprises")
+    .setAudience("customer")
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -23,7 +25,8 @@ export async function signUserToken(payload: { sub: string; phone: string }) {
 
 export async function verifyUserToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, secret());
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"], issuer: "shenterprises", audience: "customer" });
+    if (payload.role !== "customer" || typeof payload.phone !== "string" || !/^\d+$/.test(payload.sub || "")) return null;
     return payload as { sub: string; phone: string; iat: number; exp: number };
   } catch {
     return null;
@@ -31,7 +34,7 @@ export async function verifyUserToken(token: string) {
 }
 
 export async function getCurrentUser() {
-  const token = cookies().get(USER_COOKIE)?.value;
+  const token = (await cookies()).get(USER_COOKIE)?.value;
   if (!token) return null;
   const decoded = await verifyUserToken(token);
   if (!decoded) return null;

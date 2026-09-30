@@ -19,7 +19,8 @@ function serializeFaq(v: any): string | null {
 
 // PATCH — partial update. Renaming a type cascades to Machine.category so the
 // string join (Machine.category === MachineType.name) never goes stale.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
@@ -36,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (b.faq !== undefined) data.faq = serializeFaq(b.faq);
     if (b.sortOrder !== undefined) data.sortOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : 0;
 
+    if (data.slug && await prisma.machine.findUnique({ where: { slug: data.slug } })) return NextResponse.json({ error: "That URL is already used by a machine." }, { status: 409 });
     const renamed = data.name && data.name !== existing.name;
     const [updated] = await prisma.$transaction([
       prisma.machineType.update({ where: { id }, data }),
@@ -50,7 +52,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE — machines keep their category string; the hub page just disappears.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const admin = await getCurrentAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {

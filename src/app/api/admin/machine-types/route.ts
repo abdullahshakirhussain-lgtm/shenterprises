@@ -33,10 +33,12 @@ export async function POST(req: NextRequest) {
     const b = await req.json();
     const name = String(b.name || "").trim();
     if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    const slug = slugify(String(b.slug || name));
+    if (await prisma.machine.findUnique({ where: { slug } })) return NextResponse.json({ error: "That URL is already used by a machine." }, { status: 409 });
     const created = await prisma.machineType.create({
       data: {
         name,
-        slug: (b.slug ? String(b.slug).trim() : "") || slugify(name),
+        slug,
         blurb: b.blurb || null,
         seoIntro: b.seoIntro || null,
         faq: serializeFaq(b.faq),

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { contentId } from "@/lib/contentId";
 import { formatLKR } from "@/lib/utils";
 import { pixelTrack } from "@/lib/pixel";
 import SmartImage from "@/components/SmartImage";
@@ -14,6 +15,7 @@ type Variant = {
 
 type Product = {
   id: number;
+  sku?: string | null;
   name: string;
   slug: string;
   price: number;
@@ -40,21 +42,30 @@ type CartLine = {
 
 const STORAGE_KEY = "sh_catalog_cart_v1";
 
-export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; shopPhone: string }) {
+export default function CatalogClient({ groups: initialGroups, shopPhone, nextCursor: initialCursor }: { groups: Group[]; shopPhone: string; nextCursor: number | null }) {
+  const initialTrackingGroups = useRef(initialGroups);
+  const [groups, setGroups] = useState(initialGroups);
+  const [nextCursor, setNextCursor] = useState(initialCursor);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [search, setSearch] = useState("");
   const [showCart, setShowCart] = useState(false);
+  const pageRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) setCart(JSON.parse(raw));
+      if (raw) { const saved = JSON.parse(raw); if (Array.isArray(saved)) setCart(saved.filter(line => line && Number.isInteger(line.productId) && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isFinite(line.unitPrice))); }
     } catch {}
+    setHydrated(true);
     // Meta: catalog opened — a demand signal for the WhatsApp-first browse flow.
     // Include the catalog's product ids so this is a well-formed ViewContent
     // (content_ids + content_type present) rather than an identifier-less event
     // that Events Manager flags with "Update recommended".
-    const catalogIds = groups.flatMap(g => g.items.map(p => `SHE-${p.id}`)).slice(0, 100);
+    const catalogIds = initialTrackingGroups.current.flatMap(g => g.items.map(p => contentId(p))).slice(0, 100);
     pixelTrack("ViewContent", {
       content_name: "QuickCatalog",
       content_category: "catalog",
@@ -64,8 +75,47 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
     });
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch {}
-  }, [cart]);
+  }, [cart, hydrated]);
+
+  useEffect(() => {
+    pageRequest.current?.abort();
+    const controller = new AbortController();
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(true); setLoadError("");
+      fetch("/api/catalog?q=" + encodeURIComponent(search), { signal: controller.signal, cache: "no-store" })
+        .then(async r => { if (!r.ok) throw new Error("Unable to load products."); return r.json(); })
+        .then(data => { if (!controller.signal.aborted) { setGroups(data.groups); setNextCursor(data.nextCursor); } })
+        .catch(error => { if (!controller.signal.aborted) setLoadError(error.message); })
+        .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); pageRequest.current?.abort(); };
+  }, [search]);
+  async function loadMore() {
+    if (loading || !nextCursor) return;
+    pageRequest.current?.abort();
+    const controller = new AbortController();
+    pageRequest.current = controller;
+    setLoading(true); setLoadError("");
+    try {
+      const response = await fetch("/api/catalog?cursor=" + nextCursor + "&q=" + encodeURIComponent(search), { cache: "no-store", signal: controller.signal });
+      if (!response.ok) throw new Error("Unable to load more products.");
+      const data = await response.json();
+      if (controller.signal.aborted) return;
+      setGroups(previous => {
+        const merged = previous.map(g => ({ ...g, items: [...g.items] }));
+        for (const group of data.groups as Group[]) {
+          const existing = merged.find(g => g.slug === group.slug);
+          if (existing) existing.items.push(...group.items.filter(p => !existing.items.some(e => e.id === p.id)));
+          else merged.push(group);
+        }
+        return merged;
+      });
+      setNextCursor(data.nextCursor);
+    } catch(error: any) { if (!controller.signal.aborted) setLoadError(error.message); } finally { if (!controller.signal.aborted) setLoading(false); }
+  }
 
   // ---- Cart ops ----
   function add(line: Omit<CartLine, "quantity">) {
@@ -109,23 +159,37 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
   }, [groups, search]);
 
   // ---- WhatsApp share ----
-  function buildWhatsappText(): string {
+  function buildWhatsappText(linesCart: CartLine[] = cart): string {
     const lines: string[] = [];
     lines.push("🧵 *SH Enterprises order request*");
     lines.push("");
-    for (const l of cart) {
+    for (const l of linesCart) {
       const label = l.variantLabel ? ` (${l.variantLabel})` : "";
       lines.push(`• ${l.name}${label} × ${l.quantity} — ${formatLKR(l.unitPrice * l.quantity)}`);
     }
     lines.push("");
-    lines.push(`*Total:* ${formatLKR(totalLkr)}`);
+    lines.push(`*Total:* ${formatLKR(linesCart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0))}`);
     lines.push("");
     lines.push("(Sent from the quick catalog. Please confirm colors & delivery address.)");
     return lines.join("\n");
   }
 
-  function sendToWhatsApp() {
-    if (cart.length === 0) return;
+  async function sendToWhatsApp() {
+    if (cart.length === 0 || sharing) return;
+    setSharing(true); setLoadError("");
+    // Open during the click so mobile popup blockers do not discard the handoff.
+    const target = window.open("", "_blank");
+    if (target) target.opener = null;
+    try {
+      const response = await fetch("/api/cart/validate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ catalog: true, items: cart.map(line => ({ key: line.key, productId: line.productId, variantIds: line.variantId ? [line.variantId] : [] })) }) });
+      if (!response.ok) throw new Error("Unable to check current availability. Please try again.");
+      const data = await response.json();
+      if (data.items.some((line: any) => !line.available)) throw new Error("An item is now unavailable. Please review your list.");
+      const fresh = cart.map(line => ({ ...line, unitPrice: data.items.find((item: any) => item.key === line.key).price }));
+      const changed = fresh.some((line, index) => line.unitPrice !== cart[index].unitPrice);
+      setCart(fresh);
+      if (changed) throw new Error("Prices have been updated. Please review your total and send again.");
     // Meta: the critical on-site -> off-site handoff. Orders close on WhatsApp,
     // so this Lead (ContactWhatsApp) is our primary conversion-intent signal.
     pixelTrack("Lead", {
@@ -134,7 +198,7 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
       value: totalLkr,
       currency: "LKR",
       num_items: cart.reduce((s, l) => s + l.quantity, 0),
-      content_ids: cart.map(l => l.variantId ? `SHE-${l.productId}-${l.variantId}` : `SHE-${l.productId}`),
+      content_ids: data.items.map((item: any) => item.contentId),
       content_type: "product",
     });
     // Owned analytics — same fire point, parallel log.
@@ -146,11 +210,12 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
         meta: { source: "catalog", items: cart.map(l => ({ id: l.productId, qty: l.quantity })) },
       }),
     }).catch(() => {});
-    const text = encodeURIComponent(buildWhatsappText());
+    const text = encodeURIComponent(buildWhatsappText(fresh));
     const url = shopPhone
       ? `https://wa.me/${shopPhone}?text=${text}`
       : `https://wa.me/?text=${text}`;
-    window.open(url, "_blank");
+    if (target) target.location.href = url; else window.location.href = url;
+    } catch(error: any) { target?.close(); setLoadError(error.message); } finally { setSharing(false); }
   }
 
   return (
@@ -179,6 +244,7 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            aria-label="Search products"
             placeholder="Search products…"
             className="w-full px-3 py-2 rounded-lg border border-brand-200 bg-cream/40 text-sm focus:outline-none focus:border-saffron-500 focus:bg-white"
           />
@@ -209,6 +275,8 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
           </section>
         ))}
       </div>
+
+      <div className="container-x pb-28 text-center">{loadError && <p role="alert" className="text-red-700 mb-3">{loadError}</p>}{nextCursor && <button type="button" className="btn-secondary" disabled={loading} onClick={loadMore}>{loading ? "Loading…" : "Load more products"}</button>}</div>
 
       {/* Floating Share button — always reachable from anywhere; opens cart drawer first */}
       {totalQty > 0 && !showCart && (
@@ -241,10 +309,11 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
               <button onClick={() => setShowCart(false)} className="text-ink-mute hover:text-ink text-2xl leading-none">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {loadError && <p role="alert" className="text-sm text-red-700">{loadError}</p>}
               {cart.length === 0 ? (
                 <p className="text-center text-ink-mute italic py-10">Nothing added yet.</p>
               ) : cart.map(l => (
-                <div key={l.key} className="flex items-center gap-3 p-2 bg-cream/40 rounded-lg">
+                <div key={l.key} className="grid grid-cols-[40px_minmax(0,1fr)] gap-3 p-2 bg-cream/40 rounded-lg">
                   {l.imageUrl ? (
                     <div className="relative w-10 h-10 rounded overflow-hidden shrink-0">
                       <SmartImage src={l.imageUrl} alt="" sizes="40px" />
@@ -257,12 +326,12 @@ export default function CatalogClient({ groups, shopPhone }: { groups: Group[]; 
                     {l.variantLabel && <p className="text-xs text-saffron-700">{l.variantLabel}</p>}
                     <p className="text-xs text-ink-mute">{formatLKR(l.unitPrice)} each</p>
                   </div>
-                  <div className="inline-flex items-center border border-brand-200 rounded-lg overflow-hidden shrink-0">
+                  <div className="col-span-2 justify-self-start inline-flex items-center border border-brand-200 rounded-lg overflow-hidden shrink-0">
                     <button onClick={() => setQty(l.key, l.quantity - 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50">−</button>
                     <span className="w-10 text-center font-semibold text-sm">{l.quantity}</span>
                     <button onClick={() => setQty(l.key, l.quantity + 1)} className="w-8 h-8 text-lg font-bold text-brand-700 hover:bg-brand-50">+</button>
                   </div>
-                  <span className="shrink-0 text-sm font-bold text-saffron-700 w-20 text-right">
+                  <span className="col-span-2 text-sm font-bold text-saffron-700 text-left">
                     {formatLKR(l.unitPrice * l.quantity)}
                   </span>
                 </div>
@@ -394,8 +463,8 @@ function Row({
   onDec: () => void;
 }) {
   return (
-    <li className={`flex items-center gap-3 px-2 py-2 rounded-lg transition-colors ${qty > 0 ? "bg-saffron-50/60" : "hover:bg-saffron-50"}`}>
-      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-brand-50 overflow-hidden shrink-0">
+    <li className={`grid grid-cols-[3rem_minmax(0,1fr)] sm:grid-cols-[3.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-2 py-2 rounded-lg transition-colors ${qty > 0 ? "bg-saffron-50/60" : "hover:bg-saffron-50"}`}>
+      <div className="relative row-span-2 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-brand-50 overflow-hidden shrink-0">
         {imageUrl ? (
           <SmartImage src={imageUrl} alt={title} sizes="56px" />
         ) : (
@@ -403,11 +472,11 @@ function Row({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-ink truncate">{title}</p>
+        <p className="font-medium text-sm text-ink line-clamp-2">{title}</p>
         {subtitle && <p className="text-xs text-ink-mute truncate">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm font-bold text-saffron-700 w-20 text-right">{formatLKR(price)}</span>
+      <div className="col-start-2 flex items-center justify-between gap-2 min-w-0">
+        <span className="text-sm font-bold text-saffron-700 text-left">{formatLKR(price)}</span>
         {qty > 0 ? (
           <div className="inline-flex items-center bg-ink rounded-full overflow-hidden shadow-md">
             <button onClick={onDec} className="w-8 h-8 grid place-items-center text-cream text-lg font-bold hover:bg-ink-soft transition-colors" aria-label="Decrease">−</button>

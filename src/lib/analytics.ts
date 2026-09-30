@@ -4,13 +4,14 @@ import crypto from "crypto";
 
 export const SESSION_COOKIE = "sh_sid";
 
-export function getOrCreateSessionId(): string {
-  const jar = cookies();
+export async function getOrCreateSessionId(): Promise<string> {
+  const jar = await cookies();
   const existing = jar.get(SESSION_COOKIE)?.value;
-  if (existing) return existing;
+  if (existing && /^[a-f0-9-]{36}$/i.test(existing)) return existing;
   const id = crypto.randomUUID();
   jar.set(SESSION_COOKIE, id, {
     httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 365,
     path: "/"
@@ -20,15 +21,22 @@ export function getOrCreateSessionId(): string {
 
 export async function recordEvent(opts: {
   type: string;
+  referrer?: string;
   path?: string;
   productId?: number;
   quantity?: number;
   value?: number;
   meta?: any;
 }) {
-  const sid = getOrCreateSessionId();
-  const h = headers();
-  const referrer = h.get("referer") || h.get("referrer") || undefined;
+  const sid = await getOrCreateSessionId();
+  const h = await headers();
+  let referrer: string | undefined;
+  try {
+    const origin = new URL(opts.referrer || "");
+    if (origin.protocol === "https:" || origin.protocol === "http:") {
+      if (origin.hostname !== new URL(process.env.SITE_URL || "https://shenterprises.lk").hostname) referrer = origin.origin;
+    }
+  } catch {}
   const userAgent = h.get("user-agent") || undefined;
   const url = opts.path ? new URL(opts.path, "http://x") : null;
   const utmSource = url?.searchParams.get("utm_source") || undefined;

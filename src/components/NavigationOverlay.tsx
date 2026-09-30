@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -19,30 +19,31 @@ export default function NavigationOverlay() {
   const showTimer = useRef<any>(null);
   const isBack = useRef(false);
 
-  function clearShowTimer() {
+  const clearShowTimer = useCallback(() => {
     if (showTimer.current) { clearTimeout(showTimer.current); showTimer.current = null; }
-  }
+  }, []);
 
-  function startLoading() {
+  const startLoading = useCallback(() => {
     clearShowTimer();
     // Don't show overlay immediately — wait 250ms so quick nav doesn't flash
     showTimer.current = setTimeout(() => setLoading(true), 250);
-  }
+  }, [clearShowTimer]);
 
-  function stopLoading() {
+  const stopLoading = useCallback(() => {
     clearShowTimer();
     setLoading(false);
-  }
+  }, [clearShowTimer]);
 
   // Whenever route changes, the new page is rendering → hide overlay
   useEffect(() => {
     stopLoading();
     isBack.current = false;
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, stopLoading]);
 
   // Internal link clicks
   useEffect(() => {
     function onClick(e: MouseEvent) {
+      if (e.defaultPrevented) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       if (e.button !== 0) return;
 
@@ -64,9 +65,9 @@ export default function NavigationOverlay() {
 
       startLoading();
     }
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
-  }, [pathname]);
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [pathname, startLoading]);
 
   // Browser back/forward — mark it so we can decide not to show overlay
   // (Next.js's router cache makes these usually instant)
@@ -84,14 +85,14 @@ export default function NavigationOverlay() {
     function onNav() { startLoading(); }
     window.addEventListener("sh:nav", onNav);
     return () => window.removeEventListener("sh:nav", onNav);
-  }, []);
+  }, [startLoading]);
 
   // Hard failsafe — never let overlay stick more than 5s
   useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => setLoading(false), 5000);
     return () => clearTimeout(t);
-  }, [loading]);
+  }, [loading, stopLoading]);
 
   // Also: any user input (key/click) after overlay shows → assume page is ready, hide
   useEffect(() => {
@@ -103,28 +104,18 @@ export default function NavigationOverlay() {
       window.removeEventListener("keydown", dismissOnInteraction);
       window.removeEventListener("pointerdown", dismissOnInteraction);
     };
-  }, [loading]);
+  }, [loading, stopLoading]);
 
   if (!loading) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-cream/85 backdrop-blur-sm grid place-items-center"
+      className="pointer-events-none fixed top-0 left-0 right-0 z-[200] h-1 bg-saffron-500 animate-pulse motion-reduce:animate-none"
       style={{ animation: "fadeIn 0.15s ease-out" }}
       aria-live="polite"
       aria-busy="true"
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-5xl" style={{ animation: "spin 1.1s linear infinite" }}>🧵</div>
-        <svg width="200" height="20" viewBox="0 0 200 20">
-          <line x1="0" y1="10" x2="200" y2="10"
-            stroke="rgb(var(--b600))" strokeWidth="3" strokeDasharray="9 9"
-            style={{ animation: "sew 1s linear infinite" }} />
-        </svg>
-        <p className="font-serif text-brand-700 font-semibold text-sm tracking-wide">
-          One moment…
-        </p>
-      </div>
+      <span className="sr-only">Loading page</span>
       <style jsx>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       `}</style>

@@ -1,3 +1,5 @@
+import { readJson } from "@/lib/requestBody";
+import { persistentRateLimit } from "@/lib/persistentRateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -6,7 +8,8 @@ import { rateLimit, rateLimitReset, clientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, password } = await req.json();
+    if (!(await persistentRateLimit("login:" + clientIp(req), 30, 300)).ok) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    const { phone, password } = await readJson(req);
     const normPhone = normalizePhone(String(phone || ""));
     if (!normPhone || !password) return NextResponse.json({ error: "Phone and password required" }, { status: 400 });
 
@@ -34,6 +37,6 @@ export async function POST(req: NextRequest) {
     });
     return res;
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to complete this request. Please try again." }, { status: 500 });
   }
 }

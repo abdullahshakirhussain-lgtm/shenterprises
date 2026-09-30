@@ -36,12 +36,14 @@ function notFound() {
   });
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   try {
     // resolve safely inside the uploads dir to prevent traversal
     const base = path.resolve(uploadsDir());
     const target = path.resolve(base, ...params.path);
-    if (!target.startsWith(base)) {
+    const relative = path.relative(base, target);
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
       return new NextResponse("Forbidden", {
         status: 403,
         headers: { "Cache-Control": "no-store" },

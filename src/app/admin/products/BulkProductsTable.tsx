@@ -527,7 +527,7 @@ export default function BulkProductsTable({ products, categories, currentCategor
                   {selectedProducts.map(p => <option key={p.id} value={p.id}>{p.name} (#{p.id})</option>)}
                 </select>
                 <p className="text-xs text-brand-600 mt-1">
-                  Keeper's price, image, description are kept. Stocks are summed. Order history is preserved.
+                  Keeper&apos;s price, image, description are kept. Stocks are summed. Order history is preserved.
                 </p>
               </div>
 

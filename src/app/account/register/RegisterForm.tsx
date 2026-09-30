@@ -99,7 +99,7 @@ export default function RegisterForm() {
             <label className="label">Phone number *</label>
             <input required className="input" placeholder="07X XXX XXXX" value={phone}
               onChange={(e) => setPhone(e.target.value)} />
-            <p className="text-xs text-brand-500 mt-1">We'll send a verification code to this number.</p>
+            <p className="text-xs text-brand-500 mt-1">We&apos;ll send a verification code to this number.</p>
           </div>
           {err && <div className="text-sm text-red-700 bg-red-50 p-2 rounded">{err}</div>}
           <button disabled={busy} className="btn-primary w-full">{busy ? "Sending…" : "Send OTP"}</button>

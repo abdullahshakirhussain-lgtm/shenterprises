@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function OffersPage() {
   // Any product with a genuine sale price OR flagged on-offer.
   const items = await fetchOfferProducts();
-  const t = getT();
+  const t = await getT();
   return (
     <div className="container-x py-8">
       <h1 className="font-display text-3xl text-brand-900 mb-6">{t("offers")}</h1>

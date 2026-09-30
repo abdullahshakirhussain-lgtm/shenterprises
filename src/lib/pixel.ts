@@ -1,3 +1,5 @@
+import { browserSession } from "./browserSession";
+import { isPrivatePath } from "./trackingPaths";
 /**
  * Meta Pixel (browser) helpers with Conversions API deduplication.
  *
@@ -63,7 +65,7 @@ export function captureFbclid() {
     const params = new URLSearchParams(window.location.search);
     const fbclid = params.get("fbclid");
     if (!fbclid) return;
-    if (readCookie("_fbc")) return; // don't overwrite an existing click id
+    if (readCookie("_fbc")?.endsWith("." + fbclid)) return;
     const val = `fb.1.${Date.now()}.${fbclid}`;
     // 90-day cookie, site-wide
     document.cookie = `_fbc=${encodeURIComponent(val)}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
@@ -77,6 +79,7 @@ type TrackOptions = {
   userData?: { email?: string | null; phone?: string | null; fullName?: string | null; externalId?: string | null };
   /** Provide your own id (e.g. for a server-fired Purchase that must dedupe). */
   eventId?: string;
+  serverHandled?: boolean;
 };
 
 /**
@@ -93,12 +96,15 @@ export function pixelTrack(
   if (!resolvePixelId()) return eventId;   // Meta not configured — don't hit our server either
   if (!hasConsent()) return eventId;
 
+  if (isPrivatePath(window.location.pathname)) return eventId;
+  browserSession();
+
   // 1) Browser pixel (if loaded)
-  try {
-    if (typeof window.fbq === "function") {
-      window.fbq("track", event, params || {}, { eventID: eventId });
-    }
-  } catch {}
+  void initializePixel().then(() => {
+    window.fbq?.("track", event, params || {}, { eventID: eventId });
+  }).catch(() => {});
+
+  if (opts?.serverHandled) return eventId;
 
   // 2) Server CAPI mirror with the SAME event_id (fire-and-forget)
   try {
@@ -111,10 +117,32 @@ export function pixelTrack(
         eventId,
         customData: params || {},
         userData: opts?.userData || undefined,
-        eventSourceUrl: window.location.href,
+        eventSourceUrl: window.location.origin + window.location.pathname,
       }),
     }).catch(() => {});
   } catch {}
 
   return eventId;
+}
+
+
+// A shared promise queues early events until server-hashed matching data is ready.
+let initialization: Promise<void> | undefined;
+function initializePixel(): Promise<void> {
+ if (initialization) return initialization;
+ initialization = (async () => {
+   browserSession();
+   const matching = await fetch("/api/meta/identity", { signal: AbortSignal.timeout(5000), cache: "no-store" })
+     .then(r => r.ok ? r.json() : {}).catch(() => ({}));
+   if (!window.fbq) {
+     const queue: any = function(...args: any[]) { queue.callMethod ? queue.callMethod(...args) : queue.queue.push(args); };
+     queue.queue = []; queue.push = queue; queue.loaded = true; queue.version = "2.0";
+     window.fbq = queue; (window as any)._fbq = queue;
+     queue("init", resolvePixelId(), matching);
+     const script = document.createElement("script");
+     script.async = true; script.src = "https://connect.facebook.net/en_US/fbevents.js";
+     document.head.appendChild(script);
+   }
+ })();
+ return initialization;
 }

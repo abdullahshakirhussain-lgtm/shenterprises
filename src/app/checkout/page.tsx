@@ -41,7 +41,11 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bank">("cod");
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
+  const [quote, setQuote] = useState<{ subtotal: number; accountDiscount: number; tierDiscount: number; couponDiscount: number; total: number; items: { price: number }[] } | null>(null);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteRevision, setQuoteRevision] = useState(0);
 
   const [me, setMe] = useState<Me>(null);
   const [accountBannerDismissed, setAccountBannerDismissed] = useState(false);
@@ -86,40 +90,42 @@ export default function CheckoutPage() {
     pixelTrack("InitiateCheckout", {
       value: subtotal,
       currency: "LKR",
-      num_items: items.length,
+      num_items: items.reduce((sum, item) => sum + item.quantity, 0),
       content_ids: items.map(i => contentId({ sku: i.sku, id: i.productId })),
       content_type: "product",
     });
   }, [items, subtotal]);
 
   // discounts
-  const accountDiscount = me && me.discountRate > 0 ? Math.round(subtotal * (me.discountRate / 100) * 100) / 100 : 0;
+  const accountDiscount = quote?.accountDiscount || 0;
   const subtotalAfterAccount = Math.max(0, subtotal - accountDiscount);
   const couponDiscount = appliedCoupon?.discount || 0;
   const discountedSubtotal = Math.max(0, subtotalAfterAccount - couponDiscount);
 
-  // Fee resolves instantly from the local district list — no API round-trip needed
   useEffect(() => {
-    if (!districtName) { setFee(null); return; }
-    const d = districts.find((x) => x.name === districtName);
-    if (!d) { setFee(null); return; }
-    // Free-shipping threshold from settings still applies — keep the API call lightweight
-    fetch("/api/delivery-fee", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ district: districtName, subtotal: discountedSubtotal })
-    })
-      .then((r) => r.json())
-      .then((data) => setFee(typeof data.fee === "number" ? data.fee : d.deliveryFee))
-      .catch(() => setFee(d.deliveryFee));
-  }, [districtName, discountedSubtotal, districts]);
+    setQuote(null); setFee(null); setQuoteError("");
+    if (!districtName || !items.length) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetch("/api/checkout/quote", {
+        method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ districtName, couponCode: appliedCoupon?.code,
+          phone: /^0\d{9}$/.test(form.phone) ? form.phone : undefined,
+          items: items.map(i => ({ productId: i.productId, quantity: i.quantity, variantIds: i.variants?.map(v => v.id) })) }),
+      }).then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error); return data; })
+        .then(data => { setQuote(data); setFee(data.fee); })
+        .catch(error => { if (!controller.signal.aborted) setQuoteError(error.message || "Unable to refresh total."); });
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [districtName, items, appliedCoupon?.code, form.phone, me?.id, quoteRevision]);
 
   // re-validate coupon when subtotal changes
   useEffect(() => {
     if (appliedCoupon) applyCouponCode(appliedCoupon.code, true);
     // eslint-disable-next-line
-  }, [subtotalAfterAccount]);
+  }, [subtotal]);
 
-  const total = discountedSubtotal + (fee || 0);
+  const total = quote?.total ?? 0;
 
   async function applyCouponCode(code: string, silent = false) {
     if (!code.trim()) return;
@@ -141,7 +147,9 @@ export default function CheckoutPage() {
 
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError("");
+    if (!quote) { setError("Please wait for your current total."); return; }
     if (items.length === 0) { setError("Cart is empty."); return; }
     // Phone must be exactly 10 digits starting with 0 (blocks the 9-digit case).
     if (!/^0\d{9}$/.test(form.phone)) { setError("Enter a valid 10-digit phone number starting with 0."); return; }
@@ -149,6 +157,7 @@ export default function CheckoutPage() {
     if (!districtName) { setError("Please select a district."); return; }
     if (paymentMethod === "bank" && !slipFile) { setError("Please upload your bank deposit slip."); return; }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       let bankSlipUrl: string | undefined;
@@ -160,10 +169,18 @@ export default function CheckoutPage() {
         bankSlipUrl = j.url;
       }
 
+      const signatureBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify({ form, districtName, paymentMethod, coupon: appliedCoupon?.code, items, slip: slipFile ? [slipFile.name, slipFile.size, slipFile.lastModified] : null })));
+      const signature = Array.from(new Uint8Array(signatureBytes)).map(b => b.toString(16).padStart(2, "0")).join("");
+      let attempt: { signature: string; key: string; expectedTotal: number } | null = null;
+      try { attempt = JSON.parse(sessionStorage.getItem("sh_checkout_attempt") || "null"); } catch {}
+      if (!attempt || attempt.signature !== signature) {
+        attempt = { signature, key: crypto.randomUUID(), expectedTotal: quote.total };
+        try { sessionStorage.setItem("sh_checkout_attempt", JSON.stringify(attempt)); } catch {}
+      }
       const res = await fetch("/api/checkout", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": attempt.key },
         body: JSON.stringify({
-          ...form, districtName, cityName: "—", paymentMethod, bankSlipUrl,
+          ...form, expectedTotal: attempt.expectedTotal, districtName, cityName: "—", paymentMethod, bankSlipUrl,
           couponCode: appliedCoupon?.code,
           items: items.map((i) => ({
             productId: i.productId,
@@ -176,19 +193,24 @@ export default function CheckoutPage() {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Order failed");
+      if (!res.ok) {
+        if (data.code === "TOTAL_CHANGED") { try { sessionStorage.removeItem("sh_checkout_attempt"); } catch {} }
+        throw new Error(data.error || "Order failed");
+      }
       // Meta Pixel — Purchase conversion (deduped browser + CAPI). Buyer phone/
       // name are sent to our own server endpoint which hashes them before Meta.
       pixelTrack(
         "Purchase",
         {
-          value: total,
+          value: data.total,
           currency: "LKR",
-          num_items: items.length,
+          num_items: items.reduce((sum, item) => sum + item.quantity, 0),
           content_ids: items.map(i => contentId({ sku: i.sku, id: i.productId })),
           content_type: "product",
         },
         {
+          eventId: data.eventId,
+          serverHandled: true,
           userData: {
             phone: form.phone || null,
             fullName: form.fullName || null,
@@ -196,9 +218,10 @@ export default function CheckoutPage() {
           },
         }
       );
+      try { sessionStorage.removeItem("sh_checkout_attempt"); } catch {}
       clear();
       router.push(`/checkout/success?order=${encodeURIComponent(data.orderNumber)}`);
-    } catch (err: any) { setError(err.message); } finally { setSubmitting(false); }
+    } catch (err: any) { setError(err.message); setQuoteRevision(v => v + 1); } finally { submittingRef.current = false; setSubmitting(false); }
   }
 
   if (items.length === 0) {
@@ -301,7 +324,7 @@ export default function CheckoutPage() {
         <aside className="card p-5 h-fit lg:sticky lg:top-24">
           <h2 className="font-semibold text-lg mb-3">{t("order_summary")}</h2>
           <div className="space-y-2 mb-3">
-            {items.map((i) => (
+            {items.map((i, index) => (
               <div key={i.key} className="flex justify-between text-sm">
                 <span className="flex-1 pr-2">
                   {i.name} × {i.quantity}
@@ -309,12 +332,12 @@ export default function CheckoutPage() {
                     <span className="block text-xs text-brand-500 mt-0.5">{i.variants.map(v => v.name).join(" · ")}</span>
                   )}
                 </span>
-                <span>{formatLKR(i.price * i.quantity)}</span>
+                <span>{quote ? formatLKR((quote.items[index]?.price ?? i.price) * i.quantity) : "—"}</span>
               </div>
             ))}
           </div>
           <hr className="my-3" />
-          <div className="flex justify-between text-sm"><span>{t("subtotal")}</span><span>{formatLKR(subtotal)}</span></div>
+          <div className="flex justify-between text-sm"><span>{t("subtotal")}</span><span>{quote ? formatLKR(quote.subtotal) : "—"}</span></div>
           {accountDiscount > 0 && (
             <div className="flex justify-between text-sm text-green-700">
               <span>{t("member_discount")} ({me?.discountRate}%)</span>
@@ -322,10 +345,11 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {(quote?.tierDiscount || 0) > 0 && <div className="flex justify-between text-sm text-green-700"><span>New customer discount</span><span>−{formatLKR(quote!.tierDiscount)}</span></div>}
           <div className="mt-3">
             {appliedCoupon ? (
               <div className="flex items-center justify-between text-sm bg-green-50 border border-green-200 rounded p-2">
-                <span>{t("coupon_applied")} <strong>{appliedCoupon.code}</strong> (−{formatLKR(appliedCoupon.discount)})</span>
+                <span>{t("coupon_applied")} <strong>{appliedCoupon.code}</strong> (−{formatLKR(quote?.couponDiscount ?? appliedCoupon.discount)})</span>
                 <button type="button" onClick={removeCoupon} className="text-red-600 text-xs">{t("remove")}</button>
               </div>
             ) : (
@@ -345,9 +369,10 @@ export default function CheckoutPage() {
             <span>{fee == null ? t("select_area") : fee === 0 ? t("free") : formatLKR(fee)}</span>
           </div>
           <hr className="my-3" />
-          <div className="flex justify-between text-lg font-semibold"><span>{t("total")}</span><span>{formatLKR(total)}</span></div>
+          <div className="flex justify-between text-lg font-semibold"><span>{t("total")}</span><span>{quote ? formatLKR(total) : "Updating…"}</span></div>
+          {quoteError && <div role="alert" className="mt-3 text-sm text-red-700">{quoteError} <button type="button" className="underline" onClick={() => setQuoteRevision(v => v + 1)}>Refresh total</button></div>}
           {error && <div className="mt-3 text-sm text-red-700 bg-red-50 p-2 rounded">{error}</div>}
-          <button disabled={submitting || fee == null} className="btn-primary w-full mt-4 disabled:opacity-50">
+          <button disabled={submitting || fee == null || !quote} className="btn-primary w-full mt-4 disabled:opacity-50">
             {submitting ? t("placing_order") : t("place_order")}
           </button>
         </aside>

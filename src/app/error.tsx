@@ -24,6 +24,8 @@ export default function ErrorBoundary({
       </p>
       <div className="flex gap-2 justify-center">
         <button onClick={reset} className="btn-primary">Try again</button>
+        {/* Full navigation intentionally resets a failed application tree. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/" className="btn-secondary">Go home</a>
       </div>
       {error.digest && (

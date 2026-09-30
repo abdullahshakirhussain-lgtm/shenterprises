@@ -1,11 +1,17 @@
+import { readJson } from "@/lib/requestBody";
+import { persistentRateLimit } from "@/lib/persistentRateLimit";
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/userAuth";
 import { sendSms } from "@/lib/sms";
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone } = await req.json();
+    if (!(await persistentRateLimit("otp:" + clientIp(req), 10, 600)).ok) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    if (!rateLimit("otp-send:" + clientIp(req), 10, 600).ok) return NextResponse.json({ error: "Please try again later." }, { status: 429 });
+    const { phone } = await readJson(req);
     if (!phone) return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
 
     const normPhone = normalizePhone(String(phone));
@@ -29,7 +35,7 @@ export async function POST(req: NextRequest) {
     // Delete any old OTPs for this phone
     await prisma.otpCode.deleteMany({ where: { phone: normPhone } });
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(randomInt(100000, 1000000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await prisma.otpCode.create({ data: { phone: normPhone, code, expiresAt } });
@@ -51,6 +57,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to complete this request. Please try again." }, { status: 500 });
   }
 }

@@ -1,3 +1,5 @@
+import { catalogPage } from "@/lib/catalog";
+import { isAvailable } from "@/lib/commerce";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
@@ -11,47 +13,7 @@ export const metadata = {
 };
 
 export default async function CatalogPage() {
-  const [productsRaw, shopPhoneRaw] = await Promise.all([
-    prisma.product.findMany({
-      // Out-of-stock products are hidden from the quick catalog entirely.
-      // (force-dynamic + this live query means new active products appear here
-      // automatically — no manual step.)
-      where: { active: true, outOfStock: false },
-      orderBy: [
-        { category: { sortOrder: "asc" } },
-        { name: "asc" },
-      ],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        price: true,
-        salePrice: true,
-        imageUrl: true,
-        stock: true,
-        unitQty: true,
-        unitType: true,
-        category: { select: { name: true, slug: true } },
-        // Only pack + size variants — colors and lengths are handled by the customer in WhatsApp chat
-        variants: {
-          where: { type: { in: ["pack", "size"] }, outOfStock: false },
-          select: { id: true, type: true, name: true, price: true, salePrice: true },
-          orderBy: { sortOrder: "asc" },
-        },
-      },
-    }),
-    getSetting("site_phone"),
-  ]);
-
-  // Group by category for visual scanning
-  const groups = new Map<string, { name: string; slug: string; items: typeof productsRaw }>();
-  for (const p of productsRaw) {
-    const key = p.category?.slug || "other";
-    const name = p.category?.name || "Other";
-    if (!groups.has(key)) groups.set(key, { name, slug: key, items: [] });
-    groups.get(key)!.items.push(p);
-  }
-
+  const [page, shopPhoneRaw] = await Promise.all([catalogPage(), getSetting("site_phone")]);
   // wa.me requires international format with no + or leading zero (e.g. 94779792906).
   // normalizePhone() handles 077... → 9477..., 0094... → 9477..., +94... → 9477..., etc.
   // If the stored number can't be normalized, fall back to a plain digit strip so the
@@ -61,7 +23,8 @@ export default async function CatalogPage() {
 
   return (
     <CatalogClient
-      groups={Array.from(groups.values())}
+      groups={page.groups}
+      nextCursor={page.nextCursor}
       shopPhone={intlPhone}
     />
   );

@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/machines" },
 };
 
-export default async function MachinesPage({ searchParams }: { searchParams: { type?: string } }) {
+export default async function MachinesPage(props: { searchParams: Promise<{ type?: string }> }) {
+  const searchParams = await props.searchParams;
   const [machinesAll, machineTypes, sitePhoneRaw] = await Promise.all([
     prisma.machine.findMany({ where: { active: true }, orderBy: { createdAt: "desc" } }),
     prisma.machineType.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),

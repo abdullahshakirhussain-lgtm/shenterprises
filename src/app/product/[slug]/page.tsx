@@ -5,14 +5,15 @@ import ProductTopSection from "@/components/ProductTopSection";
 import ProductCard from "@/components/ProductCard";
 import RelatedHeading from "@/components/RelatedHeading";
 import ReviewSection from "@/components/ReviewSection";
-import JsonLd, { breadcrumbSchema, safeJsonLd } from "@/components/JsonLd";
+import JsonLd, { breadcrumbSchema, safeJsonLd, productSchema } from "@/components/JsonLd";
 import { getT } from "@/lib/i18n-server";
 import Link from "next/link";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const p = await prisma.product.findUnique({ where: { slug: params.slug } });
   if (!p) return { title: "Product not found" };
   return {
@@ -28,7 +29,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const p = await prisma.product.findUnique({
     where: { slug: params.slug },
     include: {
@@ -51,20 +53,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const avg = p.reviews.length ? p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length : 0;
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
 
-  const jsonLd: any = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: p.name,
-    description: p.description,
-    image: images,
-    sku: p.sku,
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "LKR",
-      price: effective,
-      availability: (p as any).outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"
-    }
-  };
+  const jsonLd: any = { ...productSchema(p, process.env.SITE_URL || "https://shenterprises.lk"), image: images };
   if (p.reviews.length > 0) {
     jsonLd.aggregateRating = {
       "@type": "AggregateRating",
@@ -85,12 +74,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <JsonLd data={breadcrumbSchema(siteUrl, breadcrumbCrumbs)} />
       <nav className="text-sm text-brand-700 mb-4">
-        <Link href="/">{getT()("breadcrumb_home")}</Link> /{" "}
+        <Link href="/">{(await getT())("breadcrumb_home")}</Link> /{" "}
         {p.category && (<><Link href={`/category/${p.category.slug}`}>{p.category.name}</Link> / </>)}
         <span>{p.name}</span>
       </nav>
 
-      <ProductTopSection
+      <ProductTopSection key={p.id + ":" + p.updatedAt.toISOString()}
         product={{
           id: p.id,
           name: p.name,

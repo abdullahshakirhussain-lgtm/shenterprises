@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditMachine({ params }: { params: { id: string } }) {
+export default async function EditMachine(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const m = await prisma.machine.findUnique({ where: { id: parseInt(params.id) } });
   if (!m) notFound();
   return (

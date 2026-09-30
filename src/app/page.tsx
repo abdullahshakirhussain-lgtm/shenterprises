@@ -1,3 +1,4 @@
+import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
@@ -31,7 +32,7 @@ export default async function HomePage() {
     safe(() => prisma.banner.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }), [] as any[]),
     // Genuine sale price OR flagged on-offer — same rule as the /offers page
     safe(() => fetchOfferProducts(8), [] as any[]),
-    safe(() => prisma.product.findMany({ where: { active: true }, select: { id: true } }), [] as { id: number }[]),
+    safe(() => prisma.product.findMany({ where: { active: true }, orderBy: [{ featured: "desc" }, { createdAt: "desc" }], take: 12, select: { id: true } }), [] as { id: number }[]),
     safe(() => getSetting("promo_strip_text"), null),
     // Featured products for hero collage — prefer featured > on-offer > any with an image
     safe(() => prisma.product.findMany({
@@ -75,7 +76,7 @@ export default async function HomePage() {
   const machinePhone = normalizePhone(sitePhoneRaw || "") || "";
 
   const sampleIds = allActiveIds.length
-    ? [...allActiveIds].sort(() => Math.random() - 0.5).slice(0, 12).map(p => p.id)
+    ? allActiveIds.map(p => p.id)
     : [];
   const shopAllPreview = sampleIds.length
     ? await safe(() => prisma.product.findMany({ where: { id: { in: sampleIds } }, include: { variants: true } }), [] as any[])
@@ -199,17 +200,13 @@ function TrustCard({ emoji, altEmoji, title, body }: { emoji: string; altEmoji: 
 }
 
 function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; badgeColor?: string }) {
-  const baseEffective = p.salePrice ?? p.price;
-  const validBase = baseEffective > 0 ? baseEffective : null;
-  const variants = p.variants || [];
-  const variantPrices = variants
-    .map((v: any) => v.salePrice ?? v.price)
-    .filter((n: any): n is number => n != null && n > 0);
-  const priceCandidates = [...(validBase != null ? [validBase] : []), ...variantPrices];
-  const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
-  const distinct = new Set(priceCandidates).size;
-  const showFrom = distinct > 1;
-  const noBaseNoVariants = priceCandidates.length === 0;
+  const quote = listingPrice(p);
+  const available = quote.available;
+  const effective = quote.min;
+  const showFrom = quote.from;
+  const noBaseNoVariants = effective <= 0;
+  const validBase = p.price > 0 ? p.price : null;
+  const variants = (p.variants || []).filter((v: any) => !v.outOfStock);
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
   const sizes = variants.filter((v: any) => v.type === "size");
   const lengths = variants.filter((v: any) => v.type === "length");
@@ -219,7 +216,7 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
   return (
     <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-saffron-300 shadow-sm overflow-hidden">
       <div className="img relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
-        {p.outOfStock ? (
+        {!available ? (
           <span className="absolute top-2 left-2 rounded-full bg-ink text-cream text-[11px] font-bold px-2.5 py-1 z-10 shadow">Out of stock</span>
         ) : badge ? (
           <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{badge}</span>
@@ -243,7 +240,7 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
             {colors.length > 1 && <div className="text-ink-mute">{colors.length} colors</div>}
           </div>
         )}
-        {p.outOfStock ? (
+        {!available ? (
           <p className="mt-2 text-sm font-semibold text-red-600">Out of stock</p>
         ) : (
           <p className="mt-2 flex items-baseline gap-2">
@@ -253,7 +250,7 @@ function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; bad
               <>
                 {showFrom && <span className="text-xs text-ink-mute">From</span>}
                 <span className="font-display font-bold text-saffron-700 text-lg">{formatLKR(effective)}</span>
-                {!showFrom && validBase != null && p.salePrice && (
+                {!showFrom && effective === p.salePrice && validBase != null && p.salePrice && (
                   <span className="text-ink-mute text-sm line-through">{formatLKR(p.price)}</span>
                 )}
               </>

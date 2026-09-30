@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 
 export type CouponResult = {
@@ -7,17 +8,19 @@ export type CouponResult = {
   code?: string;
 };
 
-export async function applyCoupon(code: string, subtotal: number, userId?: number | null): Promise<CouponResult> {
+export async function applyCoupon(code: string, subtotal: number, userId?: number | null, phone?: string, db: Prisma.TransactionClient = prisma): Promise<CouponResult> {
+  if (!Number.isFinite(subtotal) || subtotal < 0) return { ok: false, discount: 0, reason: "Invalid subtotal" };
   if (!code) return { ok: false, discount: 0, reason: "No code provided" };
-  const c = await prisma.coupon.findUnique({ where: { code: code.trim().toUpperCase() } });
+  if (db !== prisma) await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1)::bigint)', "coupon:" + code.trim().toUpperCase());
+  const c = await db.coupon.findUnique({ where: { code: code.trim().toUpperCase() } });
   if (!c) return { ok: false, discount: 0, reason: "Coupon not found" };
   if (!c.active) return { ok: false, discount: 0, reason: "Coupon is inactive" };
   if (c.expiresAt && c.expiresAt < new Date()) return { ok: false, discount: 0, reason: "Coupon expired" };
   if (subtotal < c.minSubtotal) return { ok: false, discount: 0, reason: `Minimum order Rs. ${c.minSubtotal} required` };
   if (c.usageLimit && c.usedCount >= c.usageLimit) return { ok: false, discount: 0, reason: "Coupon usage limit reached" };
 
-  if (c.perUserLimit && userId) {
-    const used = await prisma.order.count({ where: { userId, couponCode: c.code } });
+  if (c.perUserLimit && (userId || phone)) {
+    const used = await db.order.count({ where: { ...(userId ? { userId } : { phone }), couponCode: c.code } });
     if (used >= c.perUserLimit) return { ok: false, discount: 0, reason: "You have already used this coupon" };
   }
 
@@ -28,6 +31,6 @@ export async function applyCoupon(code: string, subtotal: number, userId?: numbe
   } else if (c.type === "fixed") {
     discount = c.value;
   }
-  if (discount > subtotal) discount = subtotal;
+  discount = Math.max(0, Math.min(discount, subtotal));
   return { ok: true, discount: Math.round(discount * 100) / 100, code: c.code };
 }

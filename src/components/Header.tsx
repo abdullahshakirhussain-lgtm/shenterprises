@@ -22,7 +22,6 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
   // the regular nav + category strip would lure customers out of it
   const isCatalog = pathname?.startsWith("/catalog");
 
-  if (isAdmin || isCatalog) return null;
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ fullName: string } | null>(null);
 
@@ -75,32 +74,34 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
     setTimeout(() => { window.location.href = "/"; }, 50);
   }
 
+  if (isAdmin || isCatalog) return null;
+
   return (
     <header className="sticky top-0 z-30 bg-cream/95 backdrop-blur border-b border-saffron-200/40 shadow-[0_1px_0_rgba(180,87,28,.04)]">
       <div className="container-x flex items-center gap-2 sm:gap-3 py-3 sm:py-3.5">
         {/* Logo */}
-        <a id="logo" href="/" onClick={onLogoClick} title="psst… click me" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group">
+        <Link id="logo" href="/" onClick={onLogoClick} title="psst… click me" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/logo-header.webp"
             alt="SH Enterprises"
             className="h-10 sm:h-12 w-auto transition-transform group-hover:rotate-[-6deg]"
           />
           <span className="hidden sm:block leading-tight">
             <span className="block font-display italic text-[10px] text-saffron-600 tracking-wide">Craft &amp; tailoring supplies</span>
           </span>
-        </a>
+        </Link>
 
         {/* Search — narrower on mobile to leave room for icons */}
-        <div className="hidden md:block flex-1 max-w-xl">
+        <div className="hidden lg:block flex-1 max-w-xl">
           <SearchBox placeholder={t("search_placeholder")} submitLabel={t("search")} />
         </div>
-        <div className="md:hidden flex-1 min-w-0">
+        <div className="lg:hidden flex-1 min-w-0">
           <SearchBox placeholder={t("search_placeholder_short")} submitLabel={t("search")} />
         </div>
 
         {/* Desktop nav */}
-        <nav className="ml-auto hidden md:flex items-center gap-3 text-sm font-semibold shrink-0">
+        <nav className="ml-auto hidden lg:flex items-center gap-3 text-sm font-semibold shrink-0">
           <LanguageSwitcher compact />
           <Link
             href="/machines"
@@ -130,7 +131,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         </nav>
 
         {/* Mobile actions — only what fits: cart + hamburger */}
-        <div className="ml-auto flex md:hidden items-center gap-1.5 shrink-0">
+        <div className="ml-auto flex lg:hidden items-center gap-1.5 shrink-0">
           <CartButton count={count} bump={bump} label={t("cart")} compact />
           <button
             onClick={() => setOpen(v => !v)}
@@ -249,7 +250,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
 
       {/* Mobile drawer menu */}
       {open && (
-        <div className="md:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
+        <div className="lg:hidden border-t border-saffron-200/40 bg-cream shadow-inner">
           <div className="container-x py-4 space-y-1">
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
             <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><span aria-hidden>⚙</span> Machines</Link>

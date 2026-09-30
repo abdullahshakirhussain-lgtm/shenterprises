@@ -49,7 +49,7 @@ export default function SettingsForm({ initial }: { initial: Record<string, stri
             placeholder={`{"thred":"thread","zip":"zipper","sissor":"scissors","botton":"button","nedle":"needle","ribbn":"ribbon"}`}
           />
           <p className="text-xs text-brand-600 mt-1">
-            Maps misspellings or alternate words to your product names. When a customer searches with a left-side word, the right-side word is searched too. Format: <code>&#123;"misspelling":"correct"&#125;</code>. Leave empty to disable.
+            Maps misspellings or alternate words to your product names. When a customer searches with a left-side word, the right-side word is searched too. Format: <code>&#123;&quot;misspelling&quot;:&quot;correct&quot;&#125;</code>. Leave empty to disable.
           </p>
         </div>
       </section>
@@ -94,7 +94,7 @@ export default function SettingsForm({ initial }: { initial: Record<string, stri
         <div className="mt-3">
           <label className="label">Custom extraction prompt</label>
           <textarea rows={4} className="input" value={s.deepseek_prompt || ""} onChange={(e) => up("deepseek_prompt", e.target.value)} />
-          <p className="text-xs text-brand-600 mt-1">Used by Import CSV when "Use AI to clean rows" is enabled. Output must be JSON with: name, description, price, sku, stock, category.</p>
+          <p className="text-xs text-brand-600 mt-1">Used by Import CSV when &quot;Use AI to clean rows&quot; is enabled. Output must be JSON with: name, description, price, sku, stock, category.</p>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 "use client";
+import { listingPrice, isAvailable } from "@/lib/commerce";
 import { useState, useEffect } from "react";
 import { useCart, type CartVariant } from "./CartProvider";
 import { useLanguage } from "./LanguageProvider";
@@ -67,7 +68,7 @@ export default function ProductTopSection({
       content_ids: [contentId({ sku: product.sku, id: product.id })],
       content_type: "product",
       content_category: categoryName || undefined,
-      value: product.salePrice ?? product.price,
+      value: listingPrice({ ...product, variants }).min,
       currency: "LKR",
     });
     fetch("/api/analytics", {
@@ -76,7 +77,7 @@ export default function ProductTopSection({
       body: JSON.stringify({
         type: "product_view",
         productId: product.id,
-        value: product.salePrice ?? product.price,
+        value: listingPrice({ ...product, variants }).min,
         meta: { name: product.name, category: categoryName || null, sku: product.sku || null },
       }),
     }).catch(() => {});
@@ -162,13 +163,7 @@ export default function ProductTopSection({
   // Once the customer picks any priced variant, we show the live calculated price.
   // Skip base when it's 0 (treat as "no price set") so it doesn't drag the min to zero.
   function minPossiblePrice(): number {
-    const allPrices: number[] = [];
-    if (validBase != null) allPrices.push(validBase);
-    for (const v of variants) {
-      const e = variantEffective(v);
-      if (e != null && e > 0) allPrices.push(e);
-    }
-    return allPrices.length > 0 ? Math.min(...allPrices) : 0;
+    return listingPrice({ ...product, variants }).min;
   }
   const hasVariantPricing = variants.some(v => v.price != null || v.salePrice != null);
   // Show "From" when either: variants are priced and none picked yet, OR base is missing entirely
@@ -191,10 +186,10 @@ export default function ProductTopSection({
   // Availability — product-level OR any selected variant marked as out of stock
   const selectedOutOfStock =
     !!(selColor?.outOfStock || selSize?.outOfStock || selLength?.outOfStock || selPack?.outOfStock);
-  const isOutOfStock = !!product.outOfStock || selectedOutOfStock;
+  const isOutOfStock = !isAvailable({ ...product, variants }) || selectedOutOfStock;
 
   function addToCart() {
-    if (!ready || isOutOfStock) return;
+    if (!ready || isOutOfStock || effective <= 0) return;
     const sel: CartVariant[] = [];
     if (selColor) sel.push({ id: selColor.id, type: "color", name: vd(selColor) });
     if (selSize) sel.push({ id: selSize.id, type: "size", name: vd(selSize) });
@@ -250,7 +245,7 @@ export default function ProductTopSection({
           {/* SH watermark — centered on the product photo, larger and clearly branded */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/logo-header.webp"
             alt=""
             aria-hidden
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 sm:w-32 h-auto opacity-50 pointer-events-none select-none"

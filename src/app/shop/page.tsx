@@ -1,3 +1,5 @@
+import SmartImage from "@/components/SmartImage";
+import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatLKR } from "@/lib/utils";
@@ -7,19 +9,25 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 // Canonical strips all filter/sort/pagination params (q/cat/sort/min/max/page)
 // so every /shop?… variant folds into the single master /shop URL.
-export const metadata: Metadata = { title: "Shop all products", alternates: { canonical: "/shop" } };
+export async function generateMetadata(props: { searchParams: Promise<SP> }): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const filtered = !!(searchParams.q || searchParams.cat || searchParams.min || searchParams.max || searchParams.sort);
+  return { title: "Shop all products", alternates: { canonical: !filtered && page > 1 ? `/shop?page=${page}` : "/shop" } };
+}
 
 type SP = { q?: string; cat?: string; sort?: string; min?: string; max?: string; page?: string };
 
 const PAGE_SIZE = 24;
 
-export default async function ShopPage({ searchParams }: { searchParams: SP }) {
+export default async function ShopPage(props: { searchParams: Promise<SP> }) {
+  const searchParams = await props.searchParams;
   const q = (searchParams.q || "").trim();
   const cat = (searchParams.cat || "").trim();
   const sort = (searchParams.sort || "newest").trim();
   const min = parseFloat(searchParams.min || "");
   const max = parseFloat(searchParams.max || "");
-  const page = Math.max(1, parseInt(searchParams.page || "1"));
+  const page = Math.max(1, Math.min(100000, parseInt(searchParams.page || "1", 10) || 1));
 
   const where: any = { active: true };
   if (q) where.OR = [
@@ -28,25 +36,32 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     { sku: { contains: q, mode: "insensitive" } },
   ];
   if (cat) where.category = { slug: cat };
-  if (!isNaN(min) || !isNaN(max)) {
-    where.price = {};
-    if (!isNaN(min)) where.price.gte = min;
-    if (!isNaN(max)) where.price.lte = max;
-  }
 
   let orderBy: any = { createdAt: "desc" };
   if (sort === "price-asc") orderBy = { price: "asc" };
   if (sort === "price-desc") orderBy = { price: "desc" };
   if (sort === "name") orderBy = { name: "asc" };
 
-  const [categories, total, products] = await Promise.all([
-    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
-    prisma.product.count({ where }),
-    prisma.product.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { variants: true } })
-  ]);
+  const categories = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+  let total: number, products;
+  if (sort.startsWith("price-") || Number.isFinite(min) || Number.isFinite(max)) {
+    const candidates = await prisma.product.findMany({ where, orderBy, select: { id: true, price: true, salePrice: true, outOfStock: true, variants: { select: { type: true, price: true, salePrice: true, outOfStock: true } } } });
+    const matching = candidates.map(p => ({ id: p.id, quote: listingPrice(p) }))
+      .filter(p => (!Number.isFinite(min) || (p.quote.available && p.quote.min >= min)) && (!Number.isFinite(max) || (p.quote.available && p.quote.min <= max)));
+    if (sort.startsWith("price-")) matching.sort((a,b) => Number(b.quote.available) - Number(a.quote.available) || (sort === "price-desc" ? b.quote.min - a.quote.min : a.quote.min - b.quote.min) || a.id - b.id);
+    total = matching.length;
+    const ids = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(p => p.id);
+    const rows = await prisma.product.findMany({ where: { id: { in: ids } }, include: { variants: true } });
+    products = ids.flatMap(id => rows.filter(p => p.id === id));
+  } else {
+    [total, products] = await Promise.all([
+      prisma.product.count({ where }),
+      prisma.product.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { variants: true } }),
+    ]);
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const t = getT();
+  const t = await getT();
 
   function qs(updates: Partial<SP>) {
     const sp: any = { ...searchParams, ...updates };
@@ -153,17 +168,13 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
 }
 
 function ShopProductCard({ p }: { p: any }) {
-  const baseEffective = p.salePrice ?? p.price;
-  const validBase = baseEffective > 0 ? baseEffective : null;
-  const variants = p.variants || [];
-  const variantPrices = variants
-    .map((v: any) => v.salePrice ?? v.price)
-    .filter((n: any): n is number => n != null && n > 0);
-  const priceCandidates = [...(validBase != null ? [validBase] : []), ...variantPrices];
-  const effective = priceCandidates.length > 0 ? Math.min(...priceCandidates) : 0;
-  const distinct = new Set(priceCandidates).size;
-  const showFrom = distinct > 1;
-  const noBaseNoVariants = priceCandidates.length === 0;
+  const quote = listingPrice(p);
+  const available = quote.available;
+  const effective = quote.min;
+  const showFrom = quote.from;
+  const noBaseNoVariants = effective <= 0;
+  const validBase = p.price > 0 ? p.price : null;
+  const variants = (p.variants || []).filter((v: any) => !v.outOfStock);
   const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
   const sizes = variants.filter((v: any) => v.type === "size");
   const lengths = variants.filter((v: any) => v.type === "length");
@@ -173,12 +184,12 @@ function ShopProductCard({ p }: { p: any }) {
   return (
     <Link href={`/product/${p.slug}`} className="tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-brand-300 shadow-sm overflow-hidden">
       <div className="relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
-        {p.onOffer && p.salePrice && (
+        {available && p.onOffer && p.salePrice && (
           <span className="absolute top-2 left-2 rounded-full bg-brand-600 text-white text-[11px] font-bold px-2.5 py-1 z-10">SALE</span>
         )}
         {p.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+          <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
         ) : (
           <span>🧵</span>
         )}
@@ -197,13 +208,13 @@ function ShopProductCard({ p }: { p: any }) {
           </div>
         )}
         <p className="mt-auto pt-2 flex items-baseline gap-2">
-          {noBaseNoVariants ? (
+          {!available ? (<span className="text-sm font-semibold text-red-600">Out of stock</span>) : noBaseNoVariants ? (
             <span className="text-sm text-muted">See options</span>
           ) : (
             <>
               {showFrom && <span className="text-xs text-muted">From</span>}
               <span className="font-serif font-bold text-brand-700 text-lg">{formatLKR(effective)}</span>
-              {!showFrom && validBase != null && p.salePrice && (
+              {!showFrom && effective === p.salePrice && validBase != null && p.salePrice && (
                 <span className="text-muted text-sm line-through">{formatLKR(p.price)}</span>
               )}
             </>

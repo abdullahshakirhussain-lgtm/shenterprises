@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { translations, type Lang, type TranslationKey } from "./i18n";
 
-export function getServerLang(): Lang {
-  const c = cookies().get("sh_lang")?.value;
+export async function getServerLang(): Promise<Lang> {
+  const c = (await cookies()).get("sh_lang")?.value;
   if (c === "si" || c === "ta" || c === "en") return c;
   return "en";
 }
@@ -11,7 +11,7 @@ export function getServerLang(): Lang {
  *    const t = getT();
  *    return <h1>{t("checkout")}</h1>;
  */
-export function getT() {
-  const lang = getServerLang();
+export async function getT() {
+  const lang = await getServerLang();
   return (k: TranslationKey): string => translations[lang][k] ?? translations.en[k] ?? k;
 }

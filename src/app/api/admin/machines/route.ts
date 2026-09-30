@@ -48,7 +48,7 @@ function serializeFaq(v: any): string | null {
 
 async function uniqueSlug(base: string) {
   let s = base || "machine"; let i = 1;
-  while (await prisma.machine.findUnique({ where: { slug: s } })) s = `${base}-${++i}`;
+  while ((await prisma.machine.findUnique({ where: { slug: s } })) || (await prisma.machineType.findUnique({ where: { slug: s } }))) s = `${base}-${++i}`;
   return s;
 }
 

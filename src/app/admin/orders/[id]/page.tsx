@@ -6,7 +6,8 @@ import WhatsAppButton from "./WhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderDetail({ params }: { params: { id: string } }) {
+export default async function OrderDetail(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const o = await prisma.order.findUnique({
     where: { id: parseInt(params.id) },
     include: { items: true }

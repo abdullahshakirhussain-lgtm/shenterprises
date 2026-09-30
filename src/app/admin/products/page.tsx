@@ -4,7 +4,8 @@ import BulkProductsTable from "./BulkProductsTable";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProducts({ searchParams }: { searchParams: { q?: string; cat?: string } }) {
+export default async function AdminProducts(props: { searchParams: Promise<{ q?: string; cat?: string }> }) {
+  const searchParams = await props.searchParams;
   const q = (searchParams.q || "").trim();
   const cat = (searchParams.cat || "").trim();
 

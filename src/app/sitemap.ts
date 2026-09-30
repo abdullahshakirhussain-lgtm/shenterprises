@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.SITE_URL || "http://localhost:3000";
+  const base = process.env.SITE_URL || "https://shenterprises.lk";
   const [products, categories, machines, machineTypes] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.category.findMany({ select: { slug: true } }),
@@ -18,7 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/shop`, priority: 0.8 },
     { url: `${base}/offers`, priority: 0.8 },
     { url: `${base}/machines`, priority: 0.8 },
-    { url: `${base}/ai-helper`, priority: 0.5 },
     ...categories.map((c) => ({ url: `${base}/category/${c.slug}`, priority: 0.7 })),
     ...products.map((p) => ({ url: `${base}/product/${p.slug}`, lastModified: p.updatedAt, priority: 0.6 })),
     // Type hubs are the head-term SEO pages — highest machine priority

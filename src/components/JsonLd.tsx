@@ -1,3 +1,4 @@
+import { listingPrice, type PricedVariant } from "@/lib/commerce";
 /**
  * Renders schema.org JSON-LD inside a <script type="application/ld+json"> tag.
  * Google reads this for rich snippets (product price, stock, breadcrumb trails, etc.).
@@ -131,12 +132,13 @@ export function productSchema(
     salePrice?: number | null;
     imageUrl?: string | null;
     stock: number;
+    variants?: PricedVariant[];
     outOfStock?: boolean;
     category?: { name: string } | null;
   },
   siteUrl: string
 ) {
-  const effectivePrice = p.salePrice && p.salePrice > 0 ? p.salePrice : p.price;
+  const quote = listingPrice(p);
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -149,18 +151,18 @@ export function productSchema(
       "@type": "Brand",
       name: "SH Enterprises",
     },
-    offers: {
-      "@type": "Offer",
+    offers: quote.available && quote.min > 0 ? {
+      "@type": quote.from ? "AggregateOffer" : "Offer",
       url: `${siteUrl}/product/${p.slug}`,
       priceCurrency: "LKR",
-      price: effectivePrice.toFixed(2),
-      availability: p.outOfStock
+      ...(quote.from ? { lowPrice: quote.min.toFixed(2), highPrice: quote.max.toFixed(2) } : { price: quote.min.toFixed(2) }),
+      availability: !quote.available
         ? "https://schema.org/OutOfStock"
         : "https://schema.org/InStock",
       seller: {
         "@type": "Organization",
         name: "SH Enterprises",
       },
-    },
+    } : undefined,
   };
 }

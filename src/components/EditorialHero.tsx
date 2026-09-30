@@ -141,7 +141,7 @@ function CollageCard({
     <Link href={`/product/${product.slug}`} className={`${className} group`}>
       <div className="relative w-full h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200 transition-transform group-hover:scale-[1.02] group-hover:rotate-0">
         {product.imageUrl ? (
-          <SmartImage src={product.imageUrl} alt={product.name} sizes="320px" priority />
+          <SmartImage src={product.imageUrl} alt={product.name} sizes="320px" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-brand-50 to-saffron-100 grid place-items-center text-5xl">🧵</div>
         )}
