@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Lora, Mulish, Fraunces } from "next/font/google";
+import localFont from "next/font/local";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { CartProvider } from "@/components/CartProvider";
@@ -17,13 +17,17 @@ import CartToast from "@/components/CartToast";
 import WhatsappFab from "@/components/WhatsappFab";
 import { Suspense } from "react";
 
-const lora = Lora({ subsets: ["latin"], weight: ["500","600","700"], display: "swap", variable: "--font-lora" });
-const mulish = Mulish({ subsets: ["latin"], weight: ["400","500","600","700","800"], display: "swap", variable: "--font-mulish" });
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400","500","600","700","800","900"],
+// Self-hosted (latin variable fonts from Google Fonts) so builds never depend
+// on fetching fonts.googleapis.com — a bad response there fails the whole build.
+const lora = localFont({ src: "./fonts/lora-latin.woff2", weight: "500 700", display: "swap", variable: "--font-lora", adjustFontFallback: "Times New Roman", fallback: ["Georgia", "serif"] });
+const mulish = localFont({ src: "./fonts/mulish-latin.woff2", weight: "400 800", display: "swap", variable: "--font-mulish", adjustFontFallback: "Arial", fallback: ["system-ui", "sans-serif"] });
+const fraunces = localFont({
+  src: "./fonts/fraunces-latin.woff2",
+  weight: "400 900",
   display: "swap",
   variable: "--font-fraunces",
+  adjustFontFallback: "Times New Roman",
+  fallback: ["Georgia", "serif"],
 });
 
 export const metadata: Metadata = {
