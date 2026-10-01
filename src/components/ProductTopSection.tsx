@@ -259,13 +259,13 @@ export default function ProductTopSection({
           ) : (
             <div className="w-full h-full grid place-items-center text-brand-300 text-7xl">🧵</div>
           )}
-          {/* SH watermark — centered on the product photo, larger and clearly branded */}
+          {/* Small SH mark in the corner — branded without covering the product */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-header.webp"
             alt=""
             aria-hidden
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 sm:w-32 h-auto opacity-50 pointer-events-none select-none"
+            className="absolute bottom-2.5 right-2.5 w-10 sm:w-12 h-auto opacity-70 pointer-events-none select-none"
             style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
           />
           {selColor && selColor.imageUrl && (
@@ -322,7 +322,6 @@ export default function ProductTopSection({
             )}
           </div>
         )}
-        {product.sku && <div className="mt-1 text-xs text-brand-600">SKU: {product.sku}</div>}
         {isOutOfStock ? (
           <div className="mt-2 inline-block text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-0.5">
             {selectedOutOfStock && !product.outOfStock ? "This option is out of stock" : t("out_of_stock")}

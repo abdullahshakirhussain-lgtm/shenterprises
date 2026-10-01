@@ -1,4 +1,5 @@
 import { listingPrice } from "@/lib/commerce";
+import { unitLabel } from "@/lib/utils";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import { smartSearch, productsByIds } from "@/lib/search";
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
           outOfStock: !quote.available,
           fromPrice,
           imageUrl: p.imageUrl,
-          unitLabel: p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null,
+          unitLabel: unitLabel(p.unitQty, p.unitType),
         };
       }),
     });

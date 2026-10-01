@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    if (!record) return NextResponse.json({ error: "No OTP found for this number. Please request a new one." }, { status: 400 });
-    if (record.expiresAt < new Date()) return NextResponse.json({ error: "OTP has expired. Please request a new one." }, { status: 400 });
+    if (!record) return NextResponse.json({ error: "No code found for this number. Please request a new one." }, { status: 400 });
+    if (record.expiresAt < new Date()) return NextResponse.json({ error: "That code has expired. Please request a new one." }, { status: 400 });
 
     // Brute-force guard: lock this code after 5 wrong guesses
     const MAX_ATTEMPTS = 5;

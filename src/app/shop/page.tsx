@@ -1,9 +1,8 @@
-import SmartImage from "@/components/SmartImage";
+import ProductCard from "@/components/ProductCard";
 import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { memo } from "@/lib/memo";
-import { formatLKR } from "@/lib/utils";
 import { getT } from "@/lib/i18n-server";
 import type { Metadata } from "next";
 
@@ -13,11 +12,11 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(props: { searchParams: Promise<SP> }): Promise<Metadata> {
   const searchParams = await props.searchParams;
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
-  const filtered = !!(searchParams.q || searchParams.cat || searchParams.min || searchParams.max || searchParams.sort);
+  const filtered = !!(searchParams.q || searchParams.cat || searchParams.min || searchParams.max || searchParams.sort || searchParams.stock);
   return { title: "Shop all products", alternates: { canonical: !filtered && page > 1 ? `/shop?page=${page}` : "/shop" } };
 }
 
-type SP = { q?: string; cat?: string; sort?: string; min?: string; max?: string; page?: string };
+type SP = { q?: string; cat?: string; sort?: string; min?: string; max?: string; page?: string; stock?: string };
 
 const PAGE_SIZE = 24;
 
@@ -29,6 +28,7 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
   const min = parseFloat(searchParams.min || "");
   const max = parseFloat(searchParams.max || "");
   const page = Math.max(1, Math.min(100000, parseInt(searchParams.page || "1", 10) || 1));
+  const inStockOnly = searchParams.stock === "in";
 
   const where: any = { active: true };
   if (q) where.OR = [
@@ -37,6 +37,11 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
     { sku: { contains: q, mode: "insensitive" } },
   ];
   if (cat) where.category = { slug: cat };
+  // In stock only: product not flagged AND every option group still has an available choice.
+  if (inStockOnly) {
+    where.outOfStock = false;
+    where.AND = ["color", "size", "length", "pack"].map(type => ({ OR: [{ variants: { none: { type } } }, { variants: { some: { type, outOfStock: false } } }] }));
+  }
 
   let orderBy: any = { createdAt: "desc" };
   if (sort === "price-asc") orderBy = { price: "asc" };
@@ -45,7 +50,7 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
 
   const categories = await memo("categories", () => prisma.category.findMany({ orderBy: { sortOrder: "asc" } }));
   // Cached per filter/sort/page combination (see lib/memo.ts).
-  const { total, products } = await memo("shop:" + JSON.stringify([q, cat, sort, min, max, page]), async () => {
+  const { total, products } = await memo("shop:" + JSON.stringify([q, cat, sort, min, max, page, inStockOnly]), async () => {
   let total: number, products;
   if (sort.startsWith("price-") || Number.isFinite(min) || Number.isFinite(max)) {
     const candidates = await prisma.product.findMany({ where, orderBy, select: { id: true, price: true, salePrice: true, outOfStock: true, variants: { select: { type: true, price: true, salePrice: true, outOfStock: true } } } });
@@ -79,7 +84,9 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
   const activeFilterCount =
     (sort !== "newest" ? 1 : 0) +
     (!isNaN(min) ? 1 : 0) +
-    (!isNaN(max) ? 1 : 0);
+    (!isNaN(max) ? 1 : 0) +
+    (cat ? 1 : 0) +
+    (inStockOnly ? 1 : 0);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
@@ -110,9 +117,16 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
 
           <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-[320px] rounded-xl bg-white border border-saffron-300 shadow-xl z-30 p-4">
             <form action="/shop" method="GET" className="space-y-3">
-              {/* Preserve any active category/search context */}
-              {cat && <input type="hidden" name="cat" value={cat} />}
+              {/* Preserve any active search context */}
               {q && <input type="hidden" name="q" value={q} />}
+
+              <div>
+                <label className="label" htmlFor="f-cat">Category</label>
+                <select id="f-cat" name="cat" defaultValue={cat} className="input">
+                  <option value="">All categories</option>
+                  {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                </select>
+              </div>
 
               <div>
                 <label className="label">{t("sort_by")}</label>
@@ -130,10 +144,14 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
                   <input name="max" type="number" min="0" defaultValue={searchParams.max || ""} placeholder={t("max_price")} className="input" />
                 </div>
               </div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft min-h-[40px] cursor-pointer">
+                <input type="checkbox" name="stock" value="in" defaultChecked={inStockOnly} className="w-4 h-4 accent-saffron-600" />
+                Hide out-of-stock items
+              </label>
               <div className="flex gap-2 pt-1">
                 <button className="btn-primary flex-1 text-sm">{t("apply_filters")}</button>
                 {activeFilterCount > 0 && (
-                  <Link href={`/shop${cat ? `?cat=${cat}` : ""}`} className="btn-secondary text-sm">
+                  <Link href={`/shop${q ? `?q=${encodeURIComponent(q)}` : ""}`} className="btn-secondary text-sm">
                     {t("clear_all")}
                   </Link>
                 )}
@@ -151,7 +169,7 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.map((p, i) => <ShopProductCard key={p.id} p={p} priority={i < 4} />)}
+            {products.map((p, i) => <ProductCard key={p.id} p={p} priority={i < 4} />)}
           </div>
           {/* Prev/Next prefetch the full neighbouring page (cheap now that listing
               data is cached), so paging renders instantly. */}
@@ -170,78 +188,6 @@ export default async function ShopPage(props: { searchParams: Promise<SP> }) {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function ShopProductCard({ p, priority = false }: { p: any; priority?: boolean }) {
-  const quote = listingPrice(p);
-  const available = quote.available;
-  const effective = quote.min;
-  const showFrom = quote.from;
-  const noBaseNoVariants = effective <= 0;
-  const validBase = p.price > 0 ? p.price : null;
-  const variants = (p.variants || []).filter((v: any) => !v.outOfStock);
-  const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
-  const sizes = variants.filter((v: any) => v.type === "size");
-  const lengths = variants.filter((v: any) => v.type === "length");
-  const colors = variants.filter((v: any) => v.type === "color");
-  const packs = variants.filter((v: any) => v.type === "pack");
-
-  return (
-    <Link href={`/product/${p.slug}`} className="tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-brand-300 shadow-sm overflow-hidden">
-      <div className="relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
-        {available && p.onOffer && p.salePrice && (
-          <span className="absolute top-2 left-2 rounded-full bg-brand-600 text-white text-[11px] font-bold px-2.5 py-1 z-10">SALE</span>
-        )}
-        {p.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <SmartImage src={p.imageUrl} alt={p.name} priority={priority} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
-        ) : (
-          <span>🧵</span>
-        )}
-      </div>
-      <div className="p-3 sm:p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-sm sm:text-base leading-snug text-balance line-clamp-2">
-          {p.name}
-          {unitLabel && lengths.length === 0 && <span className="text-muted"> — {unitLabel}</span>}
-        </h3>
-        {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
-          <div className="text-[11px] mt-1 space-y-0.5">
-            {sizes.length > 0 && <ShopPills label="Sizes" items={sizes.map((v: any) => v.name)} />}
-            {lengths.length > 0 && <ShopPills label="Lengths" items={lengths.map((v: any) => v.name)} />}
-            {packs.length > 0 && <ShopPills label="Packs" items={packs.map((v: any) => v.name)} />}
-            {colors.length > 1 && <div className="text-muted">{colors.length} colors</div>}
-          </div>
-        )}
-        <p className="mt-auto pt-2 flex items-baseline gap-2">
-          {!available ? (<span className="text-sm font-semibold text-red-600">Out of stock</span>) : noBaseNoVariants ? (
-            <span className="text-sm text-muted">See options</span>
-          ) : (
-            <>
-              {showFrom && <span className="text-xs text-muted">From</span>}
-              <span className="font-serif font-bold text-brand-700 text-lg">{formatLKR(effective)}</span>
-              {!showFrom && effective === p.salePrice && validBase != null && p.salePrice && (
-                <span className="text-muted text-sm line-through">{formatLKR(p.price)}</span>
-              )}
-            </>
-          )}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function ShopPills({ label, items }: { label: string; items: string[] }) {
-  const display = items.slice(0, 3);
-  const extra = items.length - display.length;
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      <span className="text-muted">{label}:</span>
-      {display.map((n, i) => (
-        <span key={i} className="inline-block px-1.5 py-0 rounded bg-brand-50 border border-brand-200 text-brand-700">{n}</span>
-      ))}
-      {extra > 0 && <span className="text-muted">+{extra}</span>}
     </div>
   );
 }

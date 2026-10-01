@@ -55,8 +55,9 @@ export default function TrackForm() {
       <form onSubmit={track} className="card p-5 space-y-3">
         <div>
           <label className="label">{t("order_number_label")}</label>
-          <input className="input" placeholder="e.g. SH-A1B2C3" value={query}
-            onChange={e => setQuery(e.target.value.toUpperCase())} autoFocus />
+          <input className="input font-mono" placeholder="SH-XXXXXXXX-XXXXXXXX" value={query} autoCapitalize="characters" spellCheck={false}
+            onChange={e => setQuery(e.target.value.toUpperCase().trim())} autoFocus />
+          <p className="text-xs text-brand-600 mt-1">It&apos;s in your order confirmation SMS — or just tap the link in that SMS.</p>
         </div>
         <button disabled={loading || !query.trim()} className="btn-primary w-full">
           {loading ? t("tracking") : t("track")}

@@ -20,7 +20,7 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
       <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 w-[260px] h-[260px] md:w-[420px] md:h-[420px] rounded-full bg-saffron-200 blur-3xl opacity-60" />
       <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 w-[280px] h-[280px] md:w-[480px] md:h-[480px] rounded-full bg-brand-200 blur-3xl opacity-50" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-6 pb-8 md:pt-10 md:pb-12 grid md:grid-cols-12 gap-6 md:gap-8 items-center">
+      <div className="relative mx-auto max-w-6xl px-4 pt-5 pb-6 md:pt-10 md:pb-12 grid md:grid-cols-12 gap-6 md:gap-8 items-center">
         {/* Left: type-led story */}
         <div className="md:col-span-7 relative min-w-0">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-saffron-200 px-3 py-1 text-[10px] sm:text-[11px] font-bold tracking-[.15em] text-saffron-700 uppercase mb-3 sm:mb-4">
@@ -65,7 +65,9 @@ export default function EditorialHero({ products }: { products: HeroProduct[] })
             </Link>
           </div>
 
-          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-ink-soft">
+          {/* Phones skip the checklist (the trust tiles further down say the same)
+              so the first products reach the first screen. */}
+          <ul className="hidden sm:flex mt-6 flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-ink-soft">
             <li className="flex items-center gap-2"><Check /> {t("islandwide_delivery")}</li>
             <li className="flex items-center gap-2"><Check /> {t("cod_available")}</li>
             <li className="flex items-center gap-2"><Check /> {t("bank_accepted")}</li>

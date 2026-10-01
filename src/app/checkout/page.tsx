@@ -5,6 +5,7 @@ import { formatLKR } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import EmptyCart from "@/components/EmptyCart";
 import { pixelTrack } from "@/lib/pixel";
 import { contentId } from "@/lib/contentId";
 
@@ -226,9 +227,8 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container-x py-16 text-center">
-        <p className="text-brand-700 mb-4">{t("cart_empty")}</p>
-        <Link href="/" className="btn-primary">{t("continue_shopping")}</Link>
+      <div className="container-x py-10">
+        <EmptyCart />
       </div>
     );
   }

@@ -31,17 +31,15 @@ body {
   background-color: #FBF4EC;
   /* Layered fabric background:
      1) two warm radial washes for depth
-     2) scattered colored X-stitches (teal / maple / saffron) at a coarse 320px tile —
-        positions are deliberately irregular so they read as hand stitches, not a grid
-     3) base woven-cotton checker at a 24px tile (warp & weft)
+     2) faint woven-cotton checker at a 24px tile (warp & weft)
+     (The scattered X-stitch layer was removed — it added noise behind products and forms.)
      NOTE: no `background-attachment: fixed` — that causes severe scroll jank on mobile. */
   background-image:
     radial-gradient(ellipse at 18% 8%,  rgba(184,119,47,.055) 0, transparent 55%),
     radial-gradient(ellipse at 82% 92%, rgba(45,42,38,.035) 0, transparent 55%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='480' viewBox='0 0 480 480'><g stroke-width='1.2' stroke-linecap='round' fill='none' opacity='0.22'><g stroke='%233F6E6A'><line x1='60' y1='80' x2='68' y2='88'/><line x1='68' y1='80' x2='60' y2='88'/></g><g stroke='%239D3B2F'><line x1='290' y1='52' x2='298' y2='60'/><line x1='298' y1='52' x2='290' y2='60'/></g><g stroke='%23B8772F'><line x1='180' y1='220' x2='188' y2='228'/><line x1='188' y1='220' x2='180' y2='228'/></g><g stroke='%233F6E6A'><line x1='400' y1='180' x2='408' y2='188'/><line x1='408' y1='180' x2='400' y2='188'/></g><g stroke='%239D3B2F'><line x1='110' y1='350' x2='118' y2='358'/><line x1='118' y1='350' x2='110' y2='358'/></g><g stroke='%23B8772F'><line x1='360' y1='380' x2='368' y2='388'/><line x1='368' y1='380' x2='360' y2='388'/></g></g></svg>"),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23B8772F' stroke-opacity='.10' stroke-width='1'><path d='M0 6 L24 6 M0 18 L24 18'/><path d='M6 0 L6 24 M18 0 L18 24'/></g><g fill='%232D2A26' fill-opacity='.06'><circle cx='6' cy='6' r='0.8'/><circle cx='18' cy='18' r='0.8'/><circle cx='6' cy='18' r='0.4'/><circle cx='18' cy='6' r='0.4'/></g></svg>");
-  background-size: auto, auto, 480px 480px, 24px 24px;
-  background-position: 0 0, 0 0, 0 0, 0 0;
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23B8772F' stroke-opacity='.05' stroke-width='1'><path d='M0 6 L24 6 M0 18 L24 18'/><path d='M6 0 L6 24 M18 0 L18 24'/></g><g fill='%232D2A26' fill-opacity='.03'><circle cx='6' cy='6' r='0.8'/><circle cx='18' cy='18' r='0.8'/><circle cx='6' cy='18' r='0.4'/><circle cx='18' cy='6' r='0.4'/></g></svg>");
+  background-size: auto, auto, 24px 24px;
+  background-position: 0 0, 0 0, 0 0;
 }
 
 h1, h2, h3, .font-display, .font-serif {

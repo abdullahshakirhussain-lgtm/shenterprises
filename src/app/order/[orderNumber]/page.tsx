@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 // Private receipt — never index it.
 export async function generateMetadata(props: { params: Promise<{ orderNumber: string }> }): Promise<Metadata> {
   const params = await props.params;
-  return { title: `Order ${params.orderNumber.toUpperCase()}`, robots: { index: false, follow: false } };
+  const order = await getPublicOrder(params.orderNumber);
+  return { title: order ? `Order ${order.orderNumber}` : "Order not found", robots: { index: false, follow: false } };
 }
 
 export default async function OrderPage(props: { params: Promise<{ orderNumber: string }> }) {

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { memo } from "@/lib/memo";
 import { notFound } from "next/navigation";
-import { safeJSON } from "@/lib/utils";
+import { safeJSON, unitLabel as formatUnit } from "@/lib/utils";
 import ProductTopSection from "@/components/ProductTopSection";
 import ProductCard from "@/components/ProductCard";
 import RelatedHeading from "@/components/RelatedHeading";
@@ -57,7 +57,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   const images = [p.imageUrl, ...safeJSON<string[]>(p.images, [])].filter(Boolean) as string[];
   const effective = p.salePrice ?? p.price;
   const avg = p.reviews.length ? p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length : 0;
-  const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
+  const unitLabel = formatUnit(p.unitQty, p.unitType);
 
   const jsonLd: any = { ...productSchema(p, process.env.SITE_URL || "https://shenterprises.lk"), image: images };
   if (p.reviews.length > 0) {

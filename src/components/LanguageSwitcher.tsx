@@ -64,20 +64,20 @@ export default function LanguageSwitcher({ compact }: { compact?: boolean }) {
 
   // Footer style — three clickable buttons inline
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-muted">Language:</span>
-      {LANGS.map((l, i) => (
-        <span key={l.code} className="flex items-center">
-          <button
-            onClick={() => setLang(l.code)}
-            className={`transition-colors ${
-              lang === l.code ? "text-brand-700 font-bold" : "text-ink/70 hover:text-brand-600"
-            }`}
-          >
-            {l.native}
-          </button>
-          {i < LANGS.length - 1 && <span className="text-brand-300 ml-2">·</span>}
-        </span>
+      {LANGS.map(l => (
+        // Pill buttons (min 36px tall) — the old inline text links were ~16px tap targets.
+        <button
+          key={l.code}
+          onClick={() => setLang(l.code)}
+          aria-pressed={lang === l.code}
+          className={`min-h-[36px] px-3 rounded-full border transition-colors ${
+            lang === l.code ? "border-brand-600 text-brand-700 font-bold bg-brand-50" : "border-brand-200 text-ink/70 hover:text-brand-600 hover:border-brand-400"
+          }`}
+        >
+          {l.native}
+        </button>
       ))}
     </div>
   );

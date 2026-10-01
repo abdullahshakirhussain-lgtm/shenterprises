@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { safeNextPath } from "@/lib/utils";
 
 type Step = "phone" | "otp" | "details";
 
@@ -40,7 +41,7 @@ export default function RegisterForm() {
     });
     const data = await res.json();
     setBusy(false);
-    if (!res.ok) { setErr(data.error || "Failed to send OTP"); return; }
+    if (!res.ok) { setErr(data.error || "Couldn't send the code. Please try again."); return; }
     setStep("otp");
   }
 
@@ -69,7 +70,7 @@ export default function RegisterForm() {
     const data = await res.json();
     setBusy(false);
     if (!res.ok) { setErr(data.error || "Registration failed"); return; }
-    router.push(sp.get("next") || "/account");
+    router.push(safeNextPath(sp.get("next")));
     router.refresh();
   }
 
@@ -102,7 +103,7 @@ export default function RegisterForm() {
             <p className="text-xs text-brand-500 mt-1">We&apos;ll send a verification code to this number.</p>
           </div>
           {err && <div className="text-sm text-red-700 bg-red-50 p-2 rounded">{err}</div>}
-          <button disabled={busy} className="btn-primary w-full">{busy ? "Sending…" : "Send OTP"}</button>
+          <button disabled={busy} className="btn-primary w-full">{busy ? "Sending…" : "Send code"}</button>
           <p className="text-sm text-center text-brand-700">
             Already have an account? <Link href="/account/login" className="text-brand-600 underline">Log in</Link>
           </p>

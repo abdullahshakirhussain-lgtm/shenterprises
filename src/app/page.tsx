@@ -1,13 +1,11 @@
-import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { memo } from "@/lib/memo";
-import { formatLKR } from "@/lib/utils";
 import EditorialHero from "@/components/EditorialHero";
 import BannerStrip from "@/components/BannerStrip";
 import PromoStrip from "@/components/PromoStrip";
 import MachinesShowcase from "@/components/MachinesShowcase";
-import SmartImage from "@/components/SmartImage";
+import ProductCard from "@/components/ProductCard";
 import JsonLd, { organizationSchema, websiteSchema, localBusinessSchema } from "@/components/JsonLd";
 import { fetchOfferProducts } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
@@ -96,30 +94,23 @@ export default async function HomePage() {
       {/* Banner strip — admin-managed promo banners, secondary */}
       <BannerStrip banners={banners} />
 
-      {/* Industrial Machines — high-value line, given a bold dark band so it
-          stands out from the accessory catalog instead of blending in. */}
-      <MachinesShowcase
-        machines={featuredMachines as any}
-        phone={machinePhone}
-        phoneDisplay={sitePhoneRaw || ""}
-      />
-
       {/* Category tiles removed — strip below the header already serves as nav.
           Keeps the homepage tight and reduces scroll length. */}
 
-      {/* On Offer */}
-      {offers.length > 0 && (
+      {/* On Offer — only with 2+ items; a lone card left most of the row empty
+          (the offer is still on /offers and in the menu). */}
+      {offers.length >= 2 && (
         <>
           <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
             <div className="flex items-end justify-between mb-8 reveal">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-1">Limited time</p>
-                <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">On offer <span className="text-saffron-500">🔥</span></h2>
+                <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">On offer</h2>
               </div>
-              <Link href="/offers" className="text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">See all offers →</Link>
+              <Link href="/offers" className="inline-flex items-center min-h-[40px] text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">See all offers →</Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
-              {offers.map(p => <HomeProductCard key={p.id} p={p} badge="SALE" badgeColor="bg-saffron-500" />)}
+              {offers.map(p => <ProductCard key={p.id} p={p} badge="SALE" badgeColor="bg-saffron-500" />)}
             </div>
           </section>
 
@@ -135,10 +126,10 @@ export default async function HomePage() {
               <p className="text-xs font-bold uppercase tracking-[.2em] text-saffron-600 mb-1">Fresh picks</p>
               <h2 className="font-display font-semibold text-3xl sm:text-4xl text-ink">Discover more</h2>
             </div>
-            <Link href="/shop" className="text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">Shop all →</Link>
+            <Link href="/shop" className="inline-flex items-center min-h-[40px] text-sm font-bold text-saffron-700 hover:text-saffron-600 shrink-0 underline decoration-dashed underline-offset-4">Shop all →</Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 reveal">
-            {shopAllPreview.map(p => <HomeProductCard key={p.id} p={p} />)}
+            {shopAllPreview.map(p => <ProductCard key={p.id} p={p} />)}
           </div>
 
           {/* Big CTA: Shop everything — visible after the 12-tile grid */}
@@ -154,13 +145,21 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Industrial Machines — dark band after the accessory picks, so on phones the
+          first screen reaches products instead of the machines promo. */}
+      <MachinesShowcase
+        machines={featuredMachines as any}
+        phone={machinePhone}
+        phoneDisplay={sitePhoneRaw || ""}
+      />
+
       {/* Trust signals — on ivory band to differentiate */}
       <section className="bg-ivory border-y border-saffron-200/40 mt-6">
         <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
           <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 reveal">
-            <TrustCard emoji="🚚" altEmoji="📦" title="Island-wide delivery" body="Fast, reliable shipping to every corner of Sri Lanka." />
-            <TrustCard emoji="💵" altEmoji="🤝" title="Cash on delivery" body="Pay when your order arrives — no card needed." />
-            <TrustCard emoji="✅" altEmoji="🏆" title="Quality guaranteed" body="Hand-picked supplies trusted by tailors for years." />
+            <TrustCard icon={TRUCK} title="Island-wide delivery" body="Fast, reliable shipping to every corner of Sri Lanka." />
+            <TrustCard icon={CASH} title="Cash on delivery" body="Pay when your order arrives — no card needed." />
+            <TrustCard icon={BADGE} title="Quality guaranteed" body="Hand-picked supplies trusted by tailors for years." />
           </div>
         </div>
       </section>
@@ -169,89 +168,17 @@ export default async function HomePage() {
   );
 }
 
-function TrustCard({ emoji, altEmoji, title, body }: { emoji: string; altEmoji: string; title: string; body: string }) {
+// Line icons (were emoji, which render differently on every phone).
+const TRUCK = <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>;
+const CASH = <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg>;
+const BADGE = <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3l2.4 1.8 3-.2.9 2.9 2.4 1.8-.9 2.9.9 2.9-2.4 1.8-.9 2.9-3-.2L12 21l-2.4-1.8-3 .2-.9-2.9-2.4-1.8.9-2.9-.9-2.9 2.4-1.8.9-2.9 3 .2z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>;
+
+function TrustCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <button type="button" className="egg-trust tile text-left rounded-2xl bg-white border border-saffron-200/60 shadow-sm p-6 stitched" data-alt={altEmoji}>
-      <div className="ti grid place-items-center h-14 w-14 rounded-2xl bg-saffron-100 text-3xl mb-4">{emoji}</div>
+    <div className="tile text-left rounded-2xl bg-white border border-saffron-200/60 shadow-sm p-6 stitched">
+      <div className="grid place-items-center h-14 w-14 rounded-2xl bg-saffron-100 text-saffron-700 mb-4">{icon}</div>
       <h3 className="font-display font-semibold text-xl text-ink">{title}</h3>
       <p className="text-ink-mute text-sm mt-1.5 leading-relaxed">{body}</p>
-    </button>
-  );
-}
-
-function HomeProductCard({ p, badge, badgeColor }: { p: any; badge?: string; badgeColor?: string }) {
-  const quote = listingPrice(p);
-  const available = quote.available;
-  const effective = quote.min;
-  const showFrom = quote.from;
-  const noBaseNoVariants = effective <= 0;
-  const validBase = p.price > 0 ? p.price : null;
-  const variants = (p.variants || []).filter((v: any) => !v.outOfStock);
-  const unitLabel = p.unitQty && p.unitType ? `${p.unitQty} ${p.unitType}` : null;
-  const sizes = variants.filter((v: any) => v.type === "size");
-  const lengths = variants.filter((v: any) => v.type === "length");
-  const colors = variants.filter((v: any) => v.type === "color");
-  const packs = variants.filter((v: any) => v.type === "pack");
-
-  return (
-    <Link href={`/product/${p.slug}`} className="egg-prod tile flex flex-col rounded-2xl bg-white border border-brand-100 hover:border-saffron-300 shadow-sm overflow-hidden">
-      <div className="img relative grid place-items-center aspect-square bg-brand-50 text-6xl overflow-hidden">
-        {!available ? (
-          <span className="absolute top-2 left-2 rounded-full bg-ink text-cream text-[11px] font-bold px-2.5 py-1 z-10 shadow">Out of stock</span>
-        ) : badge ? (
-          <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-emerald-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{badge}</span>
-        ) : null}
-        {p.imageUrl ? (
-          <SmartImage src={p.imageUrl} alt={p.name} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
-        ) : (
-          <span>🧵</span>
-        )}
-      </div>
-      <div className="p-3 sm:p-4">
-        <h3 className="font-display font-semibold text-base sm:text-lg leading-snug text-balance text-ink">
-          {p.name}
-          {unitLabel && lengths.length === 0 && <span className="text-ink-mute"> — {unitLabel}</span>}
-        </h3>
-        {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (
-          <div className="text-[11px] mt-1 space-y-0.5">
-            {sizes.length > 0 && <PillRow label="Sizes" items={sizes.map((v: any) => v.name)} />}
-            {lengths.length > 0 && <PillRow label="Lengths" items={lengths.map((v: any) => v.name)} />}
-            {packs.length > 0 && <PillRow label="Packs" items={packs.map((v: any) => v.name)} />}
-            {colors.length > 1 && <div className="text-ink-mute">{colors.length} colors</div>}
-          </div>
-        )}
-        {!available ? (
-          <p className="mt-2 text-sm font-semibold text-red-600">Out of stock</p>
-        ) : (
-          <p className="mt-2 flex items-baseline gap-2">
-            {noBaseNoVariants ? (
-              <span className="text-sm text-ink-mute">See options</span>
-            ) : (
-              <>
-                {showFrom && <span className="text-xs text-ink-mute">From</span>}
-                <span className="font-display font-bold text-saffron-700 text-lg">{formatLKR(effective)}</span>
-                {!showFrom && effective === p.salePrice && validBase != null && p.salePrice && (
-                  <span className="text-ink-mute text-sm line-through">{formatLKR(p.price)}</span>
-                )}
-              </>
-            )}
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-function PillRow({ label, items }: { label: string; items: string[] }) {
-  const display = items.slice(0, 3);
-  const extra = items.length - display.length;
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      <span className="text-ink-mute">{label}:</span>
-      {display.map((n, i) => (
-        <span key={i} className="inline-block px-1.5 py-0 rounded bg-saffron-50 border border-saffron-200/60 text-saffron-700">{n}</span>
-      ))}
-      {extra > 0 && <span className="text-ink-mute">+{extra}</span>}
     </div>
   );
 }

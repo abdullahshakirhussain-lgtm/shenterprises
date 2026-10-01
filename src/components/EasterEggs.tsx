@@ -209,7 +209,8 @@ export default function EasterEggs() {
     }
 
     /* ---------- idle 15s → needle + heart ---------- */
-    const idle = $("#idle") as HTMLElement | null;
+    // Mouse-driven devices only: on phones the floating heart sat over product cards.
+    const idle = window.matchMedia("(hover: hover) and (pointer: fine)").matches ? $("#idle") as HTMLElement | null : null;
     let idleT: any;
     function resetIdle() {
       if (!idle) return;

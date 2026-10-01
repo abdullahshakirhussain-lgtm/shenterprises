@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { contentId } from "@/lib/contentId";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, unitLabel as formatUnit } from "@/lib/utils";
 import { pixelTrack } from "@/lib/pixel";
 import SmartImage from "@/components/SmartImage";
 
@@ -394,7 +394,7 @@ function ProductRow({
   }
 
   const basePrice = (product.salePrice ?? product.price) > 0 ? (product.salePrice ?? product.price) : null;
-  const unitLabel = product.unitQty && product.unitType ? `${product.unitQty} ${product.unitType}` : null;
+  const unitLabel = formatUnit(product.unitQty, product.unitType);
 
   if (groupsByType.length === 0) {
     if (basePrice == null) return null;

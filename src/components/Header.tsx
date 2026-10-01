@@ -85,6 +85,8 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
           <img
             src="/logo-header.webp"
             alt="SH Enterprises"
+            width={190}
+            height={128}
             className="h-10 sm:h-12 w-auto transition-transform group-hover:rotate-[-6deg]"
           />
           <span className="hidden sm:block leading-tight">
@@ -111,7 +113,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
                 : "border-ink/20 text-ink hover:bg-ink hover:text-cream"
             }`}
           >
-            <span aria-hidden>⚙</span> Machines
+            <GearIcon /> Machines
           </Link>
           <Link href="/offers" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("offers")}</Link>
           <Link href="/track" className="hover:text-saffron-700 text-ink-soft transition-colors">{t("track_my_order")}</Link>
@@ -174,7 +176,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
                   type="button"
                   onClick={() => scrollStrip(-1)}
                   aria-label="Scroll categories left"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
                 >
                   <span className="text-sm font-bold leading-none" aria-hidden>&lsaquo;</span>
                 </button>
@@ -203,7 +205,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
                     : "bg-ink text-cream border-ink hover:bg-ink-soft"
                 }`}
               >
-                <span aria-hidden>⚙</span> Machines
+                <GearIcon /> Machines
               </Link>
               {categories.map(c => {
                 const active = pathname === `/category/${c.slug}`;
@@ -231,7 +233,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
                   type="button"
                   onClick={() => scrollStrip(1)}
                   aria-label="Scroll categories right"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 grid place-items-center rounded-full bg-white border border-saffron-300 text-ink hover:bg-saffron-50 hover:border-saffron-500 shadow-sm transition-colors"
                 >
                   <span className="text-sm font-bold leading-none" aria-hidden>&rsaquo;</span>
                 </button>
@@ -246,7 +248,7 @@ export default function Header({ categories }: { categories: CategoryNav[] }) {
         <div className="lg:hidden border-t border-saffron-200/40 bg-cream shadow-inner max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain">
           <div className="container-x py-4 space-y-1">
             <Link href="/shop" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("shop_everything")}</Link>
-            <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><span aria-hidden>⚙</span> Machines</Link>
+            <Link href="/machines" className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-ink text-cream font-display font-semibold text-base transition-colors"><GearIcon /> Industrial machines</Link>
             <Link href="/offers" className="block py-2.5 px-3 rounded-lg text-ink font-display font-semibold text-base hover:bg-saffron-100 transition-colors">{t("offers")}</Link>
             {/* Product categories — previously only reachable via the sideways-scrolling strip */}
             {categories.length > 0 && (
@@ -298,5 +300,15 @@ function CartButton({ count, bump, label, compact }: { count: number; bump: bool
         </span>
       )}
     </Link>
+  );
+}
+
+// Drawn gear for the Machines links (the ⚙ emoji rendered differently on every phone).
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1" />
+    </svg>
   );
 }

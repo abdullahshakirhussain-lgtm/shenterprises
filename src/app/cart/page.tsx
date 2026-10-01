@@ -3,6 +3,7 @@ import { useCart } from "@/components/CartProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { formatLKR } from "@/lib/utils";
 import Link from "next/link";
+import EmptyCart from "@/components/EmptyCart";
 import SmartImage from "@/components/SmartImage";
 
 export default function CartPage() {
@@ -12,14 +13,7 @@ export default function CartPage() {
     <div className="container-x py-8">
       <h1 className="font-display text-3xl text-brand-900 mb-6">{t("your_cart")}</h1>
       {items.length === 0 ? (
-        <div className="relative overflow-hidden rounded-2xl bg-white border border-saffron-200/60 shadow-md p-10 text-center stitched">
-          <div className="text-5xl mb-3">🧺</div>
-          <p className="font-display italic text-xl text-ink mb-2">{t("cart_empty")}</p>
-          <p className="text-ink-mute text-sm mb-5">Find threads, trims, and tools to bring your next make to life.</p>
-          <Link href="/shop" className="rounded-xl bg-ink hover:bg-ink-soft text-cream text-sm font-bold px-5 py-2.5 transition-colors">
-            {t("continue_shopping")}
-          </Link>
-        </div>
+        <EmptyCart />
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-3">

@@ -34,6 +34,17 @@ export default function ReviewSection({ productId, initialReviews }: { productId
 
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
+  // No reviews and not logged in: one quiet line instead of an empty section
+  // that mostly advertises that nobody has reviewed the product.
+  if (reviews.length === 0 && !me) {
+    return (
+      <p className="mt-10 text-sm text-brand-600">
+        Bought this before?{" "}
+        <Link href="/account/login" className="text-brand-700 underline">Log in</Link> to leave the first review.
+      </p>
+    );
+  }
+
   return (
     <section className="mt-12">
       <h2 className="font-display text-2xl text-brand-900 mb-2">Customer reviews</h2>
