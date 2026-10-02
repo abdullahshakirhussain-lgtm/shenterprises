@@ -2,12 +2,16 @@ import { listingPrice } from "@/lib/commerce";
 import Link from "next/link";
 import { formatLKR, unitLabel as formatUnit } from "@/lib/utils";
 import SmartImage from "@/components/SmartImage";
+import { getServerLang } from "@/lib/i18n-server";
+import { productName } from "@/lib/seoLang";
 
 type Variant = { type: string; name: string; price?: number | null; salePrice?: number | null; outOfStock?: boolean };
 
 type Product = {
   id: number;
   name: string;
+  nameSi?: string | null;
+  nameTa?: string | null;
   slug: string;
   price: number;
   salePrice: number | null;
@@ -25,7 +29,9 @@ type Product = {
  * related products) so listings look the same across the site.
  * `egg-prod` / `img` are hooks for the homepage easter eggs.
  */
-export default function ProductCard({ p, badge, badgeColor, priority = false }: { p: Product; badge?: string; badgeColor?: string; priority?: boolean }) {
+// Server component: shows the Sinhala/Tamil name on /si and /ta pages.
+export default async function ProductCard({ p, badge, badgeColor, priority = false }: { p: Product; badge?: string; badgeColor?: string; priority?: boolean }) {
+  const name = productName(p, await getServerLang());
   const quote = listingPrice(p);
   const available = quote.available;
   const effective = quote.min;
@@ -50,14 +56,14 @@ export default function ProductCard({ p, badge, badgeColor, priority = false }: 
           <span className={`absolute top-2 left-2 rounded-full ${badgeColor || "bg-saffron-600"} text-white text-[11px] font-bold px-2.5 py-1 z-10 shadow`}>{tag}</span>
         ) : null}
         {p.imageUrl ? (
-          <SmartImage src={p.imageUrl} alt={p.name} priority={priority} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
+          <SmartImage src={p.imageUrl} alt={name} priority={priority} sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px" />
         ) : (
           <span aria-hidden>🧵</span>
         )}
       </div>
       <div className="p-3 sm:p-4 flex flex-col flex-1">
         <h3 className="font-display font-semibold text-[15px] sm:text-lg leading-snug text-balance text-ink line-clamp-3">
-          {p.name}
+          {name}
           {unitLabel && lengths.length === 0 && <span className="text-ink-mute font-normal"> — {unitLabel}</span>}
         </h3>
         {(sizes.length > 0 || lengths.length > 0 || packs.length > 0 || colors.length > 1) && (

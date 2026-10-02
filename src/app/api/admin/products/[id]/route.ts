@@ -26,6 +26,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (b.featured !== undefined)    data.featured = !!b.featured;
     if (b.active !== undefined)      data.active = b.active !== false;
     if (b.outOfStock !== undefined)  data.outOfStock = !!b.outOfStock;
+    if (b.nameSi !== undefined)      data.nameSi = b.nameSi || null;
+    if (b.nameTa !== undefined)      data.nameTa = b.nameTa || null;
     if (b.metaTitle !== undefined)   data.metaTitle = b.metaTitle || null;
     if (b.metaDesc !== undefined)    data.metaDesc = b.metaDesc || null;
 

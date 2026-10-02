@@ -5,13 +5,16 @@ import { memo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { langAlternates } from "@/lib/seoLang";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "Offers — Discounted Craft & Tailoring Supplies",
-  description: "Special discounts on threads, zippers, buttons and more at SH Enterprises.",
-  alternates: { canonical: "/offers" }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Offers — Discounted Craft & Tailoring Supplies",
+    description: "Special discounts on threads, zippers, buttons and more at SH Enterprises.",
+    alternates: await langAlternates("/offers"),
+  };
+}
 
 // With only a handful of offers the page looked empty/broken, so it's topped up
 // with the newest products under a clear "More to explore" heading.

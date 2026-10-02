@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { memo } from "@/lib/memo";
 import { getT } from "@/lib/i18n-server";
 import type { Metadata } from "next";
+import { langAlternates } from "@/lib/seoLang";
 
 export const dynamic = "force-dynamic";
 // Canonical strips all filter/sort/pagination params (q/cat/sort/min/max/page)
@@ -13,7 +14,7 @@ export async function generateMetadata(props: { searchParams: Promise<SP> }): Pr
   const searchParams = await props.searchParams;
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const filtered = !!(searchParams.q || searchParams.cat || searchParams.min || searchParams.max || searchParams.sort || searchParams.stock);
-  return { title: "Shop all products", alternates: { canonical: !filtered && page > 1 ? `/shop?page=${page}` : "/shop" } };
+  return { title: "Shop all products", alternates: await langAlternates(!filtered && page > 1 ? `/shop?page=${page}` : "/shop") };
 }
 
 type SP = { q?: string; cat?: string; sort?: string; min?: string; max?: string; page?: string; stock?: string };

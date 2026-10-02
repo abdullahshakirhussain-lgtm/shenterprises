@@ -29,6 +29,13 @@ export async function drainOrderJobs(orderId?: number) {
  const result = await sendSms(phone, "SH Enterprises: Order " + order.orderNumber + " received. Total Rs " +
  Math.round(order.total).toLocaleString("en-US") + ". Receipt: " + base + "/order/" + order.orderNumber);
  if (!result.ok) throw new Error("SMS delivery failed");
+ } else if (job.kind === "review_request") {
+ // One short SMS (single segment) with the no-login review link — see lib/reviewRequests.ts.
+ const phone = normalizePhone(order.phone);
+ if (!phone || !job.context) throw new Error("Invalid review request");
+ const base = process.env.SITE_URL || "https://shenterprises.lk";
+ const result = await sendSms(phone, "SH Enterprises: How was your order? Tap to rate your items (takes a minute): " + base + "/r/" + job.context);
+ if (!result.ok) throw new Error("SMS delivery failed");
  } else if (job.kind === "meta") {
  const context = JSON.parse(job.context || "{}");
  const result = await sendMetaEvent({

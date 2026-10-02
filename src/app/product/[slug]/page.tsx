@@ -7,7 +7,8 @@ import ProductCard from "@/components/ProductCard";
 import RelatedHeading from "@/components/RelatedHeading";
 import ReviewSection from "@/components/ReviewSection";
 import JsonLd, { breadcrumbSchema, safeJsonLd, productSchema } from "@/components/JsonLd";
-import { getT } from "@/lib/i18n-server";
+import { getT, getServerLang } from "@/lib/i18n-server";
+import { langAlternates, productName } from "@/lib/seoLang";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -29,10 +30,11 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const params = await props.params;
   const p = await loadProduct(params.slug);
   if (!p) return { title: "Product not found" };
+  const lang = await getServerLang();
   return {
-    title: p.metaTitle || p.name,
+    title: lang === "en" ? (p.metaTitle || p.name) : productName(p, lang),
     description: p.metaDesc || (p.description ?? `Buy ${p.name} online at SH Enterprises. Island-wide delivery in Sri Lanka.`),
-    alternates: { canonical: `/product/${p.slug}` },
+    alternates: await langAlternates(`/product/${p.slug}`),
     openGraph: {
       title: p.name,
       description: p.description || undefined,
@@ -85,13 +87,13 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
       <nav className="text-sm text-brand-700 mb-4">
         <Link href="/">{(await getT())("breadcrumb_home")}</Link> /{" "}
         {p.category && (<><Link href={`/category/${p.category.slug}`}>{p.category.name}</Link> / </>)}
-        <span>{p.name}</span>
+        <span>{productName(p, await getServerLang())}</span>
       </nav>
 
       <ProductTopSection key={p.id + ":" + p.updatedAt.toISOString()}
         product={{
           id: p.id,
-          name: p.name,
+          name: productName(p, await getServerLang()),
           slug: p.slug,
           description: p.description,
           price: p.price,

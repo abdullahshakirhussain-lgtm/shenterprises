@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
         featured: !!b.featured,
         active: b.active !== false,
         outOfStock: !!b.outOfStock,
+        nameSi: b.nameSi || null,
+        nameTa: b.nameTa || null,
         metaTitle: b.metaTitle || null,
         metaDesc: b.metaDesc || null
       },

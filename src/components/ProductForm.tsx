@@ -14,6 +14,7 @@ type Product = {
   onOffer: boolean; featured: boolean; active: boolean;
   outOfStock?: boolean;
   metaTitle?: string | null; metaDesc?: string | null;
+  nameSi?: string | null; nameTa?: string | null;
 };
 
 function parseImages(v: string | string[] | null | undefined): string[] {
@@ -387,6 +388,16 @@ export default function ProductForm({ initial, categories: initialCategories }: 
             className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200 disabled:opacity-50">
             {genBusy === "seo" ? "Generating…" : "✨ Generate meta title + description with AI"}
           </button>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Sinhala name <span className="text-xs text-brand-500">(shown on /si pages)</span></label>
+              <input className="input" value={p.nameSi ?? ""} onChange={(e) => up("nameSi", e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Tamil name <span className="text-xs text-brand-500">(shown on /ta pages)</span></label>
+              <input className="input" value={p.nameTa ?? ""} onChange={(e) => up("nameTa", e.target.value)} />
+            </div>
+          </div>
           <div>
             <label className="label">Meta title <span className="text-xs text-brand-500">({(p.metaTitle || "").length}/60)</span></label>
             <input className="input" maxLength={60} value={p.metaTitle ?? ""} onChange={(e) => up("metaTitle", e.target.value)} />

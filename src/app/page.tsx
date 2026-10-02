@@ -11,12 +11,15 @@ import { fetchOfferProducts } from "@/lib/offers";
 import { getSetting } from "@/lib/settings";
 import { normalizePhone } from "@/lib/userAuth";
 import type { Metadata } from "next";
+import { langAlternates } from "@/lib/seoLang";
 
 export const dynamic = "force-dynamic";
 
 // Self-referencing canonical so UTM/ref-tagged homepage URLs (e.g. /?utm_source=…)
 // don't register as duplicates. Resolved to absolute via metadataBase (layout).
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { alternates: await langAlternates("/") };
+}
 
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try { return await fn(); }

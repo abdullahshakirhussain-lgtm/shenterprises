@@ -59,6 +59,8 @@ model Category {
 model Product {
   id          Int       @id @default(autoincrement())
   name        String
+  nameSi      String?   // Sinhala name for /si pages (falls back to name)
+  nameTa      String?   // Tamil name for /ta pages (falls back to name)
   slug        String    @unique
   description String?
   price       Float

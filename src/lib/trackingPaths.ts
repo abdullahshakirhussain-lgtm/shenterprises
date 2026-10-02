@@ -1,5 +1,5 @@
 export function isPrivatePath(path: string): boolean {
- return /^\/(admin|api|account|order|track)(\/|$)/.test(path) || path.startsWith("/checkout/success");
+ return /^\/(admin|api|account|order|track|r)(\/|$)/.test(path) || path.startsWith("/checkout/success");
 }
 export function cleanTrackingPath(path: string): string {
  const url = new URL(path, "https://shenterprises.lk");
