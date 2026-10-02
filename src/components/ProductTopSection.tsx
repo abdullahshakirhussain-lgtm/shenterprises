@@ -34,6 +34,7 @@ export default function ProductTopSection({
   avgRating,
   reviewCount,
   categoryName,
+  initialVariantIds = [],
 }: {
   product: {
     id: number;
@@ -53,6 +54,7 @@ export default function ProductTopSection({
   avgRating: number;
   reviewCount: number;
   categoryName?: string | null;   // for Meta ViewContent content_category
+  initialVariantIds?: number[];   // preselected options from ?v= (feed links)
 }) {
   const { add } = useCart();
   const { lang, t } = useLanguage();
@@ -89,13 +91,14 @@ export default function ProductTopSection({
   const lengthVariants = variants.filter(v => v.type === "length");
   const packVariants = variants.filter(v => v.type === "pack");
 
-  const [selColor, setSelColor] = useState<Variant | null>(null);
-  const [selSize, setSelSize] = useState<Variant | null>(null);
-  const [selLength, setSelLength] = useState<Variant | null>(null);
-  const [selPack, setSelPack] = useState<Variant | null>(null);
+  const pre = (type: string) => variants.find(v => v.type === type && !v.outOfStock && initialVariantIds.includes(v.id)) || null;
+  const [selColor, setSelColor] = useState<Variant | null>(() => pre("color"));
+  const [selSize, setSelSize] = useState<Variant | null>(() => pre("size"));
+  const [selLength, setSelLength] = useState<Variant | null>(() => pre("length"));
+  const [selPack, setSelPack] = useState<Variant | null>(() => pre("pack"));
 
   // Active main image — swaps to selected color's crop when available
-  const [activeImage, setActiveImage] = useState<string | null>(images[0] || null);
+  const [activeImage, setActiveImage] = useState<string | null>(() => pre("color")?.imageUrl || images[0] || null);
   const [fading, setFading] = useState(false);
 
   // When color changes, swap the main image with a tiny crossfade.

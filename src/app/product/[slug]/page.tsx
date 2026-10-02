@@ -42,8 +42,11 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   };
 }
 
-export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<{ v?: string }> }) {
   const params = await props.params;
+  // ?v=12,34 preselects those options (used by the Google Merchant feed so each
+  // feed item lands on a page already showing that option's price).
+  const preselect = ((await props.searchParams).v || "").split(",").map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, 10);
   const p = await loadProduct(params.slug);
   if (!p || !p.active) notFound();
 
@@ -114,6 +117,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         avgRating={avg}
         reviewCount={p.reviews.length}
         categoryName={p.category?.name ?? null}
+        initialVariantIds={preselect}
       />
 
       {related.length > 0 && (
