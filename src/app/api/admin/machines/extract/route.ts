@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 Read the text in the image and extract:
 - "modelNumber": the machine's model/part number exactly as printed (e.g. "JK-8720", "GC6-28-1", "S-7200C"). Keep the exact characters, dashes and letters.
 - "name": a short human product name/type (e.g. "Single Needle Direct Drive Lockstitch", "Overlock 4-Thread"). If not clearly stated, infer a sensible short type from what's visible.
-- "brand": the brand printed on it (e.g. "Prime", "Juki", "Jack"). Default to "Prime" if none is visible.
+- "brand": the brand printed on it (e.g. "PRIME", "Juki", "Jack"). Default to "PRIME" if none is visible.
 
 If you truly cannot read a model number, return an empty string for it.
 
@@ -64,7 +64,7 @@ Respond ONLY with JSON: {"modelNumber":"...","name":"...","brand":"..."}`
     return NextResponse.json({
       modelNumber: String(parsed.modelNumber || "").trim().slice(0, 60),
       name: String(parsed.name || "").trim().slice(0, 160),
-      brand: String(parsed.brand || "Prime").trim().slice(0, 40) || "Prime",
+      brand: String(parsed.brand || "PRIME").trim().slice(0, 40) || "PRIME",
     });
   } catch (e: any) {
     console.warn("[machines/extract] failed:", e?.message);

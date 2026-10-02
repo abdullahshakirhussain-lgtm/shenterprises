@@ -30,7 +30,11 @@ const nextConfig = {
   // failed image loads to stick across reloads).
   // The AI helper was removed (Sep 2026); send old links and search results to the shop.
   async redirects() {
-    return [{ source: "/ai-helper/:path*", destination: "/shop", permanent: true }];
+    return [
+      { source: "/ai-helper/:path*", destination: "/shop", permanent: true },
+      // The one-product "Machines" category was removed (Oct 2026); its product moved to Tools & Accessories.
+      { source: "/category/machines", destination: "/machines", permanent: true },
+    ];
   },
   async headers() {
     return [

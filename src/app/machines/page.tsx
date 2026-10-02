@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Industrial Sewing & Embroidery Machines — Price Sri Lanka",
   description:
-    "Authorised PRiME dealer in Sri Lanka. Single-needle lockstitch, overlock, flatlock, buttonhole, bartack & embroidery machines. Genuine warranty, island-wide delivery, in-house service. Call or WhatsApp for today's best price.",
+    "Authorised PRIME dealer in Sri Lanka. Single-needle lockstitch, overlock, flatlock, buttonhole, bartack & embroidery machines. Genuine warranty, island-wide delivery, in-house service. Call or WhatsApp for today's best price.",
   // Canonical strips ?type= so the filtered variants fold into /machines.
   alternates: { canonical: "/machines" },
 };
@@ -30,7 +30,7 @@ export default async function MachinesPage(props: { searchParams: Promise<{ type
   const tel = phone ? `tel:+${phone}` : "tel:";
   const waBase = phone ? `https://wa.me/${phone}` : "https://wa.me/";
   const wa = (model?: string) =>
-    `${waBase}?text=${encodeURIComponent(model ? `Hi, I'm interested in the PRiME ${model}. Please send the best price.` : "Hi, I'm interested in your industrial machines. Please share prices.")}`;
+    `${waBase}?text=${encodeURIComponent(model ? `Hi, I'm interested in the PRIME ${model}. Please send the best price.` : "Hi, I'm interested in your industrial machines. Please share prices.")}`;
 
   // Browse-by-type: admin-managed MachineTypes (each has its own SEO hub page
   // at /machines/{slug}) with live counts from the machines' category strings.
@@ -62,7 +62,7 @@ export default async function MachinesPage(props: { searchParams: Promise<{ type
         <div className="flex-[1.1_1_420px] min-w-0">
           <div className="inline-flex items-center gap-2.5 bg-[#FBF1E2] border border-[#EFD9B4] rounded-full px-4 py-1.5 text-[12.5px] font-extrabold tracking-[.08em] uppercase text-[#96590E]">
             <span className="w-[7px] h-[7px] rounded-full bg-[#E0973F]" />
-            Authorised PRiME dealer · Sri Lanka
+            Authorised PRIME dealer · Sri Lanka
           </div>
           <h1 className="font-display font-semibold text-[clamp(36px,5vw,58px)] leading-[1.06] tracking-[-.02em] mt-[18px] mb-4">
             Industrial sewing &amp; embroidery machines, <span className="italic text-[#B9741F]">island-wide.</span>

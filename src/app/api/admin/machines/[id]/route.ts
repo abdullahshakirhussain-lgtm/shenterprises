@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const data: any = {};
 
     if (b.modelNumber !== undefined) data.modelNumber = String(b.modelNumber).trim();
-    if (b.brand !== undefined)       data.brand = (b.brand || "Prime").trim();
+    if (b.brand !== undefined)       data.brand = (b.brand || "PRIME").trim();
     if (b.name !== undefined)        data.name = String(b.name).trim();
     if (b.category !== undefined)    data.category = b.category || null;
     if (b.price !== undefined)       data.price = b.price == null || b.price === "" ? null : parseFloat(b.price);

@@ -12,7 +12,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  *  - Use ONLY the specs the admin provided; never invent specific numbers.
  *  - Equivalents are derived from the machine CLASS (name/category/specs), which
  *    is far more reliable than mapping an obscure house-brand model number. This
- *    is why the old "suggest by model number" felt weak for the Prime brand.
+ *    is why the old "suggest by model number" felt weak for the PRIME brand.
  *  - Everything is a SUGGESTION the admin reviews before saving.
  */
 export async function POST(req: NextRequest) {
@@ -66,7 +66,7 @@ FAQ guidance: 4-5 questions a real buyer would search, phrased with the TYPE (e.
         },
         {
           role: "user",
-          content: `Brand: ${brand || "Prime"}
+          content: `Brand: ${brand || "PRIME"}
 Model number: ${modelNumber || "(unknown)"}
 Name/type: ${name || "(unknown)"}
 Category: ${category || "(unknown)"}

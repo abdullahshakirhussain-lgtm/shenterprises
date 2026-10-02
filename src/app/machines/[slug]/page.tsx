@@ -61,7 +61,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     const desc = (
       type.seoIntro ||
       type.blurb ||
-      `${type.name} in Sri Lanka from SH Enterprises — authorised PRiME dealer. Genuine warranty, island-wide delivery & in-house service. Call or WhatsApp for today's best price.`
+      `${type.name} in Sri Lanka from SH Enterprises — authorised PRIME dealer. Genuine warranty, island-wide delivery & in-house service. Call or WhatsApp for today's best price.`
     ).slice(0, 158);
     return {
       title,
@@ -117,7 +117,7 @@ async function TypeHub({ type }: { type: MachineType }) {
   const tel = phone ? `tel:+${phone}` : "tel:";
   const waBase = phone ? `https://wa.me/${phone}` : "https://wa.me/";
   const wa = (model?: string) =>
-    `${waBase}?text=${encodeURIComponent(model ? `Hi, I'm interested in the PRiME ${model}. Please send the best price.` : `Hi, I'm looking for a ${type.name.toLowerCase().replace(/s$/, "")}. Please share prices.`)}`;
+    `${waBase}?text=${encodeURIComponent(model ? `Hi, I'm interested in the PRIME ${model}. Please send the best price.` : `Hi, I'm looking for a ${type.name.toLowerCase().replace(/s$/, "")}. Please share prices.`)}`;
   const faq = parseFaq(type.faq);
   const siteUrl = process.env.SITE_URL || "https://shenterprises.lk";
 
@@ -170,7 +170,7 @@ async function TypeHub({ type }: { type: MachineType }) {
       <section className="max-w-[1200px] mx-auto px-5 pt-10 pb-2">
         <div className="inline-flex items-center gap-2.5 bg-[#FBF1E2] border border-[#EFD9B4] rounded-full px-4 py-1.5 text-[12.5px] font-extrabold tracking-[.08em] uppercase text-[#96590E]">
           <span className="w-[7px] h-[7px] rounded-full bg-[#E0973F]" />
-          Authorised PRiME dealer · Sri Lanka
+          Authorised PRIME dealer · Sri Lanka
         </div>
         <h1 className="font-display font-semibold text-[clamp(34px,4.6vw,54px)] leading-[1.06] tracking-[-.02em] mt-4 mb-4">
           {type.name} — <span className="italic text-[#B9741F]">Price Sri Lanka</span>

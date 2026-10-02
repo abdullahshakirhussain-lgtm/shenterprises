@@ -23,7 +23,7 @@ export default async function AdminMachines() {
       </div>
 
       {machines.length === 0 ? (
-        <p className="text-brand-600">No machines yet. Click “Add machine” to create your first Prime machine.</p>
+        <p className="text-brand-600">No machines yet. Click “Add machine” to create your first PRIME machine.</p>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">

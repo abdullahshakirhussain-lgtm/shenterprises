@@ -36,7 +36,7 @@ Respond ONLY JSON:
         },
         {
           role: "user",
-          content: `Brand: ${brand || "Prime"}\nModel: ${modelNumber || "(unknown)"}\nName/type: ${name || "(unknown)"}\nCategory: ${category || "(unknown)"}`,
+          content: `Brand: ${brand || "PRIME"}\nModel: ${modelNumber || "(unknown)"}\nName/type: ${name || "(unknown)"}\nCategory: ${category || "(unknown)"}`,
         },
       ],
     });

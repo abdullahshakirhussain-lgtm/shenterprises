@@ -40,7 +40,7 @@ export default function BulkMachineUpload() {
 
     const newRows: Row[] = files.map(f => ({
       id: uid(), file: f, previewUrl: URL.createObjectURL(f),
-      status: "pending", modelNumber: "", name: "", brand: "Prime", include: true,
+      status: "pending", modelNumber: "", name: "", brand: "PRIME", include: true,
     }));
     setRows(prev => [...prev, ...newRows]);
 
@@ -63,7 +63,7 @@ export default function BulkMachineUpload() {
       if (!res.ok) throw new Error(data.error || "Read failed");
       setRows(prev => prev.map(r => r.id === row.id ? {
         ...r, status: "ready", uploadedUrl: url,
-        modelNumber: data.modelNumber || "", name: data.name || "", brand: data.brand || "Prime",
+        modelNumber: data.modelNumber || "", name: data.name || "", brand: data.brand || "PRIME",
       } : r));
     } catch (e: any) {
       // Even on AI failure, keep the uploaded image so the admin can type the fields
@@ -103,7 +103,7 @@ export default function BulkMachineUpload() {
           body: JSON.stringify({
             modelNumber: row.modelNumber.trim(),
             name: row.name.trim(),
-            brand: row.brand.trim() || "Prime",
+            brand: row.brand.trim() || "PRIME",
             imageUrl,
             active: true,
           }),

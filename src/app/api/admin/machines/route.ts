@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     if (!b.name) return NextResponse.json({ error: "Name required" }, { status: 400 });
     if (!b.modelNumber) return NextResponse.json({ error: "Model number required" }, { status: 400 });
 
-    const brand = (b.brand || "Prime").trim();
+    const brand = (b.brand || "PRIME").trim();
     // Slug incorporates brand + model number for SEO, e.g. prime-jk-8720
     const slugBase = slugify(`${brand}-${b.modelNumber}`) || slugify(b.name);
     const slug = await uniqueSlug(slugBase);

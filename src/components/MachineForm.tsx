@@ -44,7 +44,7 @@ function parseJsonArray<T>(v: string | T[] | null | undefined): T[] {
 export default function MachineForm({ initial }: { initial?: Partial<Machine> }) {
   const router = useRouter();
   const [m, setM] = useState<Machine>({
-    modelNumber: "", brand: "Prime", name: "", active: true,
+    modelNumber: "", brand: "PRIME", name: "", active: true,
     ...(initial as any),
   });
   const [mainFile, setMainFile] = useState<File | null>(null);
@@ -268,7 +268,7 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
 
       <div>
         <label className="label">Warranty / trust info</label>
-        <textarea rows={2} className="input" placeholder="e.g. 1-year warranty. Authorized Prime dealer. Island-wide after-sales service." value={m.warrantyInfo ?? ""} onChange={e => up("warrantyInfo", e.target.value)} />
+        <textarea rows={2} className="input" placeholder="e.g. 1-year warranty. Authorized PRIME dealer. Island-wide after-sales service." value={m.warrantyInfo ?? ""} onChange={e => up("warrantyInfo", e.target.value)} />
       </div>
 
       {/* Cross-brand equivalents — SEO engine */}
@@ -307,7 +307,7 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
           <label className="label mb-0">FAQ (shows on page + Google rich snippets)</label>
           <button type="button" onClick={addFaq} className="text-xs px-2 py-1 rounded bg-brand-100 text-brand-700 hover:bg-brand-200">+ Add question</button>
         </div>
-        <p className="text-xs text-brand-600 mb-3">Great for capturing search queries, e.g. “Is the Prime {m.modelNumber || "X"} the same as the Juki DDL-8700?”.</p>
+        <p className="text-xs text-brand-600 mb-3">Great for capturing search queries, e.g. “Is the PRIME {m.modelNumber || "X"} the same as the Juki DDL-8700?”.</p>
         {faq.length === 0 ? (
           <p className="text-xs italic text-brand-400">No FAQs yet.</p>
         ) : (
@@ -327,7 +327,7 @@ export default function MachineForm({ initial }: { initial?: Partial<Machine> })
 
       <div>
         <label className="label">SEO intro paragraph <span className="text-brand-500 text-xs">(optional — keyword-rich lead shown at the top of the page)</span></label>
-        <textarea rows={3} className="input" placeholder="e.g. The Prime JK-8720 is a high-speed single-needle lockstitch industrial sewing machine — the direct equivalent of the Juki DDL-8700 — available in Sri Lanka with warranty and island-wide service." value={m.seoIntro ?? ""} onChange={e => up("seoIntro", e.target.value)} />
+        <textarea rows={3} className="input" placeholder="e.g. The PRIME JK-8720 is a high-speed single-needle lockstitch industrial sewing machine — the direct equivalent of the Juki DDL-8700 — available in Sri Lanka with warranty and island-wide service." value={m.seoIntro ?? ""} onChange={e => up("seoIntro", e.target.value)} />
       </div>
 
       {/* Main image */}
