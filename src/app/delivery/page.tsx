@@ -22,7 +22,7 @@ export default async function DeliveryPage() {
     <PolicyPage eyebrow="Help" title="Delivery information" updated="October 2026">
       <section>
         <h2>Where we deliver</h2>
-        <p>We deliver island-wide, to all 25 districts of Sri Lanka, by courier.</p>
+        <p>We deliver island-wide, to all 25 districts of Sri Lanka, with cash on delivery available everywhere.</p>
       </section>
       <section>
         <h2>Delivery fees</h2>
@@ -36,12 +36,12 @@ export default async function DeliveryPage() {
       </section>
       <section>
         <h2>How long it takes</h2>
-        <p>Orders are usually dispatched within 1–2 working days and arrive within 2–5 working days, depending on your location. You can follow your order any time on the <a href="/track">Track my order</a> page.</p>
+        <p>Orders are dispatched the same day or the next day, and delivered within 3 days. You can follow your order any time on the <a href="/track">Track my order</a> page.</p>
       </section>
       <section>
         <h2>Paying for your order</h2>
         <ul>
-          <li><strong>Cash on delivery</strong> — pay the courier when your order arrives.</li>
+          <li><strong>Cash on delivery, island-wide</strong> — pay the courier when your order arrives.</li>
           <li><strong>Bank deposit</strong> — upload your deposit slip at checkout; we dispatch once the payment is confirmed.</li>
         </ul>
       </section>

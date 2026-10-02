@@ -19,7 +19,7 @@ export default function TermsPage() {
         <ul>
           <li>All prices are in Sri Lankan Rupees (LKR). Delivery fees are shown at checkout before you place your order.</li>
           <li>Placing an order is an offer to buy. We confirm it once we&apos;ve checked stock (and, for bank deposits, received your payment).</li>
-          <li>If an item turns out to be unavailable or was listed at a clearly wrong price, we&apos;ll contact you and you can change or cancel the order; anything already paid is refunded.</li>
+          <li>If an item turns out to be unavailable or was listed at a clearly wrong price, we&apos;ll contact you and you can change or cancel the order.</li>
           <li>Colours may look slightly different on screen from the actual product.</li>
         </ul>
       </section>
@@ -30,10 +30,6 @@ export default function TermsPage() {
       <section>
         <h2>Industrial machines</h2>
         <p>Machine prices are quoted individually and confirmed with you before purchase.</p>
-      </section>
-      <section>
-        <h2>Returns</h2>
-        <p>See our <a href="/returns">Returns &amp; refunds</a> policy.</p>
       </section>
       <section>
         <h2>Governing law</h2>

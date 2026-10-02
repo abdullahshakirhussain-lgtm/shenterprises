@@ -51,7 +51,6 @@ export default function Footer({ phone, email, address }: { phone?: string; emai
           <ul className="text-sm">
             <li><Link className={linkCls} href="/track">{t("track_my_order")}</Link></li>
             <li><Link className={linkCls} href="/delivery">Delivery information</Link></li>
-            <li><Link className={linkCls} href="/returns">Returns &amp; refunds</Link></li>
             <li><Link className={linkCls} href="/privacy">Privacy policy</Link></li>
             <li><Link className={linkCls} href="/terms">Terms of sale</Link></li>
           </ul>
